@@ -42,8 +42,12 @@ const Login = () => {
         email,
         password: formData.password,
         options: {
-          persistSession: formData.rememberMe,
-        },
+          data: {
+            session: {
+              persistSession: formData.rememberMe
+            }
+          }
+        }
       });
 
       if (error) throw error;
