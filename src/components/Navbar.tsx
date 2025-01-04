@@ -1,8 +1,32 @@
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Navbar = () => {
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <nav className="fixed top-0 z-50 w-full bg-gradient-to-b from-background to-background/0 px-4 py-4">
       <div className="container mx-auto flex items-center justify-between">
@@ -23,16 +47,30 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Link to="/login">
-            <Button variant="ghost" className="text-gray-300 hover:text-white">
-              Sign In
-            </Button>
-          </Link>
-          <Link to="/register">
-            <Button className="bg-netflix-red hover:bg-netflix-red/90">
-              Sign Up
-            </Button>
-          </Link>
+          {session ? (
+            <>
+              <Button 
+                variant="ghost" 
+                className="text-gray-300 hover:text-white"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="ghost" className="text-gray-300 hover:text-white">
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button className="bg-netflix-red hover:bg-netflix-red/90">
+                  Sign Up
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
