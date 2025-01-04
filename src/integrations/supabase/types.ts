@@ -9,7 +9,144 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      movie_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          movie_id: string | null
+          rating: number | null
+          review: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movie_id?: string | null
+          rating?: number | null
+          review?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movie_id?: string | null
+          rating?: number | null
+          review?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movie_ratings_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movie_ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movies: {
+        Row: {
+          created_at: string
+          genre: string | null
+          id: string
+          language: string | null
+          thumbnail_url: string
+          title: string
+          youtube_id: string
+        }
+        Insert: {
+          created_at?: string
+          genre?: string | null
+          id?: string
+          language?: string | null
+          thumbnail_url: string
+          title: string
+          youtube_id: string
+        }
+        Update: {
+          created_at?: string
+          genre?: string | null
+          id?: string
+          language?: string | null
+          thumbnail_url?: string
+          title?: string
+          youtube_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          phone_number: string
+          subscription_plan: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          phone_number: string
+          subscription_plan?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone_number?: string
+          subscription_plan?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_movie_history: {
+        Row: {
+          id: string
+          movie_id: string | null
+          user_id: string | null
+          watch_duration: number | null
+          watched_at: string
+        }
+        Insert: {
+          id?: string
+          movie_id?: string | null
+          user_id?: string | null
+          watch_duration?: number | null
+          watched_at?: string
+        }
+        Update: {
+          id?: string
+          movie_id?: string | null
+          user_id?: string | null
+          watch_duration?: number | null
+          watched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_movie_history_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_movie_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
