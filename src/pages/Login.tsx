@@ -29,14 +29,32 @@ const Login = () => {
     });
   };
 
+  const formatPhoneNumber = (phone: string) => {
+    // Remove any spaces or special characters except + and numbers
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // Ensure it starts with +
+    if (!cleaned.startsWith('+')) {
+      return `+${cleaned}`;
+    }
+    return cleaned;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       // Determine if the identifier is a phone number or email
-      const isPhone = formData.identifier.startsWith("+");
-      const email = isPhone ? `${formData.identifier}@placeholder.com` : formData.identifier;
+      const isPhone = formData.identifier.includes('+') || /^\d+$/.test(formData.identifier);
+      let email;
+      
+      if (isPhone) {
+        const formattedPhone = formatPhoneNumber(formData.identifier);
+        email = `${formattedPhone}@placeholder.com`;
+      } else {
+        email = formData.identifier;
+      }
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -48,7 +66,8 @@ const Login = () => {
       toast.success("Successfully logged in!");
       navigate("/");
     } catch (error: any) {
-      toast.error(error.message);
+      console.error('Login error:', error);
+      toast.error(error.message || "Failed to login. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -68,7 +87,7 @@ const Login = () => {
               <Input
                 type="text"
                 name="identifier"
-                placeholder="Phone number or email"
+                placeholder="Phone number (e.g., +251912345678) or email"
                 className="bg-secondary"
                 value={formData.identifier}
                 onChange={handleChange}
