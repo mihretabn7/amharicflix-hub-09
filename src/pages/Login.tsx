@@ -30,14 +30,21 @@ const Login = () => {
   };
 
   const formatPhoneNumber = (phone: string) => {
-    // Remove any spaces or special characters except + and numbers
+    // Remove any non-digit characters except + from the phone number
     const cleaned = phone.replace(/[^\d+]/g, '');
     
-    // Ensure it starts with +
+    // If it doesn't start with +, add it
     if (!cleaned.startsWith('+')) {
-      return `+${cleaned}`;
+      // Assuming Ethiopian number if no country code
+      return `+251${cleaned.startsWith('0') ? cleaned.slice(1) : cleaned}`;
     }
     return cleaned;
+  };
+
+  const isValidPhoneNumber = (phone: string) => {
+    // Basic validation for Ethiopian phone numbers
+    const phoneRegex = /^\+251[0-9]{9}$/;
+    return phoneRegex.test(phone);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,13 +54,20 @@ const Login = () => {
     try {
       // Determine if the identifier is a phone number or email
       const isPhone = formData.identifier.includes('+') || /^\d+$/.test(formData.identifier);
-      let email;
+      let email = formData.identifier;
       
       if (isPhone) {
         const formattedPhone = formatPhoneNumber(formData.identifier);
+        
+        // Validate phone number format
+        if (!isValidPhoneNumber(formattedPhone)) {
+          throw new Error("Invalid phone number format. Please use format: +251912345678");
+        }
+        
         email = `${formattedPhone}@placeholder.com`;
+        console.log('Attempting login with phone:', formattedPhone);
       } else {
-        email = formData.identifier;
+        console.log('Attempting login with email:', email);
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -70,10 +84,19 @@ const Login = () => {
       navigate("/");
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to login. Please check your credentials.";
+      if (error.message.includes("Invalid phone number")) {
+        errorMessage = error.message;
+      } else if (error.message.includes("Invalid login credentials")) {
+        errorMessage = "Invalid phone number/email or password. Please try again.";
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to login. Please check your credentials.",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -94,7 +117,7 @@ const Login = () => {
               <Input
                 type="text"
                 name="identifier"
-                placeholder="Phone number (e.g., +251912345678) or email"
+                placeholder="Phone number (+251912345678) or email"
                 className="bg-secondary"
                 value={formData.identifier}
                 onChange={handleChange}
