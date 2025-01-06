@@ -18,7 +18,7 @@ const Movies = () => {
     return data;
   };
 
-  const { data: movies, isLoading, error } = useQuery({
+  const { data: movies, isLoading, error, refetch } = useQuery({
     queryKey: ['movies'],
     queryFn: fetchMovies,
   });
@@ -26,16 +26,32 @@ const Movies = () => {
   useEffect(() => {
     const fetchYoutubeMovies = async () => {
       try {
-        await supabase.functions.invoke('fetch-ethiopian-movies');
-        toast.success('Movies updated successfully');
+        toast.loading('Fetching movies from YouTube...');
+        const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies');
+        
+        if (error) {
+          console.error('Error invoking function:', error);
+          toast.error('Failed to fetch movies: ' + error.message);
+          return;
+        }
+
+        console.log('Function response:', data);
+        
+        if (data.processed === 0) {
+          toast.error('No new movies were fetched. Please check the YouTube API key.');
+          return;
+        }
+
+        await refetch(); // Refresh the movies list
+        toast.success(`Successfully fetched ${data.processed} movies`);
       } catch (error) {
         console.error('Error fetching movies:', error);
-        toast.error('Failed to fetch movies');
+        toast.error('Failed to fetch movies: ' + (error.message || 'Unknown error'));
       }
     };
 
     fetchYoutubeMovies();
-  }, []);
+  }, [refetch]);
 
   if (error) {
     toast.error('Error loading movies');
