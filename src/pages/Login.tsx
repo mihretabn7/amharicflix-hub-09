@@ -3,14 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    identifier: "", // Can be either phone or email
+    identifier: "",
     password: "",
     rememberMe: false,
   });
@@ -63,11 +63,18 @@ const Login = () => {
 
       if (error) throw error;
 
-      toast.success("Successfully logged in!");
+      toast({
+        title: "Success",
+        description: "Successfully logged in!",
+      });
       navigate("/");
     } catch (error: any) {
       console.error('Login error:', error);
-      toast.error(error.message || "Failed to login. Please check your credentials.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to login. Please check your credentials.",
+      });
     } finally {
       setLoading(false);
     }
