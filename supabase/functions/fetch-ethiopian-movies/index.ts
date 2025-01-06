@@ -16,11 +16,11 @@ Deno.serve(async (req) => {
       throw new Error('Missing YouTube API key')
     }
 
-    // Fetch videos from YouTube
-    const response = await fetch(
+    // Fetch videos from YouTube with more details
+    const searchResponse = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=Ethiopian+Movie&type=video&maxResults=50&key=${YOUTUBE_API_KEY}`
     )
-    const data = await response.json()
+    const searchData = await searchResponse.json()
 
     // Create Supabase client
     const supabaseClient = createClient(
@@ -28,15 +28,21 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log('Fetched videos:', searchData.items.length)
+
     // Process each video and store in database
-    for (const item of data.items) {
+    for (const item of searchData.items) {
       const { videoId } = item.id
-      const { title, thumbnails } = item.snippet
+      const { title, description, thumbnails } = item.snippet
+
+      // Get the highest quality thumbnail available
+      const thumbnail = thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default
 
       await supabaseClient.from('movies').upsert({
         youtube_id: videoId,
         title: title,
-        thumbnail_url: thumbnails.high.url,
+        description: description,
+        thumbnail_url: thumbnail.url,
         genre: 'Ethiopian Movie',
         language: 'Amharic'
       }, {
