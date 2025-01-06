@@ -41,13 +41,6 @@ const Login = () => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password: formData.password,
-        options: {
-          data: {
-            session: {
-              persistSession: formData.rememberMe
-            }
-          }
-        }
       });
 
       if (error) throw error;
