@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Play, Star, MessageSquare, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import MovieRating from "@/components/MovieRating";
+import GenreSuggestion from "@/components/GenreSuggestion";
 
 const isValidUUID = (uuid: string) => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -15,8 +17,23 @@ const MovieDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [session, setSession] = useState<any>(null);
 
-  const { data: movie, isLoading, error } = useQuery({
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const { data: movieData, isLoading, error, refetch } = useQuery({
     queryKey: ['movie', id],
     queryFn: async () => {
       if (!id || !isValidUUID(id)) {
@@ -25,14 +42,31 @@ const MovieDetail = () => {
         throw new Error("Invalid movie ID");
       }
 
-      const { data, error } = await supabase
-        .from('movies')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const [movieResponse, ratingsResponse, genresResponse] = await Promise.all([
+        supabase
+          .from('movies')
+          .select('*')
+          .eq('id', id)
+          .single(),
+        supabase
+          .from('movie_ratings')
+          .select('*')
+          .eq('movie_id', id),
+        supabase
+          .from('genre_suggestions')
+          .select('suggested_genre, count(*)')
+          .eq('movie_id', id)
+          .group('suggested_genre')
+          .order('count', { ascending: false })
+      ]);
 
-      if (error) throw error;
-      return data;
+      if (movieResponse.error) throw movieResponse.error;
+      
+      return {
+        movie: movieResponse.data,
+        ratings: ratingsResponse.data || [],
+        genreSuggestions: genresResponse.data || []
+      };
     },
   });
 
@@ -40,13 +74,14 @@ const MovieDetail = () => {
     return <div className="min-h-screen pt-16 flex items-center justify-center">Loading...</div>;
   }
 
-  if (error) {
+  if (error || !movieData) {
     return <div className="min-h-screen pt-16">Error loading movie details</div>;
   }
 
-  if (!movie) {
-    return <div className="min-h-screen pt-16">Movie not found</div>;
-  }
+  const { movie, ratings, genreSuggestions } = movieData;
+  const averageRating = ratings.length > 0
+    ? ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / ratings.length
+    : 0;
 
   return (
     <div className="min-h-screen pt-16">
@@ -79,11 +114,11 @@ const MovieDetail = () => {
                 </h1>
                 <div className="flex items-center space-x-4 text-sm text-gray-300 mb-6">
                   <span>{new Date(movie.created_at).getFullYear()}</span>
-                  <span>{movie.genre || 'Drama'}</span>
+                  <span>{movie.genre || 'Genre pending'}</span>
                   <span>{movie.language || 'Amharic'}</span>
                   <div className="flex items-center">
-                    <Star className="h-4 w-4 text-netflix-gold mr-1" />
-                    <span>New</span>
+                    <Star className="h-4 w-4 text-yellow-400 mr-1" />
+                    <span>{averageRating.toFixed(1)}</span>
                   </div>
                 </div>
                 <p className="text-lg text-gray-300 mb-8 max-w-xl">
@@ -98,9 +133,6 @@ const MovieDetail = () => {
                     <Play className="mr-2 h-5 w-5" /> Play Now
                   </Button>
                   <Button size="lg" variant="outline">
-                    <MessageSquare className="mr-2 h-5 w-5" /> Comments
-                  </Button>
-                  <Button size="lg" variant="outline">
                     <Share2 className="mr-2 h-5 w-5" /> Share
                   </Button>
                 </div>
@@ -113,17 +145,46 @@ const MovieDetail = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            <h2 className="text-2xl font-bold mb-4">About the Movie</h2>
-            <p className="text-gray-300">
-              {movie.description || 'No description available.'}
-            </p>
+            {session ? (
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-2xl font-bold mb-4">Rate & Review</h2>
+                  <MovieRating 
+                    movieId={movie.id} 
+                    userId={session.user.id}
+                    onRatingSubmit={refetch}
+                  />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold mb-4">Suggest Genre</h2>
+                  <GenreSuggestion
+                    movieId={movie.id}
+                    userId={session.user.id}
+                    onSuggestionSubmit={refetch}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-800 p-6 rounded-lg">
+                <p className="text-center">
+                  Please <Button variant="link" onClick={() => navigate('/login')}>sign in</Button> to rate, review, and suggest genres.
+                </p>
+              </div>
+            )}
           </div>
           <div>
             <h2 className="text-2xl font-bold mb-4">Movie Details</h2>
             <div className="space-y-4">
               <div>
-                <h3 className="font-medium">Genre</h3>
-                <p className="text-gray-300">{movie.genre || 'Not specified'}</p>
+                <h3 className="font-medium">Suggested Genres</h3>
+                <div className="space-y-2 mt-2">
+                  {genreSuggestions.map((suggestion: any) => (
+                    <div key={suggestion.suggested_genre} className="flex justify-between">
+                      <span>{suggestion.suggested_genre}</span>
+                      <span className="text-gray-400">{suggestion.count} votes</span>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div>
                 <h3 className="font-medium">Language</h3>

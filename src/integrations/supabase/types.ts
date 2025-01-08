@@ -9,6 +9,45 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      genre_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          movie_id: string | null
+          suggested_genre: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movie_id?: string | null
+          suggested_genre: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movie_id?: string | null
+          suggested_genre?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "genre_suggestions_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "genre_suggestions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movie_ratings: {
         Row: {
           created_at: string
