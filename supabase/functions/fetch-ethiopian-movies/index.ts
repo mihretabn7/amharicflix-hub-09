@@ -13,29 +13,31 @@ Deno.serve(async (req) => {
   try {
     const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY')
     if (!YOUTUBE_API_KEY) {
+      console.error('YouTube API key is not set')
       throw new Error('Missing YouTube API key')
     }
 
-    console.log('Starting YouTube API request...')
+    console.log('Starting YouTube API request with configured API key...')
 
     // Fetch videos from YouTube with more specific parameters
-    const searchResponse = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?` + 
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?` + 
       new URLSearchParams({
         part: 'snippet',
         q: 'Ethiopian Movie full length',
         type: 'video',
         maxResults: '50',
-        videoDuration: 'long', // Only get full movies
+        videoDuration: 'long',
         key: YOUTUBE_API_KEY,
-        relevanceLanguage: 'am', // Prefer Amharic content
-        videoDefinition: 'high' // Prefer HD content
+        relevanceLanguage: 'am',
+        videoDefinition: 'high'
       })
-    )
+
+    console.log('Fetching from YouTube API...')
+    const searchResponse = await fetch(searchUrl)
 
     if (!searchResponse.ok) {
       const errorData = await searchResponse.json()
-      console.error('YouTube API Error:', errorData)
+      console.error('YouTube API Error Response:', errorData)
       throw new Error(`YouTube API error: ${errorData.error?.message || 'Unknown error'}`)
     }
 
@@ -46,7 +48,7 @@ Deno.serve(async (req) => {
       throw new Error('Invalid response from YouTube API')
     }
 
-    console.log(`Fetched ${searchData.items.length} videos from YouTube`)
+    console.log(`Successfully fetched ${searchData.items.length} videos from YouTube`)
 
     // Create Supabase client
     const supabaseClient = createClient(
@@ -63,6 +65,8 @@ Deno.serve(async (req) => {
 
         // Get the highest quality thumbnail available
         const thumbnail = thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default
+
+        console.log(`Processing video: ${title} (${videoId})`)
 
         const { error: upsertError } = await supabaseClient
           .from('movies')
@@ -83,13 +87,14 @@ Deno.serve(async (req) => {
         }
 
         successCount++
+        console.log(`Successfully processed video ${successCount}: ${title}`)
       } catch (error) {
         console.error('Error processing video:', error)
         continue
       }
     }
 
-    console.log(`Successfully processed ${successCount} videos`)
+    console.log(`Successfully processed ${successCount} videos out of ${searchData.items.length}`)
 
     return new Response(
       JSON.stringify({ 
