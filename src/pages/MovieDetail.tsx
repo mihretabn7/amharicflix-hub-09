@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Play, Star, MessageSquare, Share2 } from "lucide-react";
+import { Play, Star, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import MovieRating from "@/components/MovieRating";
 import GenreSuggestion from "@/components/GenreSuggestion";
+import MovieDetailsSection from "@/components/MovieDetailsSection";
 
 const isValidUUID = (uuid: string) => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -42,7 +43,7 @@ const MovieDetail = () => {
         throw new Error("Invalid movie ID");
       }
 
-      const [movieResponse, ratingsResponse, genresResponse] = await Promise.all([
+      const [movieResponse, ratingsResponse] = await Promise.all([
         supabase
           .from('movies')
           .select('*')
@@ -51,21 +52,14 @@ const MovieDetail = () => {
         supabase
           .from('movie_ratings')
           .select('*')
-          .eq('movie_id', id),
-        supabase
-          .from('genre_suggestions')
-          .select('suggested_genre, count(*)')
           .eq('movie_id', id)
-          .group('suggested_genre')
-          .order('count', { ascending: false })
       ]);
 
       if (movieResponse.error) throw movieResponse.error;
       
       return {
         movie: movieResponse.data,
-        ratings: ratingsResponse.data || [],
-        genreSuggestions: genresResponse.data || []
+        ratings: ratingsResponse.data || []
       };
     },
   });
@@ -78,7 +72,7 @@ const MovieDetail = () => {
     return <div className="min-h-screen pt-16">Error loading movie details</div>;
   }
 
-  const { movie, ratings, genreSuggestions } = movieData;
+  const { movie, ratings } = movieData;
   const averageRating = ratings.length > 0
     ? ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / ratings.length
     : 0;
@@ -173,28 +167,7 @@ const MovieDetail = () => {
             )}
           </div>
           <div>
-            <h2 className="text-2xl font-bold mb-4">Movie Details</h2>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium">Suggested Genres</h3>
-                <div className="space-y-2 mt-2">
-                  {genreSuggestions.map((suggestion: any) => (
-                    <div key={suggestion.suggested_genre} className="flex justify-between">
-                      <span>{suggestion.suggested_genre}</span>
-                      <span className="text-gray-400">{suggestion.count} votes</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="font-medium">Language</h3>
-                <p className="text-gray-300">{movie.language}</p>
-              </div>
-              <div>
-                <h3 className="font-medium">Added on</h3>
-                <p className="text-gray-300">{new Date(movie.created_at).toLocaleDateString()}</p>
-              </div>
-            </div>
+            <MovieDetailsSection movie={movie} />
           </div>
         </div>
       </div>
