@@ -1,4 +1,5 @@
 import { Movie } from "@/types/movie";
+import GenreSuggestionsDisplay from "./GenreSuggestionsDisplay";
 
 interface MovieDetailsSectionProps {
   movie: Movie;
