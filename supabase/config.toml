@@ -1,3 +1,4 @@
 project_id = "cpmsosselmriytkdxdrc"
+
 [functions.fetch-ethiopian-movies]
 verify_jwt = false

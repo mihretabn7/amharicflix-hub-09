@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -32,64 +33,69 @@ Deno.serve(async (req) => {
     for (const query of searchQueries) {
       console.log(`Searching for: ${query}`);
       
-      // First, get video IDs and basic info
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?` + 
-        new URLSearchParams({
-          part: 'snippet',
-          q: query,
-          type: 'video',
-          maxResults: '25',
-          videoDuration: 'long',
-          key: YOUTUBE_API_KEY,
-          order: 'date',
-          regionCode: 'ET',
-          relevanceLanguage: 'am',
-          videoDefinition: 'high',
-          videoCategoryId: '1', // Film & Animation category
+      try {
+        // First, get video IDs and basic info
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?` + 
+          new URLSearchParams({
+            part: 'snippet',
+            q: query,
+            type: 'video',
+            maxResults: '25',
+            videoDuration: 'long',
+            key: YOUTUBE_API_KEY,
+            order: 'date',
+            regionCode: 'ET',
+            relevanceLanguage: 'am',
+            videoDefinition: 'high',
+            videoCategoryId: '1', // Film & Animation category
+          });
+
+        console.log(`Making API request for query: ${query}`);
+        const searchResponse = await fetch(searchUrl);
+
+        if (!searchResponse.ok) {
+          const errorData = await searchResponse.json();
+          console.error(`YouTube API Error for query "${query}":`, errorData);
+          continue;
+        }
+
+        const searchData = await searchResponse.json();
+        
+        if (!searchData.items || !Array.isArray(searchData.items)) {
+          console.error(`Invalid response format for query: ${query}`, searchData);
+          continue;
+        }
+
+        // Get detailed video information including duration
+        const videoIds = searchData.items.map(item => item.id.videoId).join(',');
+        const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
+          new URLSearchParams({
+            part: 'contentDetails,snippet,statistics',
+            id: videoIds,
+            key: YOUTUBE_API_KEY,
+          });
+
+        const detailsResponse = await fetch(videoDetailsUrl);
+        if (!detailsResponse.ok) {
+          console.error(`Failed to fetch video details for query "${query}"`);
+          continue;
+        }
+
+        const detailsData = await detailsResponse.json();
+        
+        // Filter videos that are actually long enough (> 20 minutes)
+        const validVideos = detailsData.items.filter(video => {
+          const duration = video.contentDetails.duration;
+          const match = duration.match(/PT(\d+)M/);
+          return match && parseInt(match[1]) >= 20;
         });
 
-      console.log(`Making API request for query: ${query}`);
-      const searchResponse = await fetch(searchUrl);
-
-      if (!searchResponse.ok) {
-        const errorData = await searchResponse.json();
-        console.error(`YouTube API Error for query "${query}":`, errorData);
-        continue;
+        console.log(`Found ${validVideos.length} valid videos for query: ${query}`);
+        allVideos = [...allVideos, ...validVideos];
+      } catch (error) {
+        console.error(`Error processing query "${query}":`, error);
+        continue; // Continue with next query even if this one fails
       }
-
-      const searchData = await searchResponse.json();
-      
-      if (!searchData.items || !Array.isArray(searchData.items)) {
-        console.error(`Invalid response format for query: ${query}`, searchData);
-        continue;
-      }
-
-      // Get detailed video information including duration
-      const videoIds = searchData.items.map(item => item.id.videoId).join(',');
-      const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
-        new URLSearchParams({
-          part: 'contentDetails,snippet,statistics',
-          id: videoIds,
-          key: YOUTUBE_API_KEY,
-        });
-
-      const detailsResponse = await fetch(videoDetailsUrl);
-      if (!detailsResponse.ok) {
-        console.error(`Failed to fetch video details for query "${query}"`);
-        continue;
-      }
-
-      const detailsData = await detailsResponse.json();
-      
-      // Filter videos that are actually long enough (> 20 minutes)
-      const validVideos = detailsData.items.filter(video => {
-        const duration = video.contentDetails.duration;
-        const match = duration.match(/PT(\d+)M/);
-        return match && parseInt(match[1]) >= 20;
-      });
-
-      console.log(`Found ${validVideos.length} valid videos for query: ${query}`);
-      allVideos = [...allVideos, ...validVideos];
     }
 
     // Remove duplicates and sort by date
