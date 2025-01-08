@@ -19,36 +19,59 @@ Deno.serve(async (req) => {
 
     console.log('Starting YouTube API request with configured API key...')
 
-    // Fetch videos from YouTube with more specific parameters
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?` + 
-      new URLSearchParams({
-        part: 'snippet',
-        q: 'Ethiopian Movie full length',
-        type: 'video',
-        maxResults: '50',
-        videoDuration: 'long',
-        key: YOUTUBE_API_KEY,
-        relevanceLanguage: 'am',
-        videoDefinition: 'high'
-      })
+    // Using multiple search queries to increase chances of finding relevant content
+    const searchQueries = [
+      'Ethiopian Movie',
+      'Amharic Movie',
+      'የአማርኛ ፊልም',
+      'Ethiopian Drama Full Movie'
+    ];
 
-    console.log('Fetching from YouTube API...')
-    const searchResponse = await fetch(searchUrl)
-
-    if (!searchResponse.ok) {
-      const errorData = await searchResponse.json()
-      console.error('YouTube API Error Response:', errorData)
-      throw new Error(`YouTube API error: ${errorData.error?.message || 'Unknown error'}`)
-    }
-
-    const searchData = await searchResponse.json()
+    let allVideos = [];
     
-    if (!searchData.items || !Array.isArray(searchData.items)) {
-      console.error('Invalid response format:', searchData)
-      throw new Error('Invalid response from YouTube API')
+    for (const query of searchQueries) {
+      console.log(`Searching for: ${query}`);
+      
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?` + 
+        new URLSearchParams({
+          part: 'snippet',
+          q: query,
+          type: 'video',
+          maxResults: '25', // Reduced to 25 per query to stay within quota
+          videoDuration: 'long',
+          key: YOUTUBE_API_KEY,
+          order: 'date', // Get recent videos first
+          regionCode: 'ET', // Prioritize content from Ethiopia
+          videoDefinition: 'high'
+        });
+
+      console.log('Fetching from YouTube API...')
+      const searchResponse = await fetch(searchUrl)
+
+      if (!searchResponse.ok) {
+        const errorData = await searchResponse.json()
+        console.error('YouTube API Error Response:', errorData)
+        continue; // Continue with next query if this one fails
+      }
+
+      const searchData = await searchResponse.json()
+      
+      if (!searchData.items || !Array.isArray(searchData.items)) {
+        console.error('Invalid response format for query:', query, searchData)
+        continue;
+      }
+
+      console.log(`Successfully fetched ${searchData.items.length} videos for query: ${query}`)
+      allVideos = [...allVideos, ...searchData.items];
     }
 
-    console.log(`Successfully fetched ${searchData.items.length} videos from YouTube`)
+    // Remove duplicates based on video ID
+    const uniqueVideos = Array.from(new Map(allVideos.map(item => [item.id.videoId, item])).values());
+    console.log(`Total unique videos found: ${uniqueVideos.length}`);
+
+    if (uniqueVideos.length === 0) {
+      throw new Error('No videos found with any search query');
+    }
 
     // Create Supabase client
     const supabaseClient = createClient(
@@ -57,8 +80,8 @@ Deno.serve(async (req) => {
     )
 
     // Process each video and store in database
-    let successCount = 0
-    for (const item of searchData.items) {
+    let successCount = 0;
+    for (const item of uniqueVideos) {
       try {
         const videoId = item.id.videoId
         const { title, description, thumbnails } = item.snippet
@@ -94,13 +117,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Successfully processed ${successCount} videos out of ${searchData.items.length}`)
+    console.log(`Successfully processed ${successCount} videos out of ${uniqueVideos.length}`)
 
     return new Response(
       JSON.stringify({ 
         success: true,
         processed: successCount,
-        total: searchData.items.length
+        total: uniqueVideos.length
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
