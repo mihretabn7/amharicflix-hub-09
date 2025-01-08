@@ -1,18 +1,30 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Play, Star, MessageSquare, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+const isValidUUID = (uuid: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 const MovieDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
 
   const { data: movie, isLoading, error } = useQuery({
     queryKey: ['movie', id],
     queryFn: async () => {
+      if (!id || !isValidUUID(id)) {
+        toast.error("Invalid movie ID");
+        navigate('/movies');
+        throw new Error("Invalid movie ID");
+      }
+
       const { data, error } = await supabase
         .from('movies')
         .select('*')
@@ -29,7 +41,6 @@ const MovieDetail = () => {
   }
 
   if (error) {
-    toast.error("Error loading movie details");
     return <div className="min-h-screen pt-16">Error loading movie details</div>;
   }
 
