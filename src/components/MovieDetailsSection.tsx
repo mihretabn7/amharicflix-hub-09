@@ -1,15 +1,37 @@
 import { Movie } from "@/types/movie";
 import GenreSuggestionsDisplay from "./GenreSuggestionsDisplay";
+import { useState } from "react";
+import { Button } from "./ui/button";
 
 interface MovieDetailsSectionProps {
   movie: Movie;
 }
 
 const MovieDetailsSection = ({ movie }: MovieDetailsSectionProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const description = movie.description || 'No description available.';
+  const shortDescription = description.slice(0, 150);
+  const needsReadMore = description.length > 150;
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Movie Details</h2>
       <div className="space-y-4">
+        <div>
+          <h3 className="font-medium">Description</h3>
+          <p className="text-gray-300">
+            {isExpanded ? description : shortDescription}
+            {needsReadMore && (
+              <Button
+                variant="link"
+                className="text-netflix-red pl-1"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                {isExpanded ? 'Read less' : 'Read more'}
+              </Button>
+            )}
+          </p>
+        </div>
         <div>
           <h3 className="font-medium">Suggested Genres</h3>
           <GenreSuggestionsDisplay movieId={movie.id} />

@@ -1,11 +1,22 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 const Navbar = () => {
   const [session, setSession] = useState<any>(null);
+  const [open, setOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Get initial session
@@ -27,6 +38,23 @@ const Navbar = () => {
     await supabase.auth.signOut();
   };
 
+  const handleSearch = async (value: string) => {
+    if (!value) {
+      setSearchResults([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('movies')
+      .select('*')
+      .ilike('title', `%${value}%`)
+      .limit(5);
+
+    if (!error && data) {
+      setSearchResults(data);
+    }
+  };
+
   return (
     <nav className="fixed top-0 z-50 w-full bg-gradient-to-b from-background to-background/0 px-4 py-4">
       <div className="container mx-auto flex items-center justify-between">
@@ -41,7 +69,10 @@ const Navbar = () => {
           <Link to="/categories" className="text-sm font-medium text-gray-300 hover:text-white">
             Categories
           </Link>
-          <button className="text-sm font-medium text-gray-300 hover:text-white">
+          <button 
+            className="text-sm font-medium text-gray-300 hover:text-white"
+            onClick={() => setOpen(true)}
+          >
             <Search className="h-5 w-5" />
           </button>
         </div>
@@ -73,6 +104,36 @@ const Navbar = () => {
           )}
         </div>
       </div>
+
+      <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandInput 
+          placeholder="Search movies..." 
+          onValueChange={handleSearch}
+        />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Movies">
+            {searchResults.map((movie) => (
+              <CommandItem
+                key={movie.id}
+                onSelect={() => {
+                  navigate(`/movie/${movie.id}`);
+                  setOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <img 
+                    src={movie.thumbnail_url} 
+                    alt={movie.title} 
+                    className="w-8 h-8 object-cover rounded mr-2"
+                  />
+                  {movie.title}
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
     </nav>
   );
 };

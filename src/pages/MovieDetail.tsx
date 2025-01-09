@@ -64,6 +64,24 @@ const MovieDetail = () => {
     },
   });
 
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: movie.title,
+          text: movie.description,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast.error('Failed to share');
+    }
+  };
+
   if (isLoading) {
     return <div className="min-h-screen pt-16 flex items-center justify-center">Loading...</div>;
   }
@@ -126,7 +144,7 @@ const MovieDetail = () => {
                   >
                     <Play className="mr-2 h-5 w-5" /> Play Now
                   </Button>
-                  <Button size="lg" variant="outline">
+                  <Button size="lg" variant="outline" onClick={handleShare}>
                     <Share2 className="mr-2 h-5 w-5" /> Share
                   </Button>
                 </div>
