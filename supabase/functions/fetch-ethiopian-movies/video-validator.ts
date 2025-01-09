@@ -1,24 +1,27 @@
 import { YouTubeVideo } from './types.ts';
 
 export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
-  // Check duration (minimum 10 minutes)
+  // Check duration (minimum 30 minutes for full movies)
   const duration = video.contentDetails.duration;
   const match = duration.match(/PT(\d+)M/);
-  if (!match || parseInt(match[1]) < 10) return false;
+  if (!match || parseInt(match[1]) < 30) return false;
 
   const title = video.snippet.title.toLowerCase();
+  const description = video.snippet.description.toLowerCase();
 
-  // For movies, ensure title contains "ethiopian" and "movie"
-  if (genre === 'Ethiopian Movie') {
-    return title.includes('ethiopian') && 
-           (title.includes('movie') || title.includes('film'));
-  }
-  
-  // For series, ensure title contains "ድራማ" or "drama"
-  if (genre === 'Ethiopian Series') {
-    return title.includes('ድራማ') || 
-           title.toLowerCase().includes('drama');
-  }
+  // Ensure it's specifically a full movie
+  const hasFullMovieIndicator = 
+    title.includes('full movie') || 
+    title.includes('ሙሉ ፊልም') ||
+    description.includes('full movie') ||
+    description.includes('ሙሉ ፊልም');
 
-  return false;
+  // Must be Ethiopian
+  const isEthiopian = 
+    title.includes('ethiopian') || 
+    title.includes('ኢትዮጵያ') ||
+    description.includes('ethiopian') ||
+    description.includes('ኢትዮጵያ');
+
+  return hasFullMovieIndicator && isEthiopian;
 }
