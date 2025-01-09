@@ -29,7 +29,10 @@ const Movies = () => {
       
       try {
         const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies', {
-          body: { timestamp: new Date().toISOString() }, // Add timestamp to prevent caching
+          body: { 
+            timestamp: new Date().toISOString(),
+            forceRefresh: true  // Added to ensure fresh results
+          },
         });
         
         if (error) {
@@ -38,14 +41,18 @@ const Movies = () => {
           return;
         }
 
-        console.log('Function response:', data);
+        if (data.error) {
+          toast.error(data.error, { id: toastId });
+          return;
+        }
+
+        await refetch(); // Refresh the movies list
         
         if (data.processed === 0) {
           toast.error('No new movies were found. Please try again later.', { id: toastId });
           return;
         }
 
-        await refetch(); // Refresh the movies list
         toast.success(`Successfully fetched ${data.processed} movies`, { id: toastId });
       } catch (error) {
         console.error('Error fetching movies:', error);
@@ -54,7 +61,7 @@ const Movies = () => {
     };
 
     fetchYoutubeMovies();
-  }, [refetch]);
+  }, []); // Run every time component mounts
 
   if (error) {
     toast.error('Error loading movies');
