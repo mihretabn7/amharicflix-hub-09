@@ -1,10 +1,10 @@
 import { YouTubeVideo } from './types.ts';
 
 export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
-  // Check duration (minimum 20 minutes to catch more movies)
+  // Check duration (minimum 60 minutes to catch more movies)
   const duration = video.contentDetails.duration;
   const match = duration.match(/PT(\d+)M/);
-  if (!match || parseInt(match[1]) < 20) return false;
+  if (!match || parseInt(match[1]) < 60) return false;
 
   const title = video.snippet.title.toLowerCase();
   const description = video.snippet.description.toLowerCase();
@@ -25,5 +25,11 @@ export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
     description.includes('film') ||
     description.includes('ፊልም');
 
-  return isEthiopian && isMovie;
+    const isFull = 
+    title.includes('full') ||
+    title.includes('ሙሉ') ||
+    description.includes('full') ||
+    description.includes('ሙሉ');
+
+  return isEthiopian && isMovie&& isFull;
 }
