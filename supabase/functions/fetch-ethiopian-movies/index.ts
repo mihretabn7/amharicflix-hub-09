@@ -1,44 +1,26 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { searchQueries } from './search-queries.ts';
+import { isValidVideo } from './video-validator.ts';
+import { YouTubeVideo } from './types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY')
+    const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY');
     if (!YOUTUBE_API_KEY) {
-      throw new Error('Missing YouTube API key')
+      throw new Error('Missing YouTube API key');
     }
 
-    console.log('Starting YouTube API request...')
-
-    // More specific search queries for better results
-    const searchQueries = [
-      {
-        query: 'ethiopian full movie amharic film',
-        genre: 'Ethiopian Movie'
-      },
-      {
-        query: 'new ethiopian movie amharic film',
-        genre: 'Ethiopian Movie'
-      },
-      {
-        query: 'ethiopian drama ድራማ',
-        genre: 'Ethiopian Series'
-      },
-      {
-        query: 'new ethiopian drama አዲስ ድራማ',
-        genre: 'Ethiopian Series'
-      }
-    ];
-
-    let allVideos = [];
+    console.log('Starting YouTube API request...');
+    let allVideos: YouTubeVideo[] = [];
     
     for (const { query, genre } of searchQueries) {
       console.log(`Searching for: ${query} (${genre})`);
@@ -49,7 +31,7 @@ Deno.serve(async (req) => {
             part: 'snippet',
             q: query,
             type: 'video',
-            maxResults: '10', // Reduced to avoid quota issues
+            maxResults: '50',
             videoDuration: 'long',
             key: YOUTUBE_API_KEY,
             order: 'date',
@@ -58,8 +40,7 @@ Deno.serve(async (req) => {
 
         const searchResponse = await fetch(searchUrl);
         if (!searchResponse.ok) {
-          const errorData = await searchResponse.json();
-          console.error(`YouTube API Error for query "${query}":`, errorData);
+          console.error(`YouTube API Error for query "${query}":`, await searchResponse.text());
           continue;
         }
 
@@ -71,7 +52,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const videoIds = searchData.items.map(item => item.id.videoId).join(',');
+        const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
         const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
           new URLSearchParams({
             part: 'contentDetails,snippet,statistics',
@@ -86,33 +67,9 @@ Deno.serve(async (req) => {
         }
 
         const detailsData = await detailsResponse.json();
-        if (!detailsData.items?.length) {
-          console.log(`No video details found for query: ${query}`);
-          continue;
-        }
-
         const validVideos = detailsData.items
-          .filter(video => {
-            // Check duration (minimum 10 minutes)
-            const duration = video.contentDetails.duration;
-            const match = duration.match(/PT(\d+)M/);
-            if (!match || parseInt(match[1]) < 10) return false;
-
-            // For movies, ensure title contains "ethiopian" and "movie"
-            if (genre === 'Ethiopian Movie') {
-              const title = video.snippet.title.toLowerCase();
-              return title.includes('ethiopian') && title.includes('movie');
-            }
-            
-            // For series, ensure title contains "ድራማ" or "drama"
-            if (genre === 'Ethiopian Series') {
-              const title = video.snippet.title;
-              return title.includes('ድራማ') || title.toLowerCase().includes('drama');
-            }
-
-            return false;
-          })
-          .map(video => ({
+          .filter((video: YouTubeVideo) => isValidVideo(video, genre))
+          .map((video: YouTubeVideo) => ({
             ...video,
             customGenre: genre
           }));
@@ -141,21 +98,20 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
     let successCount = 0;
     for (const item of uniqueVideos) {
       try {
-        const videoId = item.id;
         const { title, description, thumbnails } = item.snippet;
         const thumbnail = thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default;
 
-        console.log(`Processing video: ${title} (${videoId})`);
+        console.log(`Processing video: ${title} (${item.id})`);
 
         const { error: upsertError } = await supabaseClient
           .from('movies')
           .upsert({
-            youtube_id: videoId,
+            youtube_id: item.id,
             title: title,
             description: description,
             thumbnail_url: thumbnail.url,
@@ -166,7 +122,7 @@ Deno.serve(async (req) => {
           });
 
         if (upsertError) {
-          console.error('Error upserting video:', videoId, upsertError);
+          console.error('Error upserting video:', item.id, upsertError);
           continue;
         }
 
@@ -177,8 +133,6 @@ Deno.serve(async (req) => {
         continue;
       }
     }
-
-    console.log(`Successfully processed ${successCount} videos out of ${uniqueVideos.length}`);
 
     return new Response(
       JSON.stringify({ 
