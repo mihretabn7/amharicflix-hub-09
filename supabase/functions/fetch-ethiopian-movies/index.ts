@@ -6,7 +6,6 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -14,27 +13,37 @@ Deno.serve(async (req) => {
   try {
     const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY')
     if (!YOUTUBE_API_KEY) {
-      console.error('YouTube API key is not set')
       throw new Error('Missing YouTube API key')
     }
 
-    console.log('Starting YouTube API request with configured API key...')
+    console.log('Starting YouTube API request...')
 
-    // Using more specific search queries with Amharic terms
+    // Separate search queries for movies and series
     const searchQueries = [
-      'የአማርኛ ሙሉ ፊልም 2024',
-      'new ethiopian full movie 2024',
-      'አዲስ የአማርኛ ፊልም',
-      'ethiopian drama movie full',
+      {
+        query: 'ethiopian full movie 2024',
+        genre: 'Ethiopian Movie'
+      },
+      {
+        query: 'new ethiopian full movie',
+        genre: 'Ethiopian Movie'
+      },
+      {
+        query: 'ድራማ 2024',
+        genre: 'Ethiopian Series'
+      },
+      {
+        query: 'አዲስ ድራማ',
+        genre: 'Ethiopian Series'
+      }
     ];
 
     let allVideos = [];
     
-    for (const query of searchQueries) {
-      console.log(`Searching for: ${query}`);
+    for (const { query, genre } of searchQueries) {
+      console.log(`Searching for: ${query} (${genre})`);
       
       try {
-        // First, get video IDs and basic info
         const searchUrl = `https://www.googleapis.com/youtube/v3/search?` + 
           new URLSearchParams({
             part: 'snippet',
@@ -47,12 +56,9 @@ Deno.serve(async (req) => {
             regionCode: 'ET',
             relevanceLanguage: 'am',
             videoDefinition: 'high',
-            videoCategoryId: '1', // Film & Animation category
           });
 
-        console.log(`Making API request for query: ${query}`);
         const searchResponse = await fetch(searchUrl);
-
         if (!searchResponse.ok) {
           const errorData = await searchResponse.json();
           console.error(`YouTube API Error for query "${query}":`, errorData);
@@ -60,13 +66,11 @@ Deno.serve(async (req) => {
         }
 
         const searchData = await searchResponse.json();
-        
         if (!searchData.items || !Array.isArray(searchData.items)) {
           console.error(`Invalid response format for query: ${query}`, searchData);
           continue;
         }
 
-        // Get detailed video information including duration
         const videoIds = searchData.items.map(item => item.id.videoId).join(',');
         const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
           new URLSearchParams({
@@ -88,17 +92,19 @@ Deno.serve(async (req) => {
           const duration = video.contentDetails.duration;
           const match = duration.match(/PT(\d+)M/);
           return match && parseInt(match[1]) >= 20;
-        });
+        }).map(video => ({
+          ...video,
+          customGenre: genre // Add the genre based on the search query
+        }));
 
         console.log(`Found ${validVideos.length} valid videos for query: ${query}`);
         allVideos = [...allVideos, ...validVideos];
       } catch (error) {
         console.error(`Error processing query "${query}":`, error);
-        continue; // Continue with next query even if this one fails
+        continue;
       }
     }
 
-    // Remove duplicates and sort by date
     const uniqueVideos = Array.from(
       new Map(allVideos.map(item => [item.id, item])).values()
     ).sort((a, b) => {
@@ -111,20 +117,16 @@ Deno.serve(async (req) => {
       throw new Error('No valid videos found with any search query');
     }
 
-    // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Process each video and store in database
     let successCount = 0;
     for (const item of uniqueVideos) {
       try {
         const videoId = item.id;
         const { title, description, thumbnails } = item.snippet;
-
-        // Get the highest quality thumbnail available
         const thumbnail = thumbnails.maxres || thumbnails.high || thumbnails.medium || thumbnails.default;
 
         console.log(`Processing video: ${title} (${videoId})`);
@@ -136,7 +138,7 @@ Deno.serve(async (req) => {
             title: title,
             description: description,
             thumbnail_url: thumbnail.url,
-            genre: 'Ethiopian Movie',
+            genre: item.customGenre,
             language: 'Amharic'
           }, {
             onConflict: 'youtube_id'
