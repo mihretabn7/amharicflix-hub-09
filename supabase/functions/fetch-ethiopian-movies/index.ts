@@ -18,22 +18,22 @@ Deno.serve(async (req) => {
 
     console.log('Starting YouTube API request...')
 
-    // Separate search queries for movies and series with more specific terms
+    // More specific search queries for better results
     const searchQueries = [
       {
-        query: 'ethiopian full movie 2024 amharic',
+        query: 'ethiopian full movie amharic film',
         genre: 'Ethiopian Movie'
       },
       {
-        query: 'new ethiopian full movie amharic',
+        query: 'new ethiopian movie amharic film',
         genre: 'Ethiopian Movie'
       },
       {
-        query: 'ድራማ 2024 full',
+        query: 'ethiopian drama ድራማ',
         genre: 'Ethiopian Series'
       },
       {
-        query: 'አዲስ ድራማ full',
+        query: 'new ethiopian drama አዲስ ድራማ',
         genre: 'Ethiopian Series'
       }
     ];
@@ -49,13 +49,11 @@ Deno.serve(async (req) => {
             part: 'snippet',
             q: query,
             type: 'video',
-            maxResults: '50', // Increased from 25 to get more results
+            maxResults: '10', // Reduced to avoid quota issues
             videoDuration: 'long',
             key: YOUTUBE_API_KEY,
             order: 'date',
-            regionCode: 'ET',
-            relevanceLanguage: 'am',
-            videoDefinition: 'high',
+            relevanceLanguage: 'am'
           });
 
         const searchResponse = await fetch(searchUrl);
@@ -67,18 +65,13 @@ Deno.serve(async (req) => {
 
         const searchData = await searchResponse.json();
         console.log(`Found ${searchData.items?.length || 0} initial results for query: ${query}`);
-        
-        if (!searchData.items || !Array.isArray(searchData.items)) {
-          console.error(`Invalid response format for query: ${query}`, searchData);
+
+        if (!searchData.items?.length) {
+          console.log(`No results found for query: ${query}`);
           continue;
         }
 
         const videoIds = searchData.items.map(item => item.id.videoId).join(',');
-        if (!videoIds) {
-          console.log(`No video IDs found for query: ${query}`);
-          continue;
-        }
-
         const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
           new URLSearchParams({
             part: 'contentDetails,snippet,statistics',
@@ -93,16 +86,36 @@ Deno.serve(async (req) => {
         }
 
         const detailsData = await detailsResponse.json();
-        
-        // More lenient duration filter (15 minutes instead of 20)
-        const validVideos = detailsData.items.filter(video => {
-          const duration = video.contentDetails.duration;
-          const match = duration.match(/PT(\d+)M/);
-          return match && parseInt(match[1]) >= 15;
-        }).map(video => ({
-          ...video,
-          customGenre: genre
-        }));
+        if (!detailsData.items?.length) {
+          console.log(`No video details found for query: ${query}`);
+          continue;
+        }
+
+        const validVideos = detailsData.items
+          .filter(video => {
+            // Check duration (minimum 10 minutes)
+            const duration = video.contentDetails.duration;
+            const match = duration.match(/PT(\d+)M/);
+            if (!match || parseInt(match[1]) < 10) return false;
+
+            // For movies, ensure title contains "ethiopian" and "movie"
+            if (genre === 'Ethiopian Movie') {
+              const title = video.snippet.title.toLowerCase();
+              return title.includes('ethiopian') && title.includes('movie');
+            }
+            
+            // For series, ensure title contains "ድራማ" or "drama"
+            if (genre === 'Ethiopian Series') {
+              const title = video.snippet.title;
+              return title.includes('ድራማ') || title.toLowerCase().includes('drama');
+            }
+
+            return false;
+          })
+          .map(video => ({
+            ...video,
+            customGenre: genre
+          }));
 
         console.log(`Found ${validVideos.length} valid videos for query: ${query}`);
         allVideos = [...allVideos, ...validVideos];
@@ -112,6 +125,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Remove duplicates and sort by date
     const uniqueVideos = Array.from(
       new Map(allVideos.map(item => [item.id, item])).values()
     ).sort((a, b) => {

@@ -133,9 +133,6 @@ const MovieDetail = () => {
                     <span>{averageRating.toFixed(1)}</span>
                   </div>
                 </div>
-                <p className="text-lg text-gray-300 mb-8 max-w-xl">
-                  {movie.description || 'No description available.'}
-                </p>
                 <div className="flex space-x-4">
                   <Button 
                     size="lg" 
@@ -157,30 +154,18 @@ const MovieDetail = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            {session ? (
+            {!isPlaying && session && (
               <div className="space-y-8">
-                <div>
-                  <h2 className="text-2xl font-bold mb-4">Rate & Review</h2>
-                  <MovieRating 
-                    movieId={movie.id} 
-                    userId={session.user.id}
-                    onRatingSubmit={refetch}
-                  />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold mb-4">Suggest Genre</h2>
-                  <GenreSuggestion
-                    movieId={movie.id}
-                    userId={session.user.id}
-                    onSuggestionSubmit={refetch}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gray-800 p-6 rounded-lg">
-                <p className="text-center">
-                  Please <Button variant="link" onClick={() => navigate('/login')}>sign in</Button> to rate, review, and suggest genres.
-                </p>
+                <MovieRating 
+                  movieId={movie.id} 
+                  userId={session.user.id}
+                  onRatingSubmit={refetch}
+                />
+                <GenreSuggestion
+                  movieId={movie.id}
+                  userId={session.user.id}
+                  onSuggestionSubmit={refetch}
+                />
               </div>
             )}
           </div>
