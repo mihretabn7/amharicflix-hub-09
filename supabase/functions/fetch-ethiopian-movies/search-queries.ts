@@ -2,15 +2,15 @@ import { VideoSearchQuery } from './types.ts';
 
 export const searchQueries: VideoSearchQuery[] = [
   {
-    query: 'ethiopian full movie 2024 ሙሉ ፊልም',
+    query: 'ethiopian full movie 2024',
     genre: 'Ethiopian Movie'
   },
   {
-    query: 'new ethiopian full movie 2024 አዲስ ፊልም',
+    query: 'new ethiopian full movie',
     genre: 'Ethiopian Movie'
   },
   {
-    query: 'ethiopian full movie 2023 ሙሉ ፊልም',
+    query: 'ethiopian movie ሙሉ ፊልም',
     genre: 'Ethiopian Movie'
   }
 ];

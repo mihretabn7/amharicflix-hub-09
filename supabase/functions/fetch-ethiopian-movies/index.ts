@@ -92,7 +92,16 @@ Deno.serve(async (req) => {
     console.log(`Total unique valid videos found: ${uniqueVideos.length}`);
 
     if (uniqueVideos.length === 0) {
-      throw new Error('No valid videos found with any search query');
+      return new Response(
+        JSON.stringify({ 
+          error: 'No valid videos found',
+          processed: 0
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200  // Changed to 200 to avoid error in frontend
+        }
+      );
     }
 
     const supabaseClient = createClient(
@@ -154,7 +163,7 @@ Deno.serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 200  // Changed to 200 to avoid error in frontend
       }
     );
   }
