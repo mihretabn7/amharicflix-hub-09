@@ -18,22 +18,22 @@ Deno.serve(async (req) => {
 
     console.log('Starting YouTube API request...')
 
-    // Separate search queries for movies and series
+    // Separate search queries for movies and series with more specific terms
     const searchQueries = [
       {
-        query: 'ethiopian full movie 2024',
+        query: 'ethiopian full movie 2024 amharic',
         genre: 'Ethiopian Movie'
       },
       {
-        query: 'new ethiopian full movie',
+        query: 'new ethiopian full movie amharic',
         genre: 'Ethiopian Movie'
       },
       {
-        query: 'ድራማ 2024',
+        query: 'ድራማ 2024 full',
         genre: 'Ethiopian Series'
       },
       {
-        query: 'አዲስ ድራማ',
+        query: 'አዲስ ድራማ full',
         genre: 'Ethiopian Series'
       }
     ];
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
             part: 'snippet',
             q: query,
             type: 'video',
-            maxResults: '25',
+            maxResults: '50', // Increased from 25 to get more results
             videoDuration: 'long',
             key: YOUTUBE_API_KEY,
             order: 'date',
@@ -66,12 +66,19 @@ Deno.serve(async (req) => {
         }
 
         const searchData = await searchResponse.json();
+        console.log(`Found ${searchData.items?.length || 0} initial results for query: ${query}`);
+        
         if (!searchData.items || !Array.isArray(searchData.items)) {
           console.error(`Invalid response format for query: ${query}`, searchData);
           continue;
         }
 
         const videoIds = searchData.items.map(item => item.id.videoId).join(',');
+        if (!videoIds) {
+          console.log(`No video IDs found for query: ${query}`);
+          continue;
+        }
+
         const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
           new URLSearchParams({
             part: 'contentDetails,snippet,statistics',
@@ -87,14 +94,14 @@ Deno.serve(async (req) => {
 
         const detailsData = await detailsResponse.json();
         
-        // Filter videos that are actually long enough (> 20 minutes)
+        // More lenient duration filter (15 minutes instead of 20)
         const validVideos = detailsData.items.filter(video => {
           const duration = video.contentDetails.duration;
           const match = duration.match(/PT(\d+)M/);
-          return match && parseInt(match[1]) >= 20;
+          return match && parseInt(match[1]) >= 15;
         }).map(video => ({
           ...video,
-          customGenre: genre // Add the genre based on the search query
+          customGenre: genre
         }));
 
         console.log(`Found ${validVideos.length} valid videos for query: ${query}`);
