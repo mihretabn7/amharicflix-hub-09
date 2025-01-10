@@ -25,13 +25,13 @@ const Movies = () => {
 
   useEffect(() => {
     const fetchYoutubeMovies = async () => {
-      const toastId = toast.loading('Fetching movies from YouTube...');
+      const toastId = toast.loading('Fetching fresh movies from YouTube...');
       
       try {
         const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies', {
           body: { 
             timestamp: new Date().toISOString(),
-            forceRefresh: true  // Added to ensure fresh results
+            forceRefresh: true
           },
         });
         
@@ -53,7 +53,7 @@ const Movies = () => {
           return;
         }
 
-        toast.success(`Successfully fetched ${data.processed} movies`, { id: toastId });
+        toast.success(`Successfully fetched ${data.processed} new movies`, { id: toastId });
       } catch (error) {
         console.error('Error fetching movies:', error);
         toast.error('Failed to fetch movies. Please try again later.', { id: toastId });

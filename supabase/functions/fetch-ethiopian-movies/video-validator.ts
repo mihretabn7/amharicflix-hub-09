@@ -2,6 +2,7 @@ import { YouTubeVideo } from './types.ts';
 
 export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
   const title = video.snippet.title.toLowerCase();
+  const description = video.snippet.description.toLowerCase();
   
   // Check if title contains required keywords
   const hasFullKeyword = title.includes('full') || title.includes('ሙሉ');
@@ -22,12 +23,23 @@ export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
     return false;
   }
 
-  // Check for Ethiopian indicators
+  // Check for Ethiopian indicators in both title and description
   const isEthiopian = 
     title.includes('ethiopian') || 
     title.includes('ኢትዮጵያ') ||
     title.includes('amharic') ||
-    title.includes('አማርኛ');
+    title.includes('አማርኛ') ||
+    description.includes('ethiopian') ||
+    description.includes('ኢትዮጵያ') ||
+    description.includes('amharic') ||
+    description.includes('አማርኛ');
 
-  return isEthiopian;
+  // Check for year indicators (2023 or 2024)
+  const hasRecentYear = 
+    title.includes('2024') || 
+    title.includes('2023') || 
+    description.includes('2024') || 
+    description.includes('2023');
+
+  return isEthiopian && hasRecentYear;
 }
