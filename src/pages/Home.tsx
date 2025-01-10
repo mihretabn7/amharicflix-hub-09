@@ -104,9 +104,6 @@ const Home = () => {
               <h1 className="font-display text-5xl md:text-7xl font-bold mb-4 max-w-2xl">
                 {featuredMovie.title}
               </h1>
-              <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-xl">
-                {featuredMovie.description}
-              </p>
               <div className="flex space-x-4">
                 <Button 
                   size="lg" 
