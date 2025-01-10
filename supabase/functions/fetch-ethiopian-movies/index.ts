@@ -26,56 +26,69 @@ Deno.serve(async (req) => {
       console.log(`Searching for: ${query} (${genre})`);
       
       try {
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?` + 
-          new URLSearchParams({
-            part: 'snippet',
-            q: query,
-            type: 'video',
-            maxResults: '50',
-            videoDuration: 'long',
-            key: YOUTUBE_API_KEY,
-            order: 'date',
-            relevanceLanguage: 'am'
-          });
+        // Make multiple requests to get more results
+        const maxResults = 50; // Maximum allowed per request
+        const pages = 4; // Number of pages to fetch (4 pages * 50 results = 200 results per query)
+        let pageToken = '';
 
-        const searchResponse = await fetch(searchUrl);
-        if (!searchResponse.ok) {
-          console.error(`YouTube API Error for query "${query}":`, await searchResponse.text());
-          continue;
+        for (let i = 0; i < pages; i++) {
+          const searchUrl = `https://www.googleapis.com/youtube/v3/search?` + 
+            new URLSearchParams({
+              part: 'snippet',
+              q: query,
+              type: 'video',
+              maxResults: maxResults.toString(),
+              videoDuration: 'long',
+              key: YOUTUBE_API_KEY,
+              order: 'date',
+              relevanceLanguage: 'am',
+              ...(pageToken && { pageToken }),
+            });
+
+          const searchResponse = await fetch(searchUrl);
+          if (!searchResponse.ok) {
+            console.error(`YouTube API Error for query "${query}":`, await searchResponse.text());
+            break;
+          }
+
+          const searchData = await searchResponse.json();
+          console.log(`Found ${searchData.items?.length || 0} results for query: ${query} (page ${i + 1})`);
+
+          if (!searchData.items?.length) {
+            break;
+          }
+
+          // Get next page token for pagination
+          pageToken = searchData.nextPageToken;
+
+          const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
+          const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
+            new URLSearchParams({
+              part: 'contentDetails,snippet,statistics',
+              id: videoIds,
+              key: YOUTUBE_API_KEY,
+            });
+
+          const detailsResponse = await fetch(videoDetailsUrl);
+          if (!detailsResponse.ok) {
+            console.error(`Failed to fetch video details for query "${query}"`);
+            break;
+          }
+
+          const detailsData = await detailsResponse.json();
+          const validVideos = detailsData.items
+            .filter((video: YouTubeVideo) => isValidVideo(video, genre))
+            .map((video: YouTubeVideo) => ({
+              ...video,
+              customGenre: genre
+            }));
+
+          console.log(`Found ${validVideos.length} valid videos for query: ${query} (page ${i + 1})`);
+          allVideos = [...allVideos, ...validVideos];
+
+          // If no next page token, break the loop
+          if (!pageToken) break;
         }
-
-        const searchData = await searchResponse.json();
-        console.log(`Found ${searchData.items?.length || 0} initial results for query: ${query}`);
-
-        if (!searchData.items?.length) {
-          console.log(`No results found for query: ${query}`);
-          continue;
-        }
-
-        const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
-        const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?` +
-          new URLSearchParams({
-            part: 'contentDetails,snippet,statistics',
-            id: videoIds,
-            key: YOUTUBE_API_KEY,
-          });
-
-        const detailsResponse = await fetch(videoDetailsUrl);
-        if (!detailsResponse.ok) {
-          console.error(`Failed to fetch video details for query "${query}"`);
-          continue;
-        }
-
-        const detailsData = await detailsResponse.json();
-        const validVideos = detailsData.items
-          .filter((video: YouTubeVideo) => isValidVideo(video, genre))
-          .map((video: YouTubeVideo) => ({
-            ...video,
-            customGenre: genre
-          }));
-
-        console.log(`Found ${validVideos.length} valid videos for query: ${query}`);
-        allVideos = [...allVideos, ...validVideos];
       } catch (error) {
         console.error(`Error processing query "${query}":`, error);
         continue;
@@ -99,7 +112,7 @@ Deno.serve(async (req) => {
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200  // Changed to 200 to avoid error in frontend
+          status: 200
         }
       );
     }
@@ -163,7 +176,7 @@ Deno.serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200  // Changed to 200 to avoid error in frontend
+        status: 200
       }
     );
   }

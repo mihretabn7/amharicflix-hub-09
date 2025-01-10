@@ -6,11 +6,19 @@ export const searchQueries: VideoSearchQuery[] = [
     genre: 'Ethiopian Movie'
   },
   {
-    query: 'new ethiopian full movie',
+    query: 'ethiopian full movie 2023',
     genre: 'Ethiopian Movie'
   },
   {
-    query: 'ethiopian movie ሙሉ ፊልም',
+    query: 'ethiopian drama full movie',
+    genre: 'Ethiopian Drama'
+  },
+  {
+    query: 'ሙሉ ፊልም ethiopian movie',
+    genre: 'Ethiopian Movie'
+  },
+  {
+    query: 'አዲስ ሙሉ ፊልም',
     genre: 'Ethiopian Movie'
   }
 ];

@@ -1,35 +1,33 @@
 import { YouTubeVideo } from './types.ts';
 
 export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
-  // Check duration (minimum 60 minutes to catch more movies)
+  const title = video.snippet.title.toLowerCase();
+  
+  // Check if title contains required keywords
+  const hasFullKeyword = title.includes('full') || title.includes('ሙሉ');
+  const hasMovieKeyword = title.includes('movie') || title.includes('ፊልም');
+  const hasDramaKeyword = title.includes('drama') || title.includes('ድራማ');
+  
+  // Video must have either (full AND movie) OR (full AND drama)
+  const isValidTitle = (hasFullKeyword && (hasMovieKeyword || hasDramaKeyword));
+  
+  if (!isValidTitle) {
+    return false;
+  }
+
+  // Check duration (minimum 20 minutes for movies/dramas)
   const duration = video.contentDetails.duration;
   const match = duration.match(/PT(\d+)M/);
-  if (!match || parseInt(match[1]) < 60) return false;
+  if (!match || parseInt(match[1]) < 20) {
+    return false;
+  }
 
-  const title = video.snippet.title.toLowerCase();
-  const description = video.snippet.description.toLowerCase();
-
-  // Check for Ethiopian movie indicators in either title or description
+  // Check for Ethiopian indicators
   const isEthiopian = 
     title.includes('ethiopian') || 
     title.includes('ኢትዮጵያ') ||
-    description.includes('ethiopian') ||
-    description.includes('ኢትዮጵያ');
+    title.includes('amharic') ||
+    title.includes('አማርኛ');
 
-  // Check for movie indicators
-  const isMovie = 
-    title.includes('movie') ||
-    title.includes('film') ||
-    title.includes('ፊልም') ||
-    description.includes('movie') ||
-    description.includes('film') ||
-    description.includes('ፊልም');
-
-    const isFull = 
-    title.includes('full') ||
-    title.includes('ሙሉ') ||
-    description.includes('full') ||
-    description.includes('ሙሉ');
-
-  return isEthiopian && isMovie&& isFull;
+  return isEthiopian;
 }
