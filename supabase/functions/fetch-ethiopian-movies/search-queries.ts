@@ -1,4 +1,7 @@
-import { VideoSearchQuery } from './types.ts';
+export interface VideoSearchQuery {
+  query: string;
+  genre: string;
+}
 
 export const searchQueries: VideoSearchQuery[] = [
   {
