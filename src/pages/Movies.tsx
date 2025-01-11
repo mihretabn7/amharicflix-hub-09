@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Play, Star } from "lucide-react";
+import { Play, Star, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const Movies = () => {
   const fetchMovies = async () => {
@@ -23,45 +24,42 @@ const Movies = () => {
     queryFn: fetchMovies,
   });
 
-  useEffect(() => {
-    const fetchYoutubeMovies = async () => {
-      const toastId = toast.loading('Fetching fresh movies from YouTube...');
+  const fetchYoutubeMovies = async () => {
+    const toastId = toast.loading('Fetching fresh movies from YouTube...');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies', {
+        body: { 
+          timestamp: new Date().toISOString(),
+          forceRefresh: true
+        },
+      });
       
-      try {
-        const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies', {
-          body: { 
-            timestamp: new Date().toISOString(),
-            forceRefresh: true
-          },
-        });
-        
-        if (error) {
-          console.error('Error invoking function:', error);
-          toast.error('Failed to fetch movies: ' + error.message, { id: toastId });
-          return;
-        }
-
-        if (data.error) {
-          toast.error(data.error, { id: toastId });
-          return;
-        }
-
-        await refetch(); // Refresh the movies list
-        
-        if (data.processed === 0) {
-          toast.error('No new movies were found. Please try again later.', { id: toastId });
-          return;
-        }
-
-        toast.success(`Successfully fetched ${data.processed} new movies`, { id: toastId });
-      } catch (error) {
-        console.error('Error fetching movies:', error);
-        toast.error('Failed to fetch movies. Please try again later.', { id: toastId });
+      if (error) {
+        console.error('Error invoking function:', error);
+        toast.error('Failed to fetch movies: ' + error.message, { id: toastId });
+        return;
       }
-    };
 
-    fetchYoutubeMovies();
-  }, []); // Run every time component mounts
+      if (data.error) {
+        console.error('Function returned error:', data.error);
+        toast.error(data.error, { id: toastId });
+        return;
+      }
+
+      await refetch(); // Refresh the movies list
+      
+      if (data.processed === 0) {
+        toast.error('No new movies were found. Please try again later.', { id: toastId });
+        return;
+      }
+
+      toast.success(`Successfully fetched ${data.processed} new movies`, { id: toastId });
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+      toast.error('Failed to fetch movies. Please try again later.', { id: toastId });
+    }
+  };
 
   if (error) {
     toast.error('Error loading movies');
@@ -86,12 +84,21 @@ const Movies = () => {
               <div className="max-w-2xl text-left">
                 <h1 className="text-5xl font-bold mb-4 font-display">{movies[0].title}</h1>
                 <p className="text-lg mb-6 line-clamp-3">{movies[0].description}</p>
-                <Link 
-                  to={`/movie/${movies[0].id}`}
-                  className="inline-flex items-center gap-2 bg-netflix-red hover:bg-netflix-red/90 text-white px-6 py-3 rounded-md transition-colors"
-                >
-                  <Play className="w-5 h-5" /> Play Now
-                </Link>
+                <div className="flex gap-4">
+                  <Link 
+                    to={`/movie/${movies[0].id}`}
+                    className="inline-flex items-center gap-2 bg-netflix-red hover:bg-netflix-red/90 text-white px-6 py-3 rounded-md transition-colors"
+                  >
+                    <Play className="w-5 h-5" /> Play Now
+                  </Link>
+                  <Button
+                    onClick={fetchYoutubeMovies}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <RefreshCw className="w-5 h-5" /> Refresh Movies
+                  </Button>
+                </div>
               </div>
             </div>
           </>
@@ -100,7 +107,18 @@ const Movies = () => {
 
       {/* Movies Grid */}
       <div className="container mx-auto px-6">
-        <h2 className="text-2xl font-bold mb-6">Ethiopian Movies</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Ethiopian Movies</h2>
+          {!movies?.length && (
+            <Button
+              onClick={fetchYoutubeMovies}
+              variant="outline"
+              className="gap-2"
+            >
+              <RefreshCw className="w-5 h-5" /> Fetch Movies
+            </Button>
+          )}
+        </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {isLoading ? (
