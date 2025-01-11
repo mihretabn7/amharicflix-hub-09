@@ -7,7 +7,12 @@ export const checkIsAdmin = async (userId: string | undefined): Promise<boolean>
     .from('admin_users')
     .select('id')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
     
-  return !error && data !== null;
+  if (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+  
+  return data !== null;
 };
