@@ -9,6 +9,21 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       genre_suggestions: {
         Row: {
           created_at: string
@@ -94,31 +109,40 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          duration_minutes: number | null
           genre: string | null
           id: string
           language: string | null
+          share_count: number | null
           thumbnail_url: string
           title: string
+          watch_count: number | null
           youtube_id: string
         }
         Insert: {
           created_at?: string
           description?: string | null
+          duration_minutes?: number | null
           genre?: string | null
           id?: string
           language?: string | null
+          share_count?: number | null
           thumbnail_url: string
           title: string
+          watch_count?: number | null
           youtube_id: string
         }
         Update: {
           created_at?: string
           description?: string | null
+          duration_minutes?: number | null
           genre?: string | null
           id?: string
           language?: string | null
+          share_count?: number | null
           thumbnail_url?: string
           title?: string
+          watch_count?: number | null
           youtube_id?: string
         }
         Relationships: []
@@ -194,7 +218,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_movie_share_count: {
+        Args: {
+          movie_id: string
+        }
+        Returns: undefined
+      }
+      increment_movie_watch_count: {
+        Args: {
+          movie_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
