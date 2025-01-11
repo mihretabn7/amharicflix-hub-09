@@ -16,10 +16,17 @@ export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
     return false;
   }
 
-  // Check duration (minimum 20 minutes for movies/dramas)
+  // Get duration in minutes
   const duration = video.contentDetails.duration;
-  const match = duration.match(/PT(\d+)M/);
-  if (!match || parseInt(match[1]) < 20) {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return false;
+  
+  const hours = parseInt(match[1] || '0');
+  const minutes = parseInt(match[2] || '0');
+  const totalMinutes = hours * 60 + minutes;
+
+  // Minimum duration check (20 minutes)
+  if (totalMinutes < 20) {
     return false;
   }
 

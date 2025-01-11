@@ -26,9 +26,8 @@ Deno.serve(async (req) => {
       console.log(`Searching for: ${query} (${genre})`);
       
       try {
-        // Make multiple requests to get more results
-        const maxResults = 50; // Maximum allowed per request
-        const pages = 4; // Number of pages to fetch (4 pages * 50 results = 200 results per query)
+        const maxResults = 50;
+        const pages = 4;
         let pageToken = '';
 
         for (let i = 0; i < pages; i++) {
@@ -58,7 +57,6 @@ Deno.serve(async (req) => {
             break;
           }
 
-          // Get next page token for pagination
           pageToken = searchData.nextPageToken;
 
           const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
@@ -78,15 +76,24 @@ Deno.serve(async (req) => {
           const detailsData = await detailsResponse.json();
           const validVideos = detailsData.items
             .filter((video: YouTubeVideo) => isValidVideo(video, genre))
-            .map((video: YouTubeVideo) => ({
-              ...video,
-              customGenre: genre
-            }));
+            .map((video: YouTubeVideo) => {
+              // Calculate duration in minutes
+              const duration = video.contentDetails.duration;
+              const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+              const hours = parseInt(match?.[1] || '0');
+              const minutes = parseInt(match?.[2] || '0');
+              const totalMinutes = hours * 60 + minutes;
+
+              return {
+                ...video,
+                customGenre: genre,
+                durationMinutes: totalMinutes
+              };
+            });
 
           console.log(`Found ${validVideos.length} valid videos for query: ${query} (page ${i + 1})`);
           allVideos = [...allVideos, ...validVideos];
 
-          // If no next page token, break the loop
           if (!pageToken) break;
         }
       } catch (error) {
@@ -95,7 +102,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Remove duplicates and sort by date
     const uniqueVideos = Array.from(
       new Map(allVideos.map(item => [item.id, item])).values()
     ).sort((a, b) => {
@@ -138,7 +144,8 @@ Deno.serve(async (req) => {
             description: description,
             thumbnail_url: thumbnail.url,
             genre: item.customGenre,
-            language: 'Amharic'
+            language: 'Amharic',
+            duration_minutes: item.durationMinutes || 0
           }, {
             onConflict: 'youtube_id'
           });
