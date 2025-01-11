@@ -16,10 +16,11 @@ Deno.serve(async (req) => {
   try {
     const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY');
     if (!YOUTUBE_API_KEY) {
+      console.error('Missing YouTube API key');
       throw new Error('Missing YouTube API key');
     }
 
-    console.log('Starting YouTube API request...');
+    console.log('Starting YouTube API request with key length:', YOUTUBE_API_KEY.length);
     let allVideos: YouTubeVideo[] = [];
     
     for (const { query, genre } of searchQueries) {
@@ -44,9 +45,16 @@ Deno.serve(async (req) => {
               ...(pageToken && { pageToken }),
             });
 
+          console.log(`Making request to YouTube API for query "${query}" (page ${i + 1})`);
           const searchResponse = await fetch(searchUrl);
+          
           if (!searchResponse.ok) {
-            console.error(`YouTube API Error for query "${query}":`, await searchResponse.text());
+            const errorText = await searchResponse.text();
+            console.error(`YouTube API Error for query "${query}":`, {
+              status: searchResponse.status,
+              statusText: searchResponse.statusText,
+              error: errorText
+            });
             break;
           }
 
@@ -54,6 +62,7 @@ Deno.serve(async (req) => {
           console.log(`Found ${searchData.items?.length || 0} results for query: ${query} (page ${i + 1})`);
 
           if (!searchData.items?.length) {
+            console.log(`No items found for query: ${query} (page ${i + 1})`);
             break;
           }
 
@@ -67,9 +76,16 @@ Deno.serve(async (req) => {
               key: YOUTUBE_API_KEY,
             });
 
+          console.log(`Fetching video details for ${videoIds.split(',').length} videos`);
           const detailsResponse = await fetch(videoDetailsUrl);
+          
           if (!detailsResponse.ok) {
-            console.error(`Failed to fetch video details for query "${query}"`);
+            const errorText = await detailsResponse.text();
+            console.error(`Failed to fetch video details for query "${query}"`, {
+              status: detailsResponse.status,
+              statusText: detailsResponse.statusText,
+              error: errorText
+            });
             break;
           }
 
@@ -77,7 +93,6 @@ Deno.serve(async (req) => {
           const validVideos = detailsData.items
             .filter((video: YouTubeVideo) => isValidVideo(video, genre))
             .map((video: YouTubeVideo) => {
-              // Calculate duration in minutes
               const duration = video.contentDetails.duration;
               const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
               const hours = parseInt(match?.[1] || '0');
@@ -94,7 +109,10 @@ Deno.serve(async (req) => {
           console.log(`Found ${validVideos.length} valid videos for query: ${query} (page ${i + 1})`);
           allVideos = [...allVideos, ...validVideos];
 
-          if (!pageToken) break;
+          if (!pageToken) {
+            console.log(`No more pages available for query: ${query}`);
+            break;
+          }
         }
       } catch (error) {
         console.error(`Error processing query "${query}":`, error);
