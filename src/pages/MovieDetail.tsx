@@ -66,28 +66,19 @@ const MovieDetail = () => {
 
   const handleShare = async () => {
     try {
-      const shareData = {
-        title: movieData?.movie.title || 'Movie',
-        text: movieData?.movie.description || 'Check out this Ethiopian movie!',
-        url: window.location.href
-      };
-
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-        toast.success('Shared successfully!');
+      if (navigator.share) {
+        await navigator.share({
+          title: movie.title,
+          text: movie.description,
+          url: window.location.href,
+        });
       } else {
         await navigator.clipboard.writeText(window.location.href);
         toast.success('Link copied to clipboard!');
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      // Fallback to clipboard copy if sharing fails
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copied to clipboard!');
-      } catch (clipboardError) {
-        toast.error('Failed to share or copy link');
-      }
+      toast.error('Failed to share');
     }
   };
 
