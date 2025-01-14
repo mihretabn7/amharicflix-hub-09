@@ -7,4 +7,7 @@ export interface Movie {
   language?: string;
   created_at: string;
   description?: string;
+  duration_minutes?: number;
+  watch_count?: number;
+  share_count?: number;
 }

@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { checkIsAdmin } from "@/utils/auth";
 import {
   CommandDialog,
   CommandEmpty,
@@ -14,21 +15,28 @@ import {
 
 const Navbar = () => {
   const [session, setSession] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user) {
+        checkIsAdmin(session.user.id).then(setIsAdmin);
+      }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user) {
+        checkIsAdmin(session.user.id).then(setIsAdmin);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -69,6 +77,11 @@ const Navbar = () => {
           <Link to="/categories" className="text-sm font-medium text-gray-300 hover:text-white">
             Categories
           </Link>
+          {isAdmin && (
+            <Link to="/admin" className="text-sm font-medium text-gray-300 hover:text-white">
+              Admin
+            </Link>
+          )}
           <button 
             className="text-sm font-medium text-gray-300 hover:text-white"
             onClick={() => setOpen(true)}

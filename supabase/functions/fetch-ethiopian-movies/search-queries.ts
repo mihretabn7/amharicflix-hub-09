@@ -1,16 +1,35 @@
-import { VideoSearchQuery } from './types.ts';
+export interface VideoSearchQuery {
+  query: string;
+  genre: string;
+}
 
 export const searchQueries: VideoSearchQuery[] = [
   {
-    query: 'ethiopian full movie 2024 ሙሉ ፊልም',
+    query: 'new ethiopian movie 2024',
     genre: 'Ethiopian Movie'
   },
   {
-    query: 'new ethiopian full movie 2024 አዲስ ፊልም',
+    query: 'አዲስ ፊልም 2024',
     genre: 'Ethiopian Movie'
   },
   {
-    query: 'ethiopian full movie 2023 ሙሉ ፊልም',
+    query: 'new amharic movie 2024',
+    genre: 'Ethiopian Movie'
+  },
+  {
+    query: 'ethiopian drama 2024',
+    genre: 'Ethiopian Drama'
+  },
+  {
+    query: 'አዲስ ድራማ 2024',
+    genre: 'Ethiopian Drama'
+  },
+  {
+    query: 'new ethiopian movie 2023',
+    genre: 'Ethiopian Movie'
+  },
+  {
+    query: 'አዲስ ፊልም 2023',
     genre: 'Ethiopian Movie'
   }
 ];

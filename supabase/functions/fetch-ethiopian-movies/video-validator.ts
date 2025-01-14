@@ -1,27 +1,42 @@
 import { YouTubeVideo } from './types.ts';
 
 export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
-  // Check duration (minimum 30 minutes for full movies)
-  const duration = video.contentDetails.duration;
-  const match = duration.match(/PT(\d+)M/);
-  if (!match || parseInt(match[1]) < 30) return false;
-
   const title = video.snippet.title.toLowerCase();
   const description = video.snippet.description.toLowerCase();
-
-  // Ensure it's specifically a full movie
-  const hasFullMovieIndicator = 
-    title.includes('full movie') || 
-    title.includes('ሙሉ ፊልም') ||
-    description.includes('full movie') ||
-    description.includes('ሙሉ ፊልም');
-
-  // Must be Ethiopian
-  const isEthiopian = 
+  
+  // Check if title contains Ethiopian/Amharic indicators
+  const hasEthiopianIndicator = 
     title.includes('ethiopian') || 
+    title.includes('amharic') ||
     title.includes('ኢትዮጵያ') ||
-    description.includes('ethiopian') ||
-    description.includes('ኢትዮጵያ');
+    title.includes('አማርኛ') ||
+    title.includes('ፊልም') ||
+    title.includes('ድራማ');
+  
+  if (!hasEthiopianIndicator) {
+    return false;
+  }
 
-  return hasFullMovieIndicator && isEthiopian;
+  // Get duration in minutes
+  const duration = video.contentDetails.duration;
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return false;
+  
+  const hours = parseInt(match[1] || '0');
+  const minutes = parseInt(match[2] || '0');
+  const totalMinutes = hours * 60 + minutes;
+
+  // Videos should be at least 15 minutes long
+  if (totalMinutes < 15) {
+    return false;
+  }
+
+  // Check for recent year indicators
+  const hasRecentYear = 
+    title.includes('2024') || 
+    title.includes('2023') || 
+    description.includes('2024') || 
+    description.includes('2023');
+
+  return hasRecentYear;
 }
