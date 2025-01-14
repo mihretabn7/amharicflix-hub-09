@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AuthError } from "@supabase/supabase-js";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -22,14 +22,22 @@ const AdminLogin = () => {
   };
 
   const getErrorMessage = (error: AuthError) => {
-    switch (error.message) {
-      case "Invalid login credentials":
-        return "Invalid email or password. Please check your credentials and try again.";
-      case "Email not confirmed":
-        return "Please verify your email address before signing in.";
-      default:
-        return error.message;
+    if (error instanceof AuthApiError) {
+      switch (error.status) {
+        case 400:
+          if (error.message.includes("Invalid login credentials")) {
+            return "Invalid email or password. Please check your admin credentials and try again.";
+          }
+          return "Invalid request. Please check your input and try again.";
+        case 422:
+          return "Invalid email format. Please enter a valid email address.";
+        case 429:
+          return "Too many login attempts. Please try again later.";
+        default:
+          return error.message;
+      }
     }
+    return "An unexpected error occurred. Please try again.";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,12 +45,12 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const { data: { session }, error } = await supabase.auth.signInWithPassword({
+      const { data: { session }, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (error) throw error;
+      if (signInError) throw signInError;
 
       if (session) {
         const { data: adminData, error: adminError } = await supabase
@@ -52,10 +60,11 @@ const AdminLogin = () => {
           .single();
 
         if (adminError) {
-          throw new Error("Error checking admin status");
+          throw new Error("Error verifying admin status");
         }
 
         if (!adminData) {
+          await supabase.auth.signOut();
           throw new Error("You do not have admin privileges");
         }
 
@@ -63,7 +72,11 @@ const AdminLogin = () => {
         navigate("/admin");
       }
     } catch (error: any) {
+      console.error("Login error:", error);
       toast.error(getErrorMessage(error));
+      if (error.message === "You do not have admin privileges") {
+        await supabase.auth.signOut();
+      }
     } finally {
       setLoading(false);
     }
