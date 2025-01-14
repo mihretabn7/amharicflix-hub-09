@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Play, Star, RefreshCw, Eye } from "lucide-react";
+import { Play, Star, RefreshCw, Eye, Folder } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +25,30 @@ const Movies = () => {
     queryFn: fetchMovies,
   });
 
+  // Group movies by title for series
+  const groupedMovies = movies?.reduce((acc: any, movie) => {
+    if (movie.series_id) {
+      // This is part of a series
+      const parentMovie = movies.find(m => m.id === movie.series_id);
+      if (parentMovie) {
+        if (!acc[parentMovie.title]) {
+          acc[parentMovie.title] = {
+            parent: parentMovie,
+            episodes: []
+          };
+        }
+        acc[parentMovie.title].episodes.push(movie);
+      }
+    } else if (!acc[movie.title]) {
+      // This is a standalone movie or the first episode of a series
+      acc[movie.title] = {
+        parent: movie,
+        episodes: []
+      };
+    }
+    return acc;
+  }, {});
+
   const fetchYoutubeMovies = async () => {
     const toastId = toast.loading('Fetching fresh movies from YouTube...');
     
@@ -48,7 +72,7 @@ const Movies = () => {
         return;
       }
 
-      await refetch(); // Refresh the movies list
+      await refetch();
       
       if (data.processed === 0) {
         toast.error('No new movies were found. Please try again later.', { id: toastId });
@@ -110,7 +134,7 @@ const Movies = () => {
         {/* Movies Grid */}
         <div className="container mx-auto px-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Ethiopian Movies</h2>
+            <h2 className="text-2xl font-bold">Ethiopian Movies & Series</h2>
             {!movies?.length && (
               <Button
                 onClick={fetchYoutubeMovies}
@@ -134,22 +158,33 @@ const Movies = () => {
                 </Card>
               ))
             ) : (
-              movies?.map((movie) => (
-                <Link to={`/movie/${movie.id}`} key={movie.id}>
+              Object.entries(groupedMovies || {}).map(([title, { parent, episodes }]: [string, any]) => (
+                <Link to={`/movie/${parent.id}`} key={parent.id}>
                   <div className="movie-card group">
                     <img
-                      src={movie.thumbnail_url}
-                      alt={movie.title}
+                      src={parent.thumbnail_url}
+                      alt={title}
                       className="w-full aspect-[2/3] object-cover rounded-md"
                     />
                     <div className="movie-card-overlay">
                       <div className="absolute bottom-0 p-4 w-full">
-                        <h3 className="font-semibold text-sm mb-1 line-clamp-2">{movie.title}</h3>
+                        <h3 className="font-semibold text-sm mb-1 line-clamp-2">{title}</h3>
                         <div className="flex items-center gap-2 text-netflix-gold">
-                          <Eye className="w-4 h-4 fill-current" />
-                          <span className="text-sm">
-                            {movie.watch_count || 0} views
-                          </span>
+                          {episodes.length > 0 ? (
+                            <>
+                              <Folder className="w-4 h-4" />
+                              <span className="text-sm">
+                                {episodes.length + 1} Episodes
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="w-4 h-4 fill-current" />
+                              <span className="text-sm">
+                                {parent.watch_count || 0} views
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
