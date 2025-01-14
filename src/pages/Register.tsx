@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    isAdmin: false,
+    adminCode: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -20,6 +23,14 @@ const Register = () => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleAdminCheckboxChange = (checked: boolean) => {
+    setFormData({
+      ...formData,
+      isAdmin: checked,
+      adminCode: checked ? formData.adminCode : "",
     });
   };
 
@@ -38,7 +49,7 @@ const Register = () => {
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email || `${formData.phoneNumber}@placeholder.com`,
         password: formData.password,
         options: {
@@ -49,9 +60,24 @@ const Register = () => {
         },
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
 
-      toast.success("Registration successful! Please check your email for verification.");
+      if (formData.isAdmin && signUpData.user) {
+        // Verify admin code and create admin user
+        if (formData.adminCode !== "ADMIN123") { // In a real app, this should be an environment variable
+          throw new Error("Invalid admin code");
+        }
+
+        const { error: adminError } = await supabase
+          .from('admin_users')
+          .insert([{ id: signUpData.user.id }]);
+
+        if (adminError) throw adminError;
+        toast.success("Admin registration successful!");
+      } else {
+        toast.success("Registration successful! Please check your email for verification.");
+      }
+
       navigate("/login");
     } catch (error: any) {
       toast.error(error.message);
@@ -127,6 +153,32 @@ const Register = () => {
                 minLength={6}
               />
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isAdmin"
+                checked={formData.isAdmin}
+                onCheckedChange={handleAdminCheckboxChange}
+              />
+              <label
+                htmlFor="isAdmin"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Register as Admin
+              </label>
+            </div>
+            {formData.isAdmin && (
+              <div>
+                <Input
+                  type="password"
+                  name="adminCode"
+                  placeholder="Admin registration code"
+                  className="bg-secondary"
+                  value={formData.adminCode}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            )}
           </div>
 
           <Button 
