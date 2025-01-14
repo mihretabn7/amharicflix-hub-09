@@ -4,15 +4,16 @@ export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
   const title = video.snippet.title.toLowerCase();
   const description = video.snippet.description.toLowerCase();
   
-  // Check if title contains required keywords
-  const hasFullKeyword = title.includes('full') || title.includes('ሙሉ');
-  const hasMovieKeyword = title.includes('movie') || title.includes('ፊልም');
-  const hasDramaKeyword = title.includes('drama') || title.includes('ድራማ');
+  // Check if title contains Ethiopian/Amharic indicators
+  const hasEthiopianIndicator = 
+    title.includes('ethiopian') || 
+    title.includes('amharic') ||
+    title.includes('ኢትዮጵያ') ||
+    title.includes('አማርኛ') ||
+    title.includes('ፊልም') ||
+    title.includes('ድራማ');
   
-  // Video must have either (full AND movie) OR (full AND drama)
-  const isValidTitle = (hasFullKeyword && (hasMovieKeyword || hasDramaKeyword));
-  
-  if (!isValidTitle) {
+  if (!hasEthiopianIndicator) {
     return false;
   }
 
@@ -25,28 +26,17 @@ export function isValidVideo(video: YouTubeVideo, genre: string): boolean {
   const minutes = parseInt(match[2] || '0');
   const totalMinutes = hours * 60 + minutes;
 
-  // Minimum duration check (20 minutes)
-  if (totalMinutes < 20) {
+  // Videos should be at least 15 minutes long
+  if (totalMinutes < 15) {
     return false;
   }
 
-  // Check for Ethiopian indicators in both title and description
-  const isEthiopian = 
-    title.includes('ethiopian') || 
-    title.includes('ኢትዮጵያ') ||
-    title.includes('amharic') ||
-    title.includes('አማርኛ') ||
-    description.includes('ethiopian') ||
-    description.includes('ኢትዮጵያ') ||
-    description.includes('amharic') ||
-    description.includes('አማርኛ');
-
-  // Check for year indicators (2023 or 2024)
+  // Check for recent year indicators
   const hasRecentYear = 
     title.includes('2024') || 
     title.includes('2023') || 
     description.includes('2024') || 
     description.includes('2023');
 
-  return isEthiopian && hasRecentYear;
+  return hasRecentYear;
 }
