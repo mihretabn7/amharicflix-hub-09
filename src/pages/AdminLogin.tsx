@@ -1,87 +1,115 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { checkIsAdmin } from "@/utils/auth";
+import { AuthError } from "@supabase/supabase-js";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
 
-  useEffect(() => {
-    // Check if user is already logged in and is admin
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        checkIsAdmin(session.user.id).then((isAdmin) => {
-          if (isAdmin) {
-            navigate("/admin");
-          }
-        });
-      }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
     });
-  }, [navigate]);
+  };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const getErrorMessage = (error: AuthError) => {
+    switch (error.message) {
+      case "Invalid login credentials":
+        return "Invalid email or password. Please check your credentials and try again.";
+      case "Email not confirmed":
+        return "Please verify your email address before signing in.";
+      default:
+        return error.message;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { data: { session }, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
       });
 
       if (error) throw error;
 
-      const isAdmin = await checkIsAdmin(data.user.id);
-      if (!isAdmin) {
-        await supabase.auth.signOut();
-        toast.error("Unauthorized access");
-        return;
-      }
+      if (session) {
+        const { data: adminData, error: adminError } = await supabase
+          .from('admin_users')
+          .select('id')
+          .eq('id', session.user.id)
+          .single();
 
-      toast.success("Welcome back, admin!");
-      navigate("/admin");
+        if (adminError) {
+          throw new Error("Error checking admin status");
+        }
+
+        if (!adminData) {
+          throw new Error("You do not have admin privileges");
+        }
+
+        toast.success("Successfully logged in as admin!");
+        navigate("/admin");
+      }
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="max-w-md w-full p-6 bg-card rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-center mb-6">Admin Login</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <Input
-              type="email"
-              placeholder="Admin Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <h2 className="text-4xl font-bold text-netflix-red">Admin Login</h2>
+          <p className="mt-2 text-gray-300">Sign in to access admin panel</p>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <div className="space-y-4">
+            <div>
+              <Input
+                type="email"
+                name="email"
+                placeholder="Admin email"
+                className="bg-secondary"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div>
+              <Input
+                type="password"
+                name="password"
+                placeholder="Password"
+                className="bg-secondary"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+              />
+            </div>
           </div>
-          <div>
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <Button
-            type="submit"
+
+          <Button 
+            type="submit" 
             className="w-full bg-netflix-red hover:bg-netflix-red/90"
             disabled={loading}
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
       </div>
