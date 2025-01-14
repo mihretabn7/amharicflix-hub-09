@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Play, Star, Share2 } from "lucide-react";
+import { Play, Star, Share2, Eye, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +19,7 @@ const MovieDetail = () => {
   const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
   const [session, setSession] = useState<any>(null);
+  const [viewStartTime, setViewStartTime] = useState<Date | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -34,6 +35,33 @@ const MovieDetail = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Track view duration when user starts/stops watching
+  useEffect(() => {
+    if (isPlaying && !viewStartTime) {
+      setViewStartTime(new Date());
+      // Increment watch count when video starts playing
+      if (id) {
+        supabase.rpc('increment_movie_watch_count', { movie_id: id });
+      }
+    }
+
+    return () => {
+      if (viewStartTime && session?.user?.id && id) {
+        const duration = Math.floor((new Date().getTime() - viewStartTime.getTime()) / 1000);
+        // Only record if watched for more than 10 seconds
+        if (duration > 10) {
+          supabase
+            .from('user_movie_history')
+            .insert({
+              user_id: session.user.id,
+              movie_id: id,
+              watch_duration: duration
+            });
+        }
+      }
+    };
+  }, [isPlaying, viewStartTime, session, id]);
+
   const { data: movieData, isLoading, error, refetch } = useQuery({
     queryKey: ['movie', id],
     queryFn: async () => {
@@ -43,7 +71,7 @@ const MovieDetail = () => {
         throw new Error("Invalid movie ID");
       }
 
-      const [movieResponse, ratingsResponse] = await Promise.all([
+      const [movieResponse, ratingsResponse, historyResponse] = await Promise.all([
         supabase
           .from('movies')
           .select('*')
@@ -52,20 +80,30 @@ const MovieDetail = () => {
         supabase
           .from('movie_ratings')
           .select('*')
+          .eq('movie_id', id),
+        session?.user?.id ? supabase
+          .from('user_movie_history')
+          .select('*')
           .eq('movie_id', id)
+          .eq('user_id', session.user.id) : null
       ]);
 
       if (movieResponse.error) throw movieResponse.error;
       
       return {
         movie: movieResponse.data,
-        ratings: ratingsResponse.data || []
+        ratings: ratingsResponse.data || [],
+        history: historyResponse?.data || []
       };
     },
   });
 
   const handleShare = async () => {
     try {
+      if (id) {
+        await supabase.rpc('increment_movie_share_count', { movie_id: id });
+      }
+
       const shareData = {
         title: movieData?.movie.title || 'Movie',
         text: movieData?.movie.description || 'Check out this Ethiopian movie!',
@@ -81,7 +119,6 @@ const MovieDetail = () => {
       }
     } catch (error) {
       console.error('Error sharing:', error);
-      // Fallback to clipboard copy if sharing fails
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast.success('Link copied to clipboard!');
@@ -99,10 +136,14 @@ const MovieDetail = () => {
     return <div className="min-h-screen pt-16">Error loading movie details</div>;
   }
 
-  const { movie, ratings } = movieData;
+  const { movie, ratings, history } = movieData;
   const averageRating = ratings.length > 0
     ? ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / ratings.length
     : 0;
+
+  const totalWatchTime = history.reduce((acc: number, curr: any) => acc + (curr.watch_duration || 0), 0);
+  const watchCount = movie.watch_count || 0;
+  const shareCount = movie.share_count || 0;
 
   return (
     <div className="min-h-screen pt-16">
@@ -165,6 +206,32 @@ const MovieDetail = () => {
           <div className="md:col-span-2">
             {!isPlaying && session && (
               <div className="space-y-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-card p-4 rounded-lg">
+                    <div className="flex items-center gap-2 text-netflix-gold">
+                      <Eye className="w-5 h-5" />
+                      <span>{watchCount} views</span>
+                    </div>
+                  </div>
+                  <div className="bg-card p-4 rounded-lg">
+                    <div className="flex items-center gap-2 text-netflix-gold">
+                      <Share2 className="w-5 h-5" />
+                      <span>{shareCount} shares</span>
+                    </div>
+                  </div>
+                  <div className="bg-card p-4 rounded-lg">
+                    <div className="flex items-center gap-2 text-netflix-gold">
+                      <Star className="w-5 h-5" />
+                      <span>{averageRating.toFixed(1)} rating</span>
+                    </div>
+                  </div>
+                  <div className="bg-card p-4 rounded-lg">
+                    <div className="flex items-center gap-2 text-netflix-gold">
+                      <Clock className="w-5 h-5" />
+                      <span>{Math.floor(totalWatchTime / 60)}m watched</span>
+                    </div>
+                  </div>
+                </div>
                 <MovieRating 
                   movieId={movie.id} 
                   userId={session.user.id}

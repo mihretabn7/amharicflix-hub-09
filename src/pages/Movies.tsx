@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Play, Star, RefreshCw } from "lucide-react";
+import { Play, Star, RefreshCw, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -146,8 +146,10 @@ const Movies = () => {
                       <div className="absolute bottom-0 p-4 w-full">
                         <h3 className="font-semibold text-sm mb-1 line-clamp-2">{movie.title}</h3>
                         <div className="flex items-center gap-2 text-netflix-gold">
-                          <Star className="w-4 h-4 fill-current" />
-                          <span className="text-sm">New</span>
+                          <Eye className="w-4 h-4 fill-current" />
+                          <span className="text-sm">
+                            {movie.watch_count || 0} views
+                          </span>
                         </div>
                       </div>
                     </div>
