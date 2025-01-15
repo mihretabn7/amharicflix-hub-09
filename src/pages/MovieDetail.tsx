@@ -158,11 +158,16 @@ const MovieDetail = () => {
               ></iframe>
             </div>
             {session && (
-              <div className="bg-card p-4 border-t border-border">
+              <div className="bg-card p-4 border-t border-border space-y-6">
                 <MovieRating 
                   movieId={movie.id} 
                   userId={session.user.id}
                   onRatingSubmit={refetch}
+                />
+                <GenreSuggestion
+                  movieId={movie.id}
+                  userId={session.user.id}
+                  onSuggestionSubmit={refetch}
                 />
               </div>
             )}
