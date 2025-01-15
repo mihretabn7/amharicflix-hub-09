@@ -24,6 +24,36 @@ export type Database = {
         }
         Relationships: []
       }
+      csv_movie_uploads: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          filename: string
+          id: string
+          processed_at: string | null
+          status: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          filename: string
+          id?: string
+          processed_at?: string | null
+          status?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          filename?: string
+          id?: string
+          processed_at?: string | null
+          status?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       genre_suggestions: {
         Row: {
           created_at: string
@@ -149,28 +179,37 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
+          bio: string | null
           created_at: string
           email: string | null
           id: string
           phone_number: string
           subscription_plan: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string | null
           id: string
           phone_number: string
           subscription_plan?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
+          avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string | null
           id?: string
           phone_number?: string
           subscription_plan?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }

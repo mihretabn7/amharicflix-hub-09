@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Film, Users, MessageSquare, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import MovieUploadForm from "@/components/MovieUploadForm";
+import CsvMovieUpload from "@/components/CsvMovieUpload";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -13,11 +14,11 @@ const AdminDashboard = () => {
     totalShares: 0
   });
 
+  const [showMovieUpload, setShowMovieUpload] = useState(false);
+
   useEffect(() => {
-    // Initial load of stats
     fetchStats();
 
-    // Subscribe to real-time updates
     const channel = supabase
       .channel('admin-dashboard')
       .on(
@@ -50,35 +51,19 @@ const AdminDashboard = () => {
   }, []);
 
   const fetchStats = async () => {
-    // Get total movies
-    const { count: moviesCount } = await supabase
-      .from('movies')
-      .select('*', { count: 'exact', head: true });
+    const [moviesCount, usersCount, watchData, shareData] = await Promise.all([
+      supabase.from('movies').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('movies').select('watch_count').not('watch_count', 'is', null),
+      supabase.from('movies').select('share_count').not('share_count', 'is', null)
+    ]);
 
-    // Get total users
-    const { count: usersCount } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
-
-    // Get total watches
-    const { data: watchData } = await supabase
-      .from('movies')
-      .select('watch_count')
-      .not('watch_count', 'is', null);
-    
-    const totalWatches = watchData?.reduce((acc, curr) => acc + (curr.watch_count || 0), 0) || 0;
-
-    // Get total shares
-    const { data: shareData } = await supabase
-      .from('movies')
-      .select('share_count')
-      .not('share_count', 'is', null);
-    
-    const totalShares = shareData?.reduce((acc, curr) => acc + (curr.share_count || 0), 0) || 0;
+    const totalWatches = watchData.data?.reduce((acc, curr) => acc + (curr.watch_count || 0), 0) || 0;
+    const totalShares = shareData.data?.reduce((acc, curr) => acc + (curr.share_count || 0), 0) || 0;
 
     setStats({
-      totalMovies: moviesCount || 0,
-      totalUsers: usersCount || 0,
+      totalMovies: moviesCount.count || 0,
+      totalUsers: usersCount.count || 0,
       totalWatches,
       totalShares
     });
@@ -89,9 +74,32 @@ const AdminDashboard = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <Button className="bg-netflix-red hover:bg-netflix-red/90">
-            Add New Movie
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-netflix-red hover:bg-netflix-red/90">
+                Add New Movie
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Movie</DialogTitle>
+              </DialogHeader>
+              <MovieUploadForm onSuccess={() => fetchStats()} />
+              <div className="mt-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or upload multiple movies
+                    </span>
+                  </div>
+                </div>
+                <CsvMovieUpload />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -134,37 +142,6 @@ const AdminDashboard = () => {
               <Settings className="h-8 w-8 text-purple-500" />
             </div>
           </div>
-        </div>
-
-        <div className="bg-card p-6 rounded-lg">
-          <h2 className="text-xl font-bold mb-6">Add New Movie</h2>
-          <form className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Title</label>
-                <Input className="bg-secondary" placeholder="Movie title" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">YouTube URL</label>
-                <Input className="bg-secondary" placeholder="https://youtube.com/..." />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Duration (minutes)</label>
-                <Input className="bg-secondary" type="number" placeholder="60" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Category</label>
-                <Input className="bg-secondary" placeholder="Drama, Comedy, etc." />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Description</label>
-                <Textarea className="bg-secondary" placeholder="Movie description..." />
-              </div>
-            </div>
-            <Button className="bg-netflix-red hover:bg-netflix-red/90">
-              Add Movie
-            </Button>
-          </form>
         </div>
       </div>
     </div>
