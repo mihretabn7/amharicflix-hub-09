@@ -35,11 +35,9 @@ const MovieDetail = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Track view duration when user starts/stops watching
   useEffect(() => {
     if (isPlaying && !viewStartTime) {
       setViewStartTime(new Date());
-      // Increment watch count when video starts playing
       if (id) {
         supabase.rpc('increment_movie_watch_count', { movie_id: id });
       }
@@ -48,7 +46,6 @@ const MovieDetail = () => {
     return () => {
       if (viewStartTime && session?.user?.id && id) {
         const duration = Math.floor((new Date().getTime() - viewStartTime.getTime()) / 1000);
-        // Only record if watched for more than 10 seconds
         if (duration > 10) {
           supabase
             .from('user_movie_history')
@@ -149,15 +146,26 @@ const MovieDetail = () => {
     <div className="min-h-screen pt-16">
       <div className="relative h-[70vh]">
         {isPlaying ? (
-          <div className="absolute inset-0 bg-black">
-            <iframe
-              width="100%"
-              height="100%"
-              src={`https://www.youtube.com/embed/${movie.youtube_id}?autoplay=1`}
-              title="YouTube video player"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
+          <div className="flex flex-col h-full">
+            <div className="flex-grow bg-black">
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube.com/embed/${movie.youtube_id}?autoplay=1`}
+                title="YouTube video player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+            {session && (
+              <div className="bg-card p-4 border-t border-border">
+                <MovieRating 
+                  movieId={movie.id} 
+                  userId={session.user.id}
+                  onRatingSubmit={refetch}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -232,11 +240,6 @@ const MovieDetail = () => {
                     </div>
                   </div>
                 </div>
-                <MovieRating 
-                  movieId={movie.id} 
-                  userId={session.user.id}
-                  onRatingSubmit={refetch}
-                />
                 <GenreSuggestion
                   movieId={movie.id}
                   userId={session.user.id}
@@ -246,7 +249,7 @@ const MovieDetail = () => {
             )}
           </div>
           <div>
-            <MovieDetailsSection movie={movie} />
+            <MovieDetailsSection movie={movie} userId={session?.user?.id} />
           </div>
         </div>
       </div>
