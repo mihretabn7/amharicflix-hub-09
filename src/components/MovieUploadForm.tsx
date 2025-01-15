@@ -7,11 +7,9 @@ import { toast } from "sonner";
 
 interface MovieUploadFormProps {
   onSuccess?: () => void;
-  seriesId?: string;
-  episodeNumber?: number;
 }
 
-const MovieUploadForm = ({ onSuccess, seriesId, episodeNumber }: MovieUploadFormProps) => {
+const MovieUploadForm = ({ onSuccess }: MovieUploadFormProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -37,8 +35,6 @@ const MovieUploadForm = ({ onSuccess, seriesId, episodeNumber }: MovieUploadForm
           genre: formData.genre,
           language: formData.language,
           duration_minutes: formData.durationMinutes,
-          series_id: seriesId,
-          episode_number: episodeNumber,
         },
       ]);
 

@@ -33,8 +33,8 @@ serve(async (req) => {
       title: row[0],
       youtube_id: row[1],
       thumbnail_url: row[2],
-      description: row[3],
-      genre: row[4],
+      description: row[3] || '',
+      genre: row[4] || null,
       language: row[5] || 'Amharic',
       duration_minutes: parseInt(row[6]) || 0
     }))
