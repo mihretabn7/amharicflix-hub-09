@@ -25,7 +25,12 @@ const MovieRating = ({ movieId, userId, onRatingSubmit }: MovieRatingProps) => {
         .select('*')
         .eq('movie_id', movieId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
+
+      if (error) {
+        toast.error("Failed to fetch rating");
+        return;
+      }
 
       if (data) {
         setExistingRating(data);
