@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Search } from "lucide-react";
+import { Search, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { checkIsAdmin } from "@/utils/auth";
@@ -93,6 +93,12 @@ const Navbar = () => {
         <div className="flex items-center space-x-4">
           {session ? (
             <>
+              <Link to="/profile">
+                <Button variant="ghost" className="text-gray-300 hover:text-white">
+                  <User className="h-5 w-5 mr-2" />
+                  Profile
+                </Button>
+              </Link>
               <Button 
                 variant="ghost" 
                 className="text-gray-300 hover:text-white"

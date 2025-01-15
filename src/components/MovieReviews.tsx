@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Star, Edit2, Check, X } from "lucide-react";
+import { Star, Edit2, Check, X, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { toast } from "sonner";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 
 interface MovieReviewsProps {
   movieId: string;
@@ -19,6 +20,8 @@ interface Review {
   profiles: {
     email: string;
     phone_number: string;
+    username: string | null;
+    avatar_url: string | null;
   };
 }
 
@@ -35,7 +38,9 @@ const MovieReviews = ({ movieId, currentUserId }: MovieReviewsProps) => {
         *,
         profiles (
           email,
-          phone_number
+          phone_number,
+          username,
+          avatar_url
         )
       `)
       .eq('movie_id', movieId)
@@ -91,31 +96,39 @@ const MovieReviews = ({ movieId, currentUserId }: MovieReviewsProps) => {
       {reviews.map((review) => (
         <div key={review.id} className="bg-card p-4 rounded-lg space-y-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="font-medium">
-                {review.profiles?.email || review.profiles?.phone_number}
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={review.profiles?.avatar_url || ''} />
+                <AvatarFallback>
+                  <User className="h-6 w-6" />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">
+                  {review.profiles?.username || review.profiles?.email || review.profiles?.phone_number}
+                </div>
+                {!editingReview || editingReview !== review.id ? (
+                  <div className="flex items-center">
+                    {[...Array(review.rating || 0)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-4 w-4 cursor-pointer ${
+                          editedRating >= star
+                            ? "text-yellow-400 fill-current"
+                            : "text-gray-400"
+                        }`}
+                        onClick={() => setEditedRating(star)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-              {!editingReview || editingReview !== review.id ? (
-                <div className="flex items-center">
-                  {[...Array(review.rating || 0)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={`h-4 w-4 cursor-pointer ${
-                        editedRating >= star
-                          ? "text-yellow-400 fill-current"
-                          : "text-gray-400"
-                      }`}
-                      onClick={() => setEditedRating(star)}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
             {currentUserId === review.user_id && (
               <div className="flex items-center space-x-2">
