@@ -2,12 +2,14 @@ import { Movie } from "@/types/movie";
 import GenreSuggestionsDisplay from "./GenreSuggestionsDisplay";
 import { useState } from "react";
 import { Button } from "./ui/button";
+import MovieReviews from "./MovieReviews";
 
 interface MovieDetailsSectionProps {
   movie: Movie;
+  userId?: string;
 }
 
-const MovieDetailsSection = ({ movie }: MovieDetailsSectionProps) => {
+const MovieDetailsSection = ({ movie, userId }: MovieDetailsSectionProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const description = movie.description || 'No description available.';
   const shortDescription = description.slice(0, 150);
@@ -44,6 +46,7 @@ const MovieDetailsSection = ({ movie }: MovieDetailsSectionProps) => {
           <h3 className="font-medium">Added on</h3>
           <p className="text-gray-300">{new Date(movie.created_at).toLocaleDateString()}</p>
         </div>
+        <MovieReviews movieId={movie.id} currentUserId={userId} />
       </div>
     </div>
   );

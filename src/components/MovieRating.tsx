@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,13 +15,34 @@ interface MovieRatingProps {
 const MovieRating = ({ movieId, userId, onRatingSubmit }: MovieRatingProps) => {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, reset, setValue } = useForm();
+  const [existingRating, setExistingRating] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchExistingRating = async () => {
+      const { data, error } = await supabase
+        .from('movie_ratings')
+        .select('*')
+        .eq('movie_id', movieId)
+        .eq('user_id', userId)
+        .single();
+
+      if (data) {
+        setExistingRating(data);
+        setRating(data.rating || 0);
+        setValue('review', data.review || '');
+      }
+    };
+
+    fetchExistingRating();
+  }, [movieId, userId]);
 
   const onSubmit = async (data: any) => {
     try {
       const { error } = await supabase
         .from('movie_ratings')
         .upsert({
+          id: existingRating?.id,
           movie_id: movieId,
           user_id: userId,
           rating,
@@ -31,9 +51,7 @@ const MovieRating = ({ movieId, userId, onRatingSubmit }: MovieRatingProps) => {
 
       if (error) throw error;
 
-      toast.success("Rating submitted successfully!");
-      reset();
-      setRating(0);
+      toast.success(existingRating ? "Rating updated successfully!" : "Rating submitted successfully!");
       if (onRatingSubmit) onRatingSubmit();
     } catch (error: any) {
       toast.error(error.message);
@@ -63,7 +81,7 @@ const MovieRating = ({ movieId, userId, onRatingSubmit }: MovieRatingProps) => {
         className="min-h-[100px]"
       />
       <Button type="submit" disabled={!rating}>
-        Submit Rating
+        {existingRating ? "Update Rating" : "Submit Rating"}
       </Button>
     </form>
   );
