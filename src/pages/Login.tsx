@@ -117,7 +117,7 @@ const Login = () => {
               <Input
                 type="text"
                 name="identifier"
-                placeholder="Phone number (+251912345678) or email"
+                placeholder="Email"
                 className="bg-secondary"
                 value={formData.identifier}
                 onChange={handleChange}
