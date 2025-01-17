@@ -97,7 +97,7 @@ const Register = () => {
               <Input
                 type="email"
                 name="email"
-                placeholder="Email address (optional)"
+                placeholder="Email address"
                 className="bg-secondary"
                 value={formData.email}
                 onChange={handleChange}
