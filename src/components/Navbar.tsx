@@ -55,8 +55,8 @@ const Navbar = () => {
     const { data, error } = await supabase
       .from('movies')
       .select('*')
-      .ilike('title', `%${value}%`)
-      .limit(5);
+      .ilike('title', `%${value}%`);
+      //.limit(5);
 
     if (!error && data) {
       setSearchResults(data);
