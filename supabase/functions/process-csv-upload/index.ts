@@ -47,26 +47,51 @@ serve(async (req) => {
     const text = await file.text();
     console.log('CSV content length:', text.length);
 
-    const rows = parse(text, { skipFirstRow: true }) as string[][];
-    console.log('Number of rows parsed:', rows.length);
+    // Parse CSV with header row
+    const [headers, ...rows] = parse(text) as string[][];
+    console.log('Headers:', headers);
+    console.log('Number of rows:', rows.length);
 
-    // Validate and transform the data
+    // Convert headers to lowercase for case-insensitive matching
+    const headerMap = headers.reduce((acc, header, index) => {
+      acc[header.toLowerCase().trim()] = index;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Validate required columns exist
+    const requiredFields = ['title', 'youtube_id', 'thumbnail_url'];
+    const missingFields = requiredFields.filter(
+      field => headerMap[field] === undefined
+    );
+
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required columns: ${missingFields.join(', ')}`);
+    }
+
+    // Transform and validate the data
     const movies = rows.map((row, index) => {
-      // Log each row for debugging
-      console.log(`Processing row ${index + 2}:`, row);
+      // Get values using header map
+      const title = row[headerMap['title']]?.trim();
+      const youtubeId = row[headerMap['youtube_id']]?.trim();
+      const thumbnailUrl = row[headerMap['thumbnail_url']]?.trim();
+      const description = row[headerMap['description']]?.trim();
+      const genre = row[headerMap['genre']]?.trim();
+      const language = row[headerMap['language']]?.trim();
+      const durationMinutes = row[headerMap['duration_minutes']]?.trim();
 
-      if (!row[0]?.trim()) throw new Error(`Missing title in row ${index + 2}`);
-      if (!row[1]?.trim()) throw new Error(`Missing YouTube ID in row ${index + 2}`);
-      if (!row[2]?.trim()) throw new Error(`Missing thumbnail URL in row ${index + 2}`);
+      // Validate required fields
+      if (!title) throw new Error(`Missing title in row ${index + 2}`);
+      if (!youtubeId) throw new Error(`Missing YouTube ID in row ${index + 2}`);
+      if (!thumbnailUrl) throw new Error(`Missing thumbnail URL in row ${index + 2}`);
 
       return {
-        title: row[0].trim(),
-        youtube_id: row[1].trim(),
-        thumbnail_url: row[2].trim(),
-        description: row[3]?.trim() || '',
-        genre: row[4]?.trim() || null,
-        language: row[5]?.trim() || 'Amharic',
-        duration_minutes: parseInt(row[6]) || 0
+        title,
+        youtube_id: youtubeId,
+        thumbnail_url: thumbnailUrl,
+        description: description || '',
+        genre: genre || null,
+        language: language || 'Amharic',
+        duration_minutes: parseInt(durationMinutes) || 0
       };
     });
 
