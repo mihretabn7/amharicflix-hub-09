@@ -97,17 +97,23 @@ serve(async (req) => {
 
     console.log('Processed movies:', movies.length);
 
-    // Insert the movies in batches of 100
+    // Insert or update the movies in batches of 100
+    const results = [];
     for (let i = 0; i < movies.length; i += 100) {
       const batch = movies.slice(i, i + 100);
-      const { error: insertError } = await supabase
+      const { data, error: upsertError } = await supabase
         .from('movies')
-        .insert(batch);
+        .upsert(batch, {
+          onConflict: 'youtube_id',
+          ignoreDuplicates: false
+        });
 
-      if (insertError) {
-        console.error('Error inserting movies batch:', insertError);
-        throw insertError;
+      if (upsertError) {
+        console.error('Error upserting movies batch:', upsertError);
+        throw upsertError;
       }
+      
+      results.push(data);
     }
 
     // Update upload status to completed
@@ -127,7 +133,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         message: 'CSV processed successfully',
-        moviesProcessed: movies.length 
+        moviesProcessed: movies.length,
+        results
       }),
       { 
         headers: { 
