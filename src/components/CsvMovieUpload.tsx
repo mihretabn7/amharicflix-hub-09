@@ -28,12 +28,17 @@ const CsvMovieUpload = () => {
 
       if (uploadError) throw uploadError;
 
+      // Create a blob from the file to ensure proper content type
+      const blob = new Blob([await file.arrayBuffer()], { type: 'text/csv' });
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', blob, file.name);
       formData.append('upload_id', uploadData.id);
 
       const { data, error } = await supabase.functions.invoke('process-csv-upload', {
         body: formData,
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
       if (error) throw error;
