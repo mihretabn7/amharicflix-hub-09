@@ -14,33 +14,47 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  try {
-    // Log request details for debugging
-    console.log('Request method:', req.method);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
 
+  try {
+    console.log('Request received:', req.method);
+    
     const formData = await req.formData();
     const file = formData.get('file');
     const uploadId = formData.get('upload_id');
+
+    console.log('File received:', file?.name);
+    console.log('Upload ID:', uploadId);
 
     if (!file || !uploadId) {
       throw new Error('Missing file or upload ID');
     }
 
-    console.log('File received:', file.name);
-    console.log('Upload ID:', uploadId);
+    // Update upload status to processing
+    const { error: statusError } = await supabase
+      .from('csv_movie_uploads')
+      .update({ status: 'processing' })
+      .eq('id', uploadId);
+
+    if (statusError) {
+      console.error('Error updating upload status:', statusError);
+      throw statusError;
+    }
 
     const text = await file.text();
-    const rows = parse(text, { skipFirstRow: true }) as string[][];
+    console.log('CSV content length:', text.length);
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const rows = parse(text, { skipFirstRow: true }) as string[][];
+    console.log('Number of rows parsed:', rows.length);
 
     // Validate and transform the data
     const movies = rows.map((row, index) => {
-      // Validate required fields
+      // Log each row for debugging
+      console.log(`Processing row ${index + 2}:`, row);
+
       if (!row[0]?.trim()) throw new Error(`Missing title in row ${index + 2}`);
       if (!row[1]?.trim()) throw new Error(`Missing YouTube ID in row ${index + 2}`);
       if (!row[2]?.trim()) throw new Error(`Missing thumbnail URL in row ${index + 2}`);
@@ -56,36 +70,23 @@ serve(async (req) => {
       };
     });
 
-    // Update upload status to processing
-    await supabase
-      .from('csv_movie_uploads')
-      .update({
-        status: 'processing',
-      })
-      .eq('id', uploadId);
+    console.log('Processed movies:', movies.length);
 
-    // Insert the movies
-    const { error: insertError } = await supabase
-      .from('movies')
-      .insert(movies);
+    // Insert the movies in batches of 100
+    for (let i = 0; i < movies.length; i += 100) {
+      const batch = movies.slice(i, i + 100);
+      const { error: insertError } = await supabase
+        .from('movies')
+        .insert(batch);
 
-    if (insertError) {
-      console.error('Error inserting movies:', insertError);
-      
-      await supabase
-        .from('csv_movie_uploads')
-        .update({
-          status: 'failed',
-          error_message: insertError.message,
-          processed_at: new Date().toISOString()
-        })
-        .eq('id', uploadId);
-
-      throw insertError;
+      if (insertError) {
+        console.error('Error inserting movies batch:', insertError);
+        throw insertError;
+      }
     }
 
     // Update upload status to completed
-    await supabase
+    const { error: finalStatusError } = await supabase
       .from('csv_movie_uploads')
       .update({
         status: 'completed',
@@ -93,30 +94,54 @@ serve(async (req) => {
       })
       .eq('id', uploadId);
 
-    return new Response(
-      JSON.stringify({ message: 'CSV processed successfully' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    console.error('Error processing CSV:', error);
-
-    // If we have an upload ID, update its status
-    const uploadId = req.formData?.().then(form => form.get('upload_id'));
-    if (uploadId) {
-      await supabase
-        .from('csv_movie_uploads')
-        .update({
-          status: 'failed',
-          error_message: error.message,
-          processed_at: new Date().toISOString()
-        })
-        .eq('id', uploadId);
+    if (finalStatusError) {
+      console.error('Error updating final status:', finalStatusError);
+      throw finalStatusError;
     }
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        message: 'CSV processed successfully',
+        moviesProcessed: movies.length 
+      }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    );
+
+  } catch (error) {
+    console.error('Error processing CSV:', error);
+
+    // Try to update upload status to failed if we have an upload ID
+    try {
+      const uploadId = await req.formData().then(form => form.get('upload_id'));
+      if (uploadId) {
+        await supabase
+          .from('csv_movie_uploads')
+          .update({
+            status: 'failed',
+            error_message: error.message,
+            processed_at: new Date().toISOString()
+          })
+          .eq('id', uploadId);
+      }
+    } catch (updateError) {
+      console.error('Error updating failed status:', updateError);
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack 
+      }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        },
         status: 400
       }
     );
