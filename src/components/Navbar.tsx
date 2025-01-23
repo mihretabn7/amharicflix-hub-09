@@ -22,6 +22,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Fetch session and check if user is admin
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
@@ -29,6 +30,7 @@ const Navbar = () => {
       }
     });
 
+    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -53,7 +55,7 @@ const Navbar = () => {
       if (searchQuery.trim()) {
         await performSearch(searchQuery);
       } else {
-        setSearchResults([]);
+        setSearchResults([]); // Clear results if query is empty
       }
     }, 300); // 300ms debounce delay
 
@@ -61,16 +63,24 @@ const Navbar = () => {
   }, [searchQuery]);
 
   const performSearch = async (query: string) => {
-    // Use Supabase's full-text search for better results
-    const { data, error } = await supabase
-      .from("movies")
-      .select("*")
-      .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-      .order("title", { ascending: true })
-      .limit(10);
+    try {
+      // Use Supabase's `ilike` for case-insensitive search
+      const { data, error } = await supabase
+        .from("movies")
+        .select("*")
+        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+        .order("title", { ascending: true })
+        .limit(10);
 
-    if (!error && data) {
-      setSearchResults(data);
+      if (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } else {
+        setSearchResults(data || []); // Set results or empty array if no data
+      }
+    } catch (error) {
+      console.error("Error during search:", error);
+      setSearchResults([]);
     }
   };
 
@@ -142,6 +152,7 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Search Dialog */}
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput
           placeholder="Search movies..."
@@ -149,31 +160,34 @@ const Navbar = () => {
           onValueChange={(value) => setSearchQuery(value)}
         />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup heading="Movies">
-            {searchResults.map((movie) => (
-              <CommandItem
-                key={movie.id}
-                onSelect={() => {
-                  navigate(`/movie/${movie.id}`);
-                  setOpen(false);
-                }}
-              >
-                <div className="flex items-center">
-                  <img
-                    src={movie.thumbnail_url}
-                    alt={movie.title}
-                    className="w-8 h-8 object-cover rounded mr-2"
-                  />
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: highlightMatch(movie.title, searchQuery),
-                    }}
-                  />
-                </div>
-              </CommandItem>
-            ))}
-          </CommandGroup>
+          {searchResults.length === 0 ? (
+            <CommandEmpty>No results found.</CommandEmpty>
+          ) : (
+            <CommandGroup heading="Movies">
+              {searchResults.map((movie) => (
+                <CommandItem
+                  key={movie.id}
+                  onSelect={() => {
+                    navigate(`/movie/${movie.id}`);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="flex items-center">
+                    <img
+                      src={movie.thumbnail_url}
+                      alt={movie.title}
+                      className="w-8 h-8 object-cover rounded mr-2"
+                    />
+                    <span
+                      dangerouslySetInnerHTML={{
+                        __html: highlightMatch(movie.title, searchQuery),
+                      }}
+                    />
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
         </CommandList>
       </CommandDialog>
     </nav>
