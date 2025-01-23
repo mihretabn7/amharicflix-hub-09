@@ -18,6 +18,7 @@ const Navbar = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,16 +47,25 @@ const Navbar = () => {
     await supabase.auth.signOut();
   };
 
-  const handleSearch = async (value: string) => {
-    if (!value.trim()) {
-      setSearchResults([]);
-      return;
-    }
+  // Debounced search function
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.trim()) {
+        await performSearch(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 300); // 300ms debounce delay
 
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const performSearch = async (query: string) => {
+    // Use Supabase's full-text search for better results
     const { data, error } = await supabase
       .from("movies")
       .select("*")
-      .or(`title.ilike.%${value}%,description.ilike.%${value}%`)
+      .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
       .order("title", { ascending: true })
       .limit(10);
 
@@ -64,13 +74,20 @@ const Navbar = () => {
     }
   };
 
+  const highlightMatch = (text: string, query: string) => {
+    if (!query) return text;
+
+    const regex = new RegExp(`(${query})`, "gi");
+    return text.replace(regex, "<strong>$1</strong>");
+  };
+
   return (
     <nav className="fixed top-0 z-50 w-full bg-gradient-to-b from-background to-background/0 px-4 py-4">
       <div className="container mx-auto flex items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-netflix-red">አማርኛFlix</span>
         </Link>
-        
+
         <div className="hidden md:flex items-center space-x-6">
           <Link to="/movies" className="text-sm font-medium text-gray-300 hover:text-white">
             Movies
@@ -83,7 +100,7 @@ const Navbar = () => {
               Admin
             </Link>
           )}
-          <button 
+          <button
             className="text-sm font-medium text-gray-300 hover:text-white"
             onClick={() => setOpen(true)}
           >
@@ -100,8 +117,8 @@ const Navbar = () => {
                   Profile
                 </Button>
               </Link>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="text-gray-300 hover:text-white"
                 onClick={handleSignOut}
               >
@@ -126,9 +143,10 @@ const Navbar = () => {
       </div>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput 
-          placeholder="Search movies..." 
-          onValueChange={handleSearch}
+        <CommandInput
+          placeholder="Search movies..."
+          value={searchQuery}
+          onValueChange={(value) => setSearchQuery(value)}
         />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
@@ -142,12 +160,16 @@ const Navbar = () => {
                 }}
               >
                 <div className="flex items-center">
-                  <img 
-                    src={movie.thumbnail_url} 
-                    alt={movie.title} 
+                  <img
+                    src={movie.thumbnail_url}
+                    alt={movie.title}
                     className="w-8 h-8 object-cover rounded mr-2"
                   />
-                  {movie.title}
+                  <span
+                    dangerouslySetInnerHTML={{
+                      __html: highlightMatch(movie.title, searchQuery),
+                    }}
+                  />
                 </div>
               </CommandItem>
             ))}
