@@ -18,11 +18,9 @@ const Navbar = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch session and check if user is admin
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
@@ -30,7 +28,6 @@ const Navbar = () => {
       }
     });
 
-    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -49,46 +46,17 @@ const Navbar = () => {
     await supabase.auth.signOut();
   };
 
-  // Debounced search function
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(async () => {
-      if (searchQuery.trim()) {
-        await performSearch(searchQuery);
-      } else {
-        setSearchResults([]); // Clear results if query is empty
-      }
-    }, 300); // 300ms debounce delay
+  const handleSearch = async (value: string) => {
+    const { data, error } = await supabase
+      .from("movies")
+      .select("*")
+      .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+      .order("title", { ascending: true })
+      .limit(10);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
-  const performSearch = async (query: string) => {
-    try {
-      // Use Supabase's `ilike` for case-insensitive search
-      const { data, error } = await supabase
-        .from("movies")
-        .select("*")
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-        .order("title", { ascending: true })
-        .limit(10);
-
-      if (error) {
-        console.error("Search error:", error);
-        setSearchResults([]);
-      } else {
-        setSearchResults(data || []); // Set results or empty array if no data
-      }
-    } catch (error) {
-      console.error("Error during search:", error);
-      setSearchResults([]);
+    if (!error && data) {
+      setSearchResults(data);
     }
-  };
-
-  const highlightMatch = (text: string, query: string) => {
-    if (!query) return text;
-
-    const regex = new RegExp(`(${query})`, "gi");
-    return text.replace(regex, "<strong>$1</strong>");
   };
 
   return (
@@ -97,7 +65,7 @@ const Navbar = () => {
         <Link to="/" className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-netflix-red">አማርኛFlix</span>
         </Link>
-
+        
         <div className="hidden md:flex items-center space-x-6">
           <Link to="/movies" className="text-sm font-medium text-gray-300 hover:text-white">
             Movies
@@ -110,7 +78,7 @@ const Navbar = () => {
               Admin
             </Link>
           )}
-          <button
+          <button 
             className="text-sm font-medium text-gray-300 hover:text-white"
             onClick={() => setOpen(true)}
           >
@@ -127,8 +95,8 @@ const Navbar = () => {
                   Profile
                 </Button>
               </Link>
-              <Button
-                variant="ghost"
+              <Button 
+                variant="ghost" 
                 className="text-gray-300 hover:text-white"
                 onClick={handleSignOut}
               >
@@ -152,42 +120,33 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Search Dialog */}
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput
-          placeholder="Search movies..."
-          value={searchQuery}
-          onValueChange={(value) => setSearchQuery(value)}
+        <CommandInput 
+          placeholder="Search movies..." 
+          onValueChange={handleSearch}
         />
         <CommandList>
-          {searchResults.length === 0 ? (
-            <CommandEmpty>No results found.</CommandEmpty>
-          ) : (
-            <CommandGroup heading="Movies">
-              {searchResults.map((movie) => (
-                <CommandItem
-                  key={movie.id}
-                  onSelect={() => {
-                    navigate(`/movie/${movie.id}`);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex items-center">
-                    <img
-                      src={movie.thumbnail_url}
-                      alt={movie.title}
-                      className="w-8 h-8 object-cover rounded mr-2"
-                    />
-                    <span
-                      dangerouslySetInnerHTML={{
-                        __html: highlightMatch(movie.title, searchQuery),
-                      }}
-                    />
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          )}
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Movies">
+            {searchResults.map((movie) => (
+              <CommandItem
+                key={movie.id}
+                onSelect={() => {
+                  navigate(`/movie/${movie.id}`);
+                  setOpen(false);
+                }}
+              >
+                <div className="flex items-center">
+                  <img 
+                    src={movie.thumbnail_url} 
+                    alt={movie.title} 
+                    className="w-8 h-8 object-cover rounded mr-2"
+                  />
+                  {movie.title}
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
         </CommandList>
       </CommandDialog>
     </nav>
