@@ -47,16 +47,12 @@ const Navbar = () => {
   };
 
   const handleSearch = async (value: string) => {
-    if (!value) {
-      setSearchResults([]);
-      return;
-    }
-
     const { data, error } = await supabase
-      .from('movies')
-      .select('*')
-      .ilike('title', `%${value}%`);
-      //.limit(5);
+      .from("movies")
+      .select("*")
+      .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+      .order("title", { ascending: true })
+      .limit(10);
 
     if (!error && data) {
       setSearchResults(data);
