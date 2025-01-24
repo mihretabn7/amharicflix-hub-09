@@ -36,8 +36,10 @@ const Movies = () => {
       <h1 className="text-2xl font-bold mb-6">Movies</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {movies.map((movie) => (
+
           <Link
             key={movie.id}
+            className="movie-card group animate-fade-in"
             to={`/movie/${movie.id}`}
             className="block hover:opacity-75 transition-opacity"
           >
