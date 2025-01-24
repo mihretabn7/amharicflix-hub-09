@@ -33,8 +33,10 @@ const Movies = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-netflix-dark pt-24">
+      <div className="container mx-auto px-6">
       <h1 className="text-2xl font-bold mb-6">Movies</h1>
+     
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {movies.map((movie) => (
           <Link 
@@ -65,6 +67,7 @@ const Movies = () => {
             </div>
           </Link>
         ))}
+      </div>
       </div>
     </div>
   );
