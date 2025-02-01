@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -7,33 +8,44 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Edit, Trash } from "lucide-react";
-import { Movie } from "@/types/movie";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Pencil, Trash } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
-interface MovieTableProps {
-  movies: Movie[];
-  onRefresh: () => void;
+interface Movie {
+  id: string;
+  title: string;
+  description: string | null;
+  genre: string | null;
+  youtube_id: string;
+  language: string | null;
+  duration_minutes: number | null;
+  watch_count: number | null;
+  share_count: number | null;
 }
 
-export const MovieTable = ({ movies, onRefresh }: MovieTableProps) => {
+const MovieTable = () => {
   const [selectedMovies, setSelectedMovies] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
-  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedMovies(movies.map(movie => movie.id));
-    } else {
-      setSelectedMovies([]);
-    }
-  };
+  const { data: movies = [], refetch } = useQuery({
+    queryKey: ["admin-movies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("movies")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast.error("Failed to fetch movies");
+        throw error;
+      }
+
+      return data as Movie[];
+    },
+  });
 
   const handleSelect = (movieId: string, checked: boolean) => {
     if (checked) {
@@ -43,91 +55,63 @@ export const MovieTable = ({ movies, onRefresh }: MovieTableProps) => {
     }
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedMovies(movies.map(movie => movie.id));
+    } else {
+      setSelectedMovies([]);
+    }
+  };
+
   const handleDelete = async (movieId: string) => {
     try {
       const { error } = await supabase
-        .from('movies')
+        .from("movies")
         .delete()
-        .eq('id', movieId);
+        .eq("id", movieId);
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Movie deleted successfully",
-      });
-      onRefresh();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete movie",
-        variant: "destructive",
-      });
+      toast.success("Movie deleted successfully");
+      refetch();
+      setSelectedMovies(prev => prev.filter(id => id !== movieId));
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
   const handleDeleteSelected = async () => {
     try {
       const { error } = await supabase
-        .from('movies')
+        .from("movies")
         .delete()
-        .in('id', selectedMovies);
+        .in("id", selectedMovies);
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Selected movies deleted successfully",
-      });
+      toast.success("Selected movies deleted successfully");
+      refetch();
       setSelectedMovies([]);
-      onRefresh();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete selected movies",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdate = async (movieData: Partial<Movie>) => {
-    if (!editingMovie) return;
-
-    try {
-      const { error } = await supabase
-        .from('movies')
-        .update(movieData)
-        .eq('id', editingMovie.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Movie updated successfully",
-      });
-      setEditingMovie(null);
-      onRefresh();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update movie",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
   const filteredMovies = movies.filter(movie =>
-    movie.title.toLowerCase().includes(searchTerm.toLowerCase())
+    movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (movie.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+    (movie.genre?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Input
+      <div className="flex justify-between items-center">
+        <input
+          type="text"
           placeholder="Search movies..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
+          className="px-4 py-2 border rounded-md"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
         {selectedMovies.length > 0 && (
           <Button
@@ -146,14 +130,16 @@ export const MovieTable = ({ movies, onRefresh }: MovieTableProps) => {
               <TableHead className="w-12">
                 <Checkbox
                   checked={selectedMovies.length === movies.length && movies.length > 0}
-                  onCheckedChange={handleSelectAll}
+                  onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
                 />
               </TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Genre</TableHead>
               <TableHead>Language</TableHead>
+              <TableHead>Duration (min)</TableHead>
               <TableHead>Views</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Shares</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -166,55 +152,22 @@ export const MovieTable = ({ movies, onRefresh }: MovieTableProps) => {
                   />
                 </TableCell>
                 <TableCell>{movie.title}</TableCell>
-                <TableCell>{movie.genre || 'N/A'}</TableCell>
-                <TableCell>{movie.language || 'N/A'}</TableCell>
+                <TableCell>{movie.genre || "-"}</TableCell>
+                <TableCell>{movie.language || "-"}</TableCell>
+                <TableCell>{movie.duration_minutes || 0}</TableCell>
                 <TableCell>{movie.watch_count || 0}</TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEditingMovie(movie)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Movie</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <label>Title</label>
-                            <Input
-                              defaultValue={movie.title}
-                              onChange={(e) => setEditingMovie(prev => prev ? { ...prev, title: e.target.value } : null)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label>Genre</label>
-                            <Input
-                              defaultValue={movie.genre || ''}
-                              onChange={(e) => setEditingMovie(prev => prev ? { ...prev, genre: e.target.value } : null)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label>Language</label>
-                            <Input
-                              defaultValue={movie.language || ''}
-                              onChange={(e) => setEditingMovie(prev => prev ? { ...prev, language: e.target.value } : null)}
-                            />
-                          </div>
-                          <Button onClick={() => editingMovie && handleUpdate(editingMovie)}>
-                            Save Changes
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
+                <TableCell>{movie.share_count || 0}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
                     <Button
-                      variant="ghost"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => toast.info("Edit functionality coming soon")}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
                       size="icon"
                       onClick={() => handleDelete(movie.id)}
                     >
@@ -230,3 +183,5 @@ export const MovieTable = ({ movies, onRefresh }: MovieTableProps) => {
     </div>
   );
 };
+
+export default MovieTable;
