@@ -12,4 +12,5 @@ export interface Movie {
   share_count?: number;
   series_id?: string | null;
   episode_number?: number | null;
+  averageRating?: number;
 }

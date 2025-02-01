@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { Camera, Settings } from "lucide-react";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -83,67 +84,132 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${session?.user?.id}-${Math.random()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+      toast.success('Avatar uploaded successfully!');
+    } catch (error: any) {
+      toast.error('Error uploading avatar');
+    }
+  };
+
   if (!session) return null;
 
   return (
-    <div className="min-h-screen pt-16">
+    <div className="min-h-screen pt-20">
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Profile</h1>
-          
-          <div className="bg-card p-6 rounded-lg shadow-lg">
-            {!isEditing ? (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-lg font-semibold mb-2">Username</h2>
-                  <p className="text-gray-300">{profile?.username || "Not set"}</p>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold mb-2">Bio</h2>
-                  <p className="text-gray-300">{profile?.bio || "No bio yet"}</p>
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold mb-2">Contact</h2>
-                  <p className="text-gray-300">{profile?.email || profile?.phone_number}</p>
-                </div>
-                <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-8 mb-12">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200">
+                <img
+                  src={formData.avatar_url || "/placeholder.svg"}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="username" className="block text-sm font-medium mb-2">
-                    Username
-                  </label>
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              {isEditing && (
+                <label className="absolute bottom-0 right-0 p-2 bg-primary rounded-full cursor-pointer">
+                  <Camera className="w-5 h-5 text-white" />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
                   />
-                </div>
-                <div>
-                  <label htmlFor="bio" className="block text-sm font-medium mb-2">
-                    Bio
-                  </label>
-                  <Textarea
-                    id="bio"
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    className="min-h-[100px]"
-                  />
-                </div>
-                <div className="flex space-x-4">
-                  <Button type="submit">Save Changes</Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                </label>
+              )}
+            </div>
+            
+            <div className="flex-1">
+              <div className="flex items-center gap-4 mb-4">
+                <h1 className="text-2xl font-semibold">
+                  {profile?.username || "Username"}
+                </h1>
+                {!isEditing ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setIsEditing(false)}
                   >
                     Cancel
                   </Button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="text-center">
+                  <div className="font-semibold">0</div>
+                  <div className="text-sm text-gray-500">Posts</div>
                 </div>
-              </form>
-            )}
+                <div className="text-center">
+                  <div className="font-semibold">0</div>
+                  <div className="text-sm text-gray-500">Followers</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold">0</div>
+                  <div className="text-sm text-gray-500">Following</div>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-300">{profile?.bio || "No bio yet"}</p>
+            </div>
           </div>
+
+          {isEditing && (
+            <form onSubmit={handleSubmit} className="space-y-6 bg-card p-6 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Username
+                </label>
+                <Input
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  className="max-w-md"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Bio
+                </label>
+                <Textarea
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  className="max-w-md"
+                  rows={4}
+                />
+              </div>
+
+              <Button type="submit">
+                Save Changes
+              </Button>
+            </form>
+          )}
         </div>
       </div>
     </div>

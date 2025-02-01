@@ -12,6 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navbar = () => {
   const [session, setSession] = useState<any>(null);
@@ -19,6 +20,7 @@ const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,19 +49,26 @@ const Navbar = () => {
   };
 
   const handleSearch = async (value: string) => {
-    if (!value) {
+    if (!value.trim()) {
       setSearchResults([]);
       return;
     }
 
-    const { data, error } = await supabase
-      .from('movies')
-      .select('*')
-      .ilike('title', `%${value}%`);
-      //.limit(5);
+    try {
+      const { data, error } = await supabase
+        .from('movies')
+        .select('*')
+        .ilike('title', `%${value.trim()}%`)
+        .limit(5);
 
-    if (!error && data) {
-      setSearchResults(data);
+      if (error) {
+        console.error('Search error:', error);
+        return;
+      }
+
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Search error:', error);
     }
   };
 
@@ -82,21 +91,21 @@ const Navbar = () => {
               Admin
             </Link>
           )}
+        </div>
+
+        <div className="flex items-center space-x-4">
           <button 
             className="text-sm font-medium text-gray-300 hover:text-white"
             onClick={() => setOpen(true)}
           >
             <Search className="h-5 w-5" />
           </button>
-        </div>
-
-        <div className="flex items-center space-x-4">
           {session ? (
             <>
               <Link to="/profile">
                 <Button variant="ghost" className="text-gray-300 hover:text-white">
                   <User className="h-5 w-5 mr-2" />
-                  Profile
+                  {!isMobile && "Profile"}
                 </Button>
               </Link>
               <Button 
