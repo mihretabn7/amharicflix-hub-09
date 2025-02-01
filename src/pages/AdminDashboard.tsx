@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import MovieUploadForm from "@/components/MovieUploadForm";
 import CsvMovieUpload from "@/components/CsvMovieUpload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { MovieTable } from "@/components/MovieTable";
+import type { Movie } from "@/types/movie";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -14,10 +16,11 @@ const AdminDashboard = () => {
     totalShares: 0
   });
 
-  const [showMovieUpload, setShowMovieUpload] = useState(false);
+  const [movies, setMovies] = useState<Movie[]>([]);
 
   useEffect(() => {
     fetchStats();
+    fetchMovies();
 
     const channel = supabase
       .channel('admin-dashboard')
@@ -30,6 +33,7 @@ const AdminDashboard = () => {
         },
         () => {
           fetchStats();
+          fetchMovies();
         }
       )
       .on(
@@ -69,6 +73,17 @@ const AdminDashboard = () => {
     });
   };
 
+  const fetchMovies = async () => {
+    const { data } = await supabase
+      .from('movies')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (data) {
+      setMovies(data);
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20">
       <div className="container mx-auto px-4">
@@ -84,7 +99,10 @@ const AdminDashboard = () => {
               <DialogHeader>
                 <DialogTitle>Add New Movie</DialogTitle>
               </DialogHeader>
-              <MovieUploadForm onSuccess={() => fetchStats()} />
+              <MovieUploadForm onSuccess={() => {
+                fetchStats();
+                fetchMovies();
+              }} />
               <div className="mt-4">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -142,6 +160,11 @@ const AdminDashboard = () => {
               <Settings className="h-8 w-8 text-purple-500" />
             </div>
           </div>
+        </div>
+
+        <div className="mt-8">
+          <h2 className="text-2xl font-bold mb-4">Manage Movies</h2>
+          <MovieTable movies={movies} onRefresh={fetchMovies} />
         </div>
       </div>
     </div>

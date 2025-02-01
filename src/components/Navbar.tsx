@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Search, User } from "lucide-react";
+import { Search, User, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { checkIsAdmin } from "@/utils/auth";
@@ -12,6 +12,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navbar = () => {
@@ -72,6 +79,57 @@ const Navbar = () => {
     }
   };
 
+  const NavLinks = () => (
+    <>
+      <Link to="/movies" className="text-sm font-medium text-gray-300 hover:text-white">
+        Movies
+      </Link>
+      <Link to="/categories" className="text-sm font-medium text-gray-300 hover:text-white">
+        Categories
+      </Link>
+      {isAdmin && (
+        <Link to="/admin" className="text-sm font-medium text-gray-300 hover:text-white">
+          Admin
+        </Link>
+      )}
+    </>
+  );
+
+  const AuthButtons = () => (
+    <>
+      {session ? (
+        <>
+          <Link to="/profile">
+            <Button variant="ghost" className="text-gray-300 hover:text-white">
+              <User className="h-5 w-5 mr-2" />
+              {!isMobile && "Profile"}
+            </Button>
+          </Link>
+          <Button 
+            variant="ghost" 
+            className="text-gray-300 hover:text-white"
+            onClick={handleSignOut}
+          >
+            Sign Out
+          </Button>
+        </>
+      ) : (
+        <>
+          <Link to="/login">
+            <Button variant="ghost" className="text-gray-300 hover:text-white">
+              Sign In
+            </Button>
+          </Link>
+          <Link to="/register">
+            <Button className="bg-netflix-red hover:bg-netflix-red/90">
+              Sign Up
+            </Button>
+          </Link>
+        </>
+      )}
+    </>
+  );
+
   return (
     <nav className="fixed top-0 z-50 w-full bg-gradient-to-b from-background to-background/0 px-4 py-4">
       <div className="container mx-auto flex items-center justify-between">
@@ -80,17 +138,7 @@ const Navbar = () => {
         </Link>
         
         <div className="hidden md:flex items-center space-x-6">
-          <Link to="/movies" className="text-sm font-medium text-gray-300 hover:text-white">
-            Movies
-          </Link>
-          <Link to="/categories" className="text-sm font-medium text-gray-300 hover:text-white">
-            Categories
-          </Link>
-          {isAdmin && (
-            <Link to="/admin" className="text-sm font-medium text-gray-300 hover:text-white">
-              Admin
-            </Link>
-          )}
+          <NavLinks />
         </div>
 
         <div className="flex items-center space-x-4">
@@ -100,36 +148,31 @@ const Navbar = () => {
           >
             <Search className="h-5 w-5" />
           </button>
-          {session ? (
-            <>
-              <Link to="/profile">
-                <Button variant="ghost" className="text-gray-300 hover:text-white">
-                  <User className="h-5 w-5 mr-2" />
-                  {!isMobile && "Profile"}
+
+          <div className="hidden md:flex items-center space-x-4">
+            <AuthButtons />
+          </div>
+
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
                 </Button>
-              </Link>
-              <Button 
-                variant="ghost" 
-                className="text-gray-300 hover:text-white"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <>
-              <Link to="/login">
-                <Button variant="ghost" className="text-gray-300 hover:text-white">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/register">
-                <Button className="bg-netflix-red hover:bg-netflix-red/90">
-                  Sign Up
-                </Button>
-              </Link>
-            </>
-          )}
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col space-y-4 mt-4">
+                  <NavLinks />
+                  <div className="pt-4 border-t">
+                    <AuthButtons />
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
 
