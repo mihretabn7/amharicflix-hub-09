@@ -37,9 +37,9 @@ export const MovieTable = ({ movies, onRefresh }: MovieTableProps) => {
 
   const handleSelect = (movieId: string, checked: boolean) => {
     if (checked) {
-      setSelectedMovies([...selectedMovies, movieId]);
+      setSelectedMovies(prev => [...prev, movieId]);
     } else {
-      setSelectedMovies(selectedMovies.filter(id => id !== movieId));
+      setSelectedMovies(prev => prev.filter(id => id !== movieId));
     }
   };
 
@@ -145,7 +145,7 @@ export const MovieTable = ({ movies, onRefresh }: MovieTableProps) => {
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
-                  checked={selectedMovies.length === movies.length}
+                  checked={selectedMovies.length === movies.length && movies.length > 0}
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
@@ -162,7 +162,7 @@ export const MovieTable = ({ movies, onRefresh }: MovieTableProps) => {
                 <TableCell>
                   <Checkbox
                     checked={selectedMovies.includes(movie.id)}
-                    onCheckedChange={(checked) => handleSelect(movie.id, checked)}
+                    onCheckedChange={(checked) => handleSelect(movie.id, checked as boolean)}
                   />
                 </TableCell>
                 <TableCell>{movie.title}</TableCell>
