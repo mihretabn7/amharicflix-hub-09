@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import MovieUploadForm from "@/components/MovieUploadForm";
 import CsvMovieUpload from "@/components/CsvMovieUpload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { MovieTable } from "@/components/MovieTable";
+import MovieTable from "@/components/MovieTable";
 import type { Movie } from "@/types/movie";
 
 const AdminDashboard = () => {
