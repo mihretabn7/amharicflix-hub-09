@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Search, User, Menu } from "lucide-react";
+import { Search, User, Menu, Bell } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { checkIsAdmin } from "@/utils/auth";
@@ -19,14 +19,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DialogTitle } from "./ui/dialog";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
@@ -35,6 +44,7 @@ const Navbar = () => {
       setSession(session);
       if (session?.user) {
         checkIsAdmin(session.user.id).then(setIsAdmin);
+        fetchNotifications(session.user.id);
       }
     });
 
@@ -44,6 +54,7 @@ const Navbar = () => {
       setSession(session);
       if (session?.user) {
         checkIsAdmin(session.user.id).then(setIsAdmin);
+        fetchNotifications(session.user.id);
       } else {
         setIsAdmin(false);
       }
@@ -52,8 +63,64 @@ const Navbar = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
+  useEffect(() => {
+    if (session?.user?.id) {
+      const channel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          () => {
+            fetchNotifications(session.user.id);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [session?.user?.id]);
+
+  const fetchNotifications = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+      setUnreadCount(data?.filter((n: any) => !n.read).length || 0);
+    } catch (error: any) {
+      toast.error('Failed to fetch notifications');
+    }
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
+      setNotifications(notifications.map(n => 
+        n.id === notificationId ? { ...n, read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error: any) {
+      toast.error('Failed to mark notification as read');
+    }
   };
 
   const handleSearch = async (value: string) => {
@@ -69,15 +136,16 @@ const Navbar = () => {
         .ilike('title', `%${value.trim()}%`)
         .limit(5);
 
-      if (error) {
-        console.error('Search error:', error);
-        return;
-      }
+      if (error) throw error;
 
       setSearchResults(data || []);
-    } catch (error) {
-      console.error('Search error:', error);
+    } catch (error: any) {
+      toast.error('Search failed');
     }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
   };
 
   const NavLinks = () => (
@@ -100,6 +168,36 @@ const Navbar = () => {
     <>
       {session ? (
         <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5 text-gray-300" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-netflix-red text-[10px] flex items-center justify-center text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              {notifications.length === 0 ? (
+                <DropdownMenuItem>No notifications</DropdownMenuItem>
+              ) : (
+                notifications.map((notification) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className="p-4 cursor-pointer"
+                    onClick={() => markAsRead(notification.id)}
+                  >
+                    <div className={`space-y-1 ${!notification.read ? 'font-medium' : ''}`}>
+                      <p className="text-sm">{notification.title}</p>
+                      <p className="text-xs text-gray-500">{notification.message}</p>
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link to="/profile">
             <Button variant="ghost" className="text-gray-300 hover:text-white">
               <User className="h-5 w-5 mr-2" />
