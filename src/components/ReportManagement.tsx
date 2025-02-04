@@ -38,14 +38,11 @@ const ReportManagement = () => {
 
       if (updateError) throw updateError;
 
-      const { error: movieError } = await supabase
-        .from('movies')
-        .update({
-          verified_report_count: supabase.rpc('increment_verified_report_count', { movie_id: movieId })
-        })
-        .eq('id', movieId);
+      // Call the RPC function to increment the verified report count
+      const { error: rpcError } = await supabase
+        .rpc('increment_verified_report_count', { movie_id: movieId });
 
-      if (movieError) throw movieError;
+      if (rpcError) throw rpcError;
 
       toast.success("Report verified successfully");
       refetch();

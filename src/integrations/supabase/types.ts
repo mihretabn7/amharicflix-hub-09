@@ -368,6 +368,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      increment_verified_report_count: {
+        Args: {
+          movie_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
