@@ -16,11 +16,8 @@ const AdminDashboard = () => {
     totalShares: 0
   });
 
-  const [movies, setMovies] = useState<Movie[]>([]);
-
   useEffect(() => {
     fetchStats();
-    fetchMovies();
 
     const channel = supabase
       .channel('admin-dashboard')
@@ -33,7 +30,6 @@ const AdminDashboard = () => {
         },
         () => {
           fetchStats();
-          fetchMovies();
         }
       )
       .on(
@@ -73,17 +69,6 @@ const AdminDashboard = () => {
     });
   };
 
-  const fetchMovies = async () => {
-    const { data } = await supabase
-      .from('movies')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (data) {
-      setMovies(data);
-    }
-  };
-
   return (
     <div className="min-h-screen pt-20">
       <div className="container mx-auto px-4">
@@ -99,10 +84,7 @@ const AdminDashboard = () => {
               <DialogHeader>
                 <DialogTitle>Add New Movie</DialogTitle>
               </DialogHeader>
-              <MovieUploadForm onSuccess={() => {
-                fetchStats();
-                fetchMovies();
-              }} />
+              <MovieUploadForm onSuccess={fetchStats} />
               <div className="mt-4">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -164,7 +146,7 @@ const AdminDashboard = () => {
 
         <div className="mt-8">
           <h2 className="text-2xl font-bold mb-4">Manage Movies</h2>
-          <MovieTable movies={movies} onRefresh={fetchMovies} />
+          <MovieTable />
         </div>
       </div>
     </div>
