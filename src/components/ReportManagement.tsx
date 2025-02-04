@@ -41,7 +41,7 @@ const ReportManagement = () => {
       const { error: movieError } = await supabase
         .from('movies')
         .update({
-          verified_report_count: supabase.sql`verified_report_count + 1`
+          verified_report_count: supabase.rpc('increment_verified_report_count', { movie_id: movieId })
         })
         .eq('id', movieId);
 
