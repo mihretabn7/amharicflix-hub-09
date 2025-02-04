@@ -20,6 +20,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DialogTitle } from "./ui/dialog";
 
 const Navbar = () => {
   const [session, setSession] = useState<any>(null);
@@ -177,6 +178,7 @@ const Navbar = () => {
       </div>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
+        <DialogTitle className="sr-only">Search movies</DialogTitle>
         <CommandInput 
           placeholder="Search movies..." 
           onValueChange={handleSearch}
