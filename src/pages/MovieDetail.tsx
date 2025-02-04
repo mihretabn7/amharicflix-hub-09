@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import MovieRating from "@/components/MovieRating";
 import GenreSuggestion from "@/components/GenreSuggestion";
 import MovieDetailsSection from "@/components/MovieDetailsSection";
+import MovieReportModal from "@/components/MovieReportModal";
 
 const isValidUUID = (uuid: string) => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -73,7 +74,7 @@ const MovieDetail = () => {
           .from('movies')
           .select('*')
           .eq('id', id)
-          .single(),
+          .maybeSingle(),
         supabase
           .from('movie_ratings')
           .select('*')
@@ -86,6 +87,18 @@ const MovieDetail = () => {
       ]);
 
       if (movieResponse.error) throw movieResponse.error;
+      if (!movieResponse.data) {
+        toast.error("Movie not found");
+        navigate('/movies');
+        throw new Error("Movie not found");
+      }
+
+      // Check if movie should be hidden
+      if (movieResponse.data.verified_report_count >= 5) {
+        toast.error("This movie is currently unavailable");
+        navigate('/movies');
+        throw new Error("Movie unavailable");
+      }
       
       return {
         movie: movieResponse.data,
@@ -245,6 +258,14 @@ const MovieDetail = () => {
                     </div>
                   </div>
                 </div>
+                {session && (
+                  <div className="flex justify-end">
+                    <MovieReportModal 
+                      movieId={movie.id} 
+                      userId={session.user.id} 
+                    />
+                  </div>
+                )}
                 <GenreSuggestion
                   movieId={movie.id}
                   userId={session.user.id}

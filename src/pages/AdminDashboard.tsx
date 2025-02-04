@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Film, Users, MessageSquare, Settings } from "lucide-react";
+import { Film, Users, MessageSquare, Settings, Flag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import MovieUploadForm from "@/components/MovieUploadForm";
 import CsvMovieUpload from "@/components/CsvMovieUpload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import MovieTable from "@/components/MovieTable";
+import ReportManagement from "@/components/ReportManagement";
 import type { Movie } from "@/types/movie";
 
 const AdminDashboard = () => {
+  const [activeTab, setActiveTab] = useState<'movies' | 'reports'>('movies');
   const [stats, setStats] = useState({
     totalMovies: 0,
     totalUsers: 0,
@@ -74,32 +76,34 @@ const AdminDashboard = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-netflix-red hover:bg-netflix-red/90">
-                Add New Movie
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Movie</DialogTitle>
-              </DialogHeader>
-              <MovieUploadForm onSuccess={fetchStats} />
-              <div className="mt-4">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+          {activeTab === 'movies' && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-netflix-red hover:bg-netflix-red/90">
+                  Add New Movie
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Movie</DialogTitle>
+                </DialogHeader>
+                <MovieUploadForm onSuccess={fetchStats} />
+                <div className="mt-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or upload multiple movies
+                      </span>
+                    </div>
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Or upload multiple movies
-                    </span>
-                  </div>
+                  <CsvMovieUpload />
                 </div>
-                <CsvMovieUpload />
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -144,10 +148,30 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Manage Movies</h2>
-          <MovieTable />
+        <div className="mb-8">
+          <div className="flex gap-4">
+            <Button
+              variant={activeTab === 'movies' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('movies')}
+            >
+              <Film className="h-4 w-4 mr-2" />
+              Movies
+            </Button>
+            <Button
+              variant={activeTab === 'reports' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('reports')}
+            >
+              <Flag className="h-4 w-4 mr-2" />
+              Reports
+            </Button>
+          </div>
         </div>
+
+        {activeTab === 'movies' ? (
+          <MovieTable />
+        ) : (
+          <ReportManagement />
+        )}
       </div>
     </div>
   );
