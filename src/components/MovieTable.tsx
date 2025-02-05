@@ -14,6 +14,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "./ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Movie {
   id: string;
@@ -27,9 +34,115 @@ interface Movie {
   share_count: number | null;
 }
 
+const EditMovieModal = ({
+  movie,
+  onClose,
+  onSave,
+}: {
+  movie: Movie;
+  onClose: () => void;
+  onSave: (updatedMovie: Movie) => void;
+}) => {
+  const [formData, setFormData] = useState<Movie>(movie);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      onSave(formData);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Movie</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <label>Title</label>
+              <Input
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label>Description</label>
+              <Input
+                value={formData.description || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label>Genre</label>
+              <Input
+                value={formData.genre || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, genre: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label>YouTube ID</label>
+              <Input
+                value={formData.youtube_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, youtube_id: e.target.value })
+                }
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label>Language</label>
+              <Input
+                value={formData.language || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, language: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label>Duration (minutes)</label>
+              <Input
+                type="number"
+                value={formData.duration_minutes || 0}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    duration_minutes: parseInt(e.target.value) || null,
+                  })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const MovieTable = () => {
   const [selectedMovies, setSelectedMovies] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
 
   const { data: movies = [], refetch } = useQuery({
     queryKey: ["admin-movies"],
@@ -50,15 +163,15 @@ const MovieTable = () => {
 
   const handleSelect = (movieId: string, checked: boolean) => {
     if (checked) {
-      setSelectedMovies(prev => [...prev, movieId]);
+      setSelectedMovies((prev) => [...prev, movieId]);
     } else {
-      setSelectedMovies(prev => prev.filter(id => id !== movieId));
+      setSelectedMovies((prev) => prev.filter((id) => id !== movieId));
     }
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedMovies(movies.map(movie => movie.id));
+      setSelectedMovies(movies.map((movie) => movie.id));
     } else {
       setSelectedMovies([]);
     }
@@ -75,7 +188,7 @@ const MovieTable = () => {
 
       toast.success("Movie deleted successfully");
       refetch();
-      setSelectedMovies(prev => prev.filter(id => id !== movieId));
+      setSelectedMovies((prev) => prev.filter((id) => id !== movieId));
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -98,30 +211,55 @@ const MovieTable = () => {
     }
   };
 
-  const filteredMovies = movies.filter(movie =>
-    movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (movie.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-    (movie.genre?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+  const handleUpdateMovie = async (updatedMovie: Movie) => {
+    try {
+      const { error } = await supabase
+        .from("movies")
+        .update(updatedMovie)
+        .eq("id", updatedMovie.id);
+
+      if (error) throw error;
+
+      toast.success("Movie updated successfully");
+      refetch();
+      setEditingMovie(null);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update movie");
+    }
+  };
+
+  const filteredMovies = movies.filter(
+    (movie) =>
+      movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (movie.description?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      ) ||
+      (movie.genre?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-       <Input
-         placeholder="Search movies..."
-         className="px-4 py-2 border rounded-md"
-         value={searchQuery}
-         onChange={(e) => setSearchQuery(e.target.value)}
-       />
+        <Input
+          placeholder="Search movies..."
+          className="px-4 py-2 border rounded-md"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         {selectedMovies.length > 0 && (
-          <Button
-            variant="destructive"
-            onClick={handleDeleteSelected}
-          >
+          <Button variant="destructive" onClick={handleDeleteSelected}>
             Delete Selected ({selectedMovies.length})
           </Button>
         )}
       </div>
+
+      {editingMovie && (
+        <EditMovieModal
+          movie={editingMovie}
+          onClose={() => setEditingMovie(null)}
+          onSave={handleUpdateMovie}
+        />
+      )}
 
       <div className="rounded-md border">
         <Table>
@@ -129,8 +267,12 @@ const MovieTable = () => {
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
-                  checked={selectedMovies.length === movies.length && movies.length > 0}
-                  onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                  checked={
+                    selectedMovies.length === movies.length && movies.length > 0
+                  }
+                  onCheckedChange={(checked) =>
+                    handleSelectAll(checked as boolean)
+                  }
                 />
               </TableHead>
               <TableHead>Title</TableHead>
@@ -148,7 +290,9 @@ const MovieTable = () => {
                 <TableCell>
                   <Checkbox
                     checked={selectedMovies.includes(movie.id)}
-                    onCheckedChange={(checked) => handleSelect(movie.id, checked as boolean)}
+                    onCheckedChange={(checked) =>
+                      handleSelect(movie.id, checked as boolean)
+                    }
                   />
                 </TableCell>
                 <TableCell>{movie.title}</TableCell>
@@ -162,7 +306,7 @@ const MovieTable = () => {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => toast.info("Edit functionality coming soon")}
+                      onClick={() => setEditingMovie(movie)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>

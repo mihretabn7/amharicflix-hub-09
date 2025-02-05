@@ -88,6 +88,7 @@ const Login = () => {
       toast({
         title: "Success",
         description: "Successfully logged in!",
+        duration: 2000,
       });
       navigate("/");
     } catch (error: any) {
@@ -98,6 +99,7 @@ const Login = () => {
         title: "Error",
         description: getErrorMessage(error),
       });
+      
     } finally {
       setLoading(false);
     }
