@@ -124,7 +124,7 @@ const Navbar = () => {
   };
 
   const handleSearch = async (value: string) => {
-    if (!value.trim()) {
+    if (!value) {
       setSearchResults([]);
       return;
     }
@@ -134,7 +134,7 @@ const Navbar = () => {
         .from('movies')
         .select('*')
         .ilike('title', `%${value.trim()}%`)
-        .limit(5);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
