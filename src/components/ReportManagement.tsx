@@ -13,11 +13,7 @@ const ReportManagement = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('movie_reports')
-        .select(`
-          *,
-          movies (title),
-          profiles (email, phone_number)
-        `)
+        .select(`*`)
         .eq('status', filter)
         .order('created_at', { ascending: false });
 
