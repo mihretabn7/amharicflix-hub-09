@@ -13,6 +13,7 @@ import { Pencil, Trash } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Input } from "./ui/input";
 
 interface Movie {
   id: string;
@@ -106,13 +107,12 @@ const MovieTable = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <input
-          type="text"
-          placeholder="Search movies..."
-          className="px-4 py-2 border rounded-md"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+       <Input
+         placeholder="Search movies..."
+         className="px-4 py-2 border rounded-md"
+         value={searchQuery}
+         onChange={(e) => setSearchQuery(e.target.value)}
+       />
         {selectedMovies.length > 0 && (
           <Button
             variant="destructive"

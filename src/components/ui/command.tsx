@@ -139,7 +139,9 @@ const CommandShortcut = ({
   )
 }
 CommandShortcut.displayName = "CommandShortcut"
-
+const CommandLoading = () => {
+  // component implementation
+};
 export {
   Command,
   CommandDialog,
@@ -150,4 +152,6 @@ export {
   CommandItem,
   CommandShortcut,
   CommandSeparator,
+  CommandLoading,
+
 }
