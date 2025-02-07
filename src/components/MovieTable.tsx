@@ -9,11 +9,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "./ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +46,13 @@ interface Movie {
   watch_count: number | null;
   share_count: number | null;
   is_hidden: boolean;
+  created_at?: string;
+  thumbnail_url?: string;
+  verified_report_count?: number;
+  movie_ratings?: {
+    rating: number;
+    created_at: string;
+  }[];
 }
 
 const EditMovieModal = ({
@@ -140,27 +160,80 @@ const EditMovieModal = ({
   );
 };
 
+const ITEMS_PER_PAGE = 10;
+
 const MovieTable = () => {
   const [selectedMovies, setSelectedMovies] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<string>("created_at");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [filterGenre, setFilterGenre] = useState<string>("all");
+  const [filterLanguage, setFilterLanguage] = useState<string>("all");
+  const [filterVisibility, setFilterVisibility] = useState<string>("all");
   const [editingMovie, setEditingMovie] = useState<Movie | null>(null);
 
-  const { data: movies = [], refetch } = useQuery({
-    queryKey: ["admin-movies"],
+  const { data: moviesData, refetch } = useQuery({
+    queryKey: ["admin-movies", currentPage, sortBy, sortOrder, filterGenre, filterLanguage, filterVisibility],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("movies")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*, movie_ratings(rating)", { count: "exact" });
+
+      // Apply filters
+      if (filterGenre !== "all") {
+        query = query.eq("genre", filterGenre);
+      }
+      if (filterLanguage !== "all") {
+        query = query.eq("language", filterLanguage);
+      }
+      if (filterVisibility !== "all") {
+        query = query.eq("is_hidden", filterVisibility === "hidden");
+      }
+
+      // Apply sorting
+      query = query.order(sortBy, { ascending: sortOrder === "asc" });
+
+      // Apply pagination
+      query = query
+        .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
+
+      const { data, error, count } = await query;
 
       if (error) {
         toast.error("Failed to fetch movies");
         throw error;
       }
 
-      return data as Movie[];
+      return { data, count };
     },
   });
+
+  const { data: filters } = useQuery({
+    queryKey: ["movie-filters"],
+    queryFn: async () => {
+      const [genresResponse, languagesResponse] = await Promise.all([
+        supabase.from("movies").select("genre").not("genre", "is", null),
+        supabase.from("movies").select("language").not("language", "is", null)
+      ]);
+
+      const uniqueGenres = [...new Set(genresResponse.data?.map(m => m.genre))];
+      const uniqueLanguages = [...new Set(languagesResponse.data?.map(m => m.language))];
+
+      return {
+        genres: uniqueGenres,
+        languages: uniqueLanguages
+      };
+    }
+  });
+
+  const totalPages = Math.ceil((moviesData?.count || 0) / ITEMS_PER_PAGE);
+
+  const filteredMovies = moviesData?.data.filter(
+    (movie) =>
+      movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (movie.description?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+  ) || [];
 
   const handleSelect = (movieId: string, checked: boolean) => {
     if (checked) {
@@ -172,7 +245,7 @@ const MovieTable = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedMovies(movies.map((movie) => movie.id));
+      setSelectedMovies(moviesData?.data.map((movie) => movie.id) || []);
     } else {
       setSelectedMovies([]);
     }
@@ -245,24 +318,74 @@ const MovieTable = () => {
     }
   };
 
-  const filteredMovies = movies.filter(
-    (movie) =>
-      movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (movie.description?.toLowerCase() || "").includes(
-        searchQuery.toLowerCase()
-      ) ||
-      (movie.genre?.toLowerCase() || "").includes(searchQuery.toLowerCase())
-  );
-
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <Input
-          placeholder="Search movies..."
-          className="px-4 py-2 border rounded-md"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-1 gap-4">
+          <Input
+            placeholder="Search movies..."
+            className="max-w-xs"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[200px]">
+              <div className="p-2 space-y-2">
+                <div>
+                  <label className="text-sm font-medium">Genre</label>
+                  <Select value={filterGenre} onValueChange={setFilterGenre}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Genres" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Genres</SelectItem>
+                      {filters?.genres.map((genre) => (
+                        <SelectItem key={genre} value={genre}>
+                          {genre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Language</label>
+                  <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Languages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Languages</SelectItem>
+                      {filters?.languages.map((language) => (
+                        <SelectItem key={language} value={language}>
+                          {language}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Visibility</label>
+                  <Select value={filterVisibility} onValueChange={setFilterVisibility}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="visible">Visible</SelectItem>
+                      <SelectItem value="hidden">Hidden</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         {selectedMovies.length > 0 && (
           <Button variant="destructive" onClick={handleDeleteSelected}>
             Delete Selected ({selectedMovies.length})
@@ -284,20 +407,32 @@ const MovieTable = () => {
             <TableRow>
               <TableHead className="w-12">
                 <Checkbox
-                  checked={
-                    selectedMovies.length === movies.length && movies.length > 0
-                  }
-                  onCheckedChange={(checked) =>
-                    handleSelectAll(checked as boolean)
-                  }
+                  checked={selectedMovies.length === filteredMovies.length && filteredMovies.length > 0}
+                  onCheckedChange={handleSelectAll}
                 />
               </TableHead>
-              <TableHead>Title</TableHead>
+              <TableHead className="cursor-pointer" onClick={() => {
+                if (sortBy === "title") {
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                } else {
+                  setSortBy("title");
+                  setSortOrder("asc");
+                }
+              }}>
+                Title {sortBy === "title" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
               <TableHead>Genre</TableHead>
               <TableHead>Language</TableHead>
-              <TableHead>Duration (min)</TableHead>
-              <TableHead>Views</TableHead>
-              <TableHead>Shares</TableHead>
+              <TableHead className="cursor-pointer" onClick={() => {
+                if (sortBy === "watch_count") {
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                } else {
+                  setSortBy("watch_count");
+                  setSortOrder("desc");
+                }
+              }}>
+                Views {sortBy === "watch_count" && (sortOrder === "asc" ? "↑" : "↓")}
+              </TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -316,9 +451,7 @@ const MovieTable = () => {
                 <TableCell>{movie.title}</TableCell>
                 <TableCell>{movie.genre || "-"}</TableCell>
                 <TableCell>{movie.language || "-"}</TableCell>
-                <TableCell>{movie.duration_minutes || 0}</TableCell>
                 <TableCell>{movie.watch_count || 0}</TableCell>
-                <TableCell>{movie.share_count || 0}</TableCell>
                 <TableCell>
                   <Button
                     variant={movie.is_hidden ? "destructive" : "outline"}
@@ -350,6 +483,33 @@ const MovieTable = () => {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, moviesData?.count || 0)} of {moviesData?.count || 0} movies
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
