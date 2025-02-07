@@ -20,7 +20,7 @@ if (container) {
   const root = createRoot(container)
   root.render(
     <QueryClientProvider client={queryClient}>
-      <Toaster richColors position="top-center" />
+      <Toaster richColors position="top-center" closeButton />
       <App />
     </QueryClientProvider>
   )

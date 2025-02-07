@@ -42,6 +42,7 @@ const Home = () => {
           *,
           movie_ratings(rating)
         `)
+        .eq('is_hidden', false)
         .order('created_at', { ascending: false });
 
       if (ratingFilter !== 'all') {
@@ -50,9 +51,9 @@ const Home = () => {
       }
 
       const { data, error } = await query;
-      
+
       if (error) throw error;
-      
+
       return data?.map(movie => ({
         ...movie,
         averageRating: movie.movie_ratings.length > 0
@@ -90,30 +91,30 @@ const Home = () => {
     <div className="min-h-screen">
       {featuredMovie && (
         <div className="relative h-[80vh] w-full">
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
-            style={{ 
+            style={{
               backgroundImage: `url(${featuredMovie.thumbnail_url})`
             }}
           >
             <div className="hero-gradient" />
           </div>
-          
+
           <div className="relative h-full flex items-center">
             <div className="container mx-auto px-4 animate-fade-in">
               <h1 className="font-display text-5xl md:text-7xl font-bold mb-4 max-w-2xl">
                 {featuredMovie.title}
               </h1>
               <div className="flex space-x-4">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
                   onClick={() => navigate(`/movie/${featuredMovie.id}`)}
                 >
                   <Play className="mr-2 h-5 w-5" /> Play Now
                 </Button>
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   variant="outline"
                   className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
                   onClick={() => navigate(`/movie/${featuredMovie.id}`)}
@@ -148,9 +149,9 @@ const Home = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {movies?.map((movie) => (
-              <Link 
-                to={`/movie/${movie.id}`} 
-                key={movie.id} 
+              <Link
+                to={`/movie/${movie.id}`}
+                key={movie.id}
                 className="movie-card group animate-fade-in"
               >
                 <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
