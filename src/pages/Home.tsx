@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -128,57 +129,59 @@ const Home = () => {
       )}
 
       <section className="py-12 bg-gradient-to-b from-background/80 to-background">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
-            <Select
-              value={ratingFilter}
-              onValueChange={(value) => setRatingFilter(value)}
-            >
-              <SelectTrigger className="w-[180px] bg-card border-netflix-gray/20">
-                <SelectValue placeholder="Filter by rating" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Ratings</SelectItem>
-                <SelectItem value="4">4+ Stars</SelectItem>
-                <SelectItem value="3">3+ Stars</SelectItem>
-                <SelectItem value="2">2+ Stars</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {movies?.map((movie) => (
-              <Link
-                to={`/movie/${movie.id}`}
-                key={movie.id}
-                className="movie-card group animate-fade-in"
+        <Card className="container mx-auto px-4">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
+              <Select
+                value={ratingFilter}
+                onValueChange={(value) => setRatingFilter(value)}
               >
-                <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
-                  <img
-                    src={movie.thumbnail_url}
-                    alt={movie.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
-                  <div className="movie-card-overlay">
-                    <div className="absolute bottom-0 p-4 w-full">
-                      <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Star className="h-4 w-4 text-netflix-gold" />
-                          <span className="text-sm">
-                            {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                          </span>
+                <SelectTrigger className="w-[180px] bg-card border-netflix-gray/20">
+                  <SelectValue placeholder="Filter by rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ratings</SelectItem>
+                  <SelectItem value="4">4+ Stars</SelectItem>
+                  <SelectItem value="3">3+ Stars</SelectItem>
+                  <SelectItem value="2">2+ Stars</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {movies?.map((movie) => (
+                <Link
+                  to={`/movie/${movie.id}`}
+                  key={movie.id}
+                  className="movie-card group animate-fade-in"
+                >
+                  <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
+                    <img
+                      src={movie.thumbnail_url}
+                      alt={movie.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                    <div className="movie-card-overlay">
+                      <div className="absolute bottom-0 p-4 w-full">
+                        <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Star className="h-4 w-4 text-netflix-gold" />
+                            <span className="text-sm">
+                              {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                            </span>
+                          </div>
+                          <MessageSquare className="h-4 w-4 text-netflix-gray" />
                         </div>
-                        <MessageSquare className="h-4 w-4 text-netflix-gray" />
                       </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

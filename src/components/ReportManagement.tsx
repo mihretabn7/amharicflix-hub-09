@@ -2,8 +2,26 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
+import { Check, X, Play } from "lucide-react";
 import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card";
+
+interface Report {
+  id: string;
+  movie_id: string;
+  reason: string;
+  created_at: string;
+  status: string;
+  reporter: {
+    email: string;
+    phone_number: string;
+  };
+  movie: {
+    title: string;
+    thumbnail_url: string;
+    youtube_id: string;
+  };
+}
 
 const ReportManagement = () => {
   const [filter, setFilter] = useState<'pending' | 'resolved'>('pending');
@@ -13,17 +31,29 @@ const ReportManagement = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('movie_reports')
-        .select(`*`)
+        .select(`
+          *,
+          reporter:profiles!movie_reports_reporter_id_fkey(
+            email,
+            phone_number
+          ),
+          movie:movies!movie_reports_movie_id_fkey(
+            title,
+            thumbnail_url,
+            youtube_id
+          )
+        `)
         .eq('status', filter)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as Report[];
     },
   });
 
   const handleVerifyReport = async (reportId: string, movieId: string) => {
     try {
+      // Update report status
       const { error: updateError } = await supabase
         .from('movie_reports')
         .update({
@@ -34,13 +64,21 @@ const ReportManagement = () => {
 
       if (updateError) throw updateError;
 
+      // Hide the movie
+      const { error: movieError } = await supabase
+        .from('movies')
+        .update({ is_hidden: true })
+        .eq('id', movieId);
+
+      if (movieError) throw movieError;
+
       // Call the RPC function to increment the verified report count
       const { error: rpcError } = await supabase
         .rpc('increment_verified_report_count', { movie_id: movieId });
 
       if (rpcError) throw rpcError;
 
-      toast.success("Report verified successfully");
+      toast.success("Report verified and movie hidden");
       refetch();
     } catch (error: any) {
       toast.error(error.message);
@@ -66,6 +104,10 @@ const ReportManagement = () => {
     }
   };
 
+  const openVideoPreview = (youtubeId: string) => {
+    window.open(`https://www.youtube.com/watch?v=${youtubeId}`, '_blank');
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -84,41 +126,62 @@ const ReportManagement = () => {
       </div>
 
       <div className="grid gap-4">
-        {reports.map((report: any) => (
-          <div key={report.id} className="bg-card p-4 rounded-lg space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-medium">{report.movies?.title}</h3>
-                <p className="text-sm text-gray-400">
-                  Reported by: {report.profiles?.email || report.profiles?.phone_number}
-                </p>
-              </div>
-              {filter === 'pending' && (
-                <div className="flex gap-2">
+        {reports.map((report) => (
+          <Card key={report.id}>
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex gap-4">
+                <div className="w-32 h-24 relative rounded-md overflow-hidden">
+                  <img
+                    src={report.movie.thumbnail_url}
+                    alt={report.movie.title}
+                    className="object-cover w-full h-full"
+                  />
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleVerifyReport(report.id, report.movie_id)}
+                    variant="ghost"
+                    size="icon"
+                    className="absolute inset-0 m-auto bg-black/50 hover:bg-black/70 w-8 h-8"
+                    onClick={() => openVideoPreview(report.movie.youtube_id)}
                   >
-                    <Check className="h-4 w-4 mr-1" />
-                    Verify
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDismissReport(report.id)}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Dismiss
+                    <Play className="h-4 w-4" />
                   </Button>
                 </div>
-              )}
-            </div>
-            <p className="text-sm">{report.reason}</p>
-            <p className="text-xs text-gray-400">
-              {new Date(report.created_at).toLocaleDateString()}
-            </p>
-          </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium text-lg">{report.movie.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Reported by: {report.reporter.email || report.reporter.phone_number}
+                      </p>
+                      <p className="text-sm mt-2">{report.reason}</p>
+                    </div>
+                    {filter === 'pending' && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleVerifyReport(report.id, report.movie_id)}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Verify
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDismissReport(report.id)}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Dismiss
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Reported on: {new Date(report.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

@@ -99,7 +99,7 @@ const MovieDetail = () => {
         navigate('/movies');
         throw new Error("Movie unavailable");
       }
-      
+
       return {
         movie: movieResponse.data,
         ratings: ratingsResponse.data || [],
@@ -172,24 +172,25 @@ const MovieDetail = () => {
             </div>
             {session && (
               <div className="bg-card p-4 border-t border-border space-y-6">
-                <MovieRating 
-                  movieId={movie.id} 
+                <MovieRating
+                  movieId={movie.id}
                   userId={session.user.id}
                   onRatingSubmit={refetch}
                 />
-                <GenreSuggestion
-                  movieId={movie.id}
-                  userId={session.user.id}
-                  onSuggestionSubmit={refetch}
-                />
+                <div className="flex justify-end">
+                  <MovieReportModal
+                    movieId={movie.id}
+                    userId={session.user.id}
+                  />
+                </div>
               </div>
             )}
           </div>
         ) : (
           <>
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center"
-              style={{ 
+              style={{
                 backgroundImage: `url(${movie.thumbnail_url})`
               }}
             >
@@ -209,9 +210,9 @@ const MovieDetail = () => {
                     <span>{averageRating.toFixed(1)}</span>
                   </div>
                 </div>
-                <div className="flex space-x-4">
-                  <Button 
-                    size="lg" 
+                <div className="flex items-center space-x-4">
+                  <Button
+                    size="lg"
                     className="bg-netflix-red hover:bg-netflix-red/90"
                     onClick={() => setIsPlaying(true)}
                   >
@@ -220,6 +221,12 @@ const MovieDetail = () => {
                   <Button size="lg" variant="outline" onClick={handleShare}>
                     <Share2 className="mr-2 h-5 w-5" /> Share
                   </Button>
+                  {session && (
+                    <MovieReportModal
+                      movieId={movie.id}
+                      userId={session.user.id}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -258,19 +265,6 @@ const MovieDetail = () => {
                     </div>
                   </div>
                 </div>
-                {session && (
-                  <div className="flex justify-end">
-                    <MovieReportModal 
-                      movieId={movie.id} 
-                      userId={session.user.id} 
-                    />
-                  </div>
-                )}
-                <GenreSuggestion
-                  movieId={movie.id}
-                  userId={session.user.id}
-                  onSuggestionSubmit={refetch}
-                />
               </div>
             )}
           </div>

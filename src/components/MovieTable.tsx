@@ -32,6 +32,7 @@ interface Movie {
   duration_minutes: number | null;
   watch_count: number | null;
   share_count: number | null;
+  is_hidden: boolean;
 }
 
 const EditMovieModal = ({
@@ -228,6 +229,22 @@ const MovieTable = () => {
     }
   };
 
+  const handleToggleVisibility = async (movieId: string, isHidden: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("movies")
+        .update({ is_hidden: isHidden })
+        .eq("id", movieId);
+
+      if (error) throw error;
+
+      toast.success(isHidden ? "Movie hidden successfully" : "Movie is now visible");
+      refetch();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   const filteredMovies = movies.filter(
     (movie) =>
       movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -281,6 +298,7 @@ const MovieTable = () => {
               <TableHead>Duration (min)</TableHead>
               <TableHead>Views</TableHead>
               <TableHead>Shares</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -301,6 +319,15 @@ const MovieTable = () => {
                 <TableCell>{movie.duration_minutes || 0}</TableCell>
                 <TableCell>{movie.watch_count || 0}</TableCell>
                 <TableCell>{movie.share_count || 0}</TableCell>
+                <TableCell>
+                  <Button
+                    variant={movie.is_hidden ? "destructive" : "outline"}
+                    size="sm"
+                    onClick={() => handleToggleVisibility(movie.id, !movie.is_hidden)}
+                  >
+                    {movie.is_hidden ? "Hidden" : "Visible"}
+                  </Button>
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button

@@ -13,4 +13,5 @@ export interface Movie {
   series_id?: string | null;
   episode_number?: number | null;
   averageRating?: number;
+  is_hidden?: boolean;
 }

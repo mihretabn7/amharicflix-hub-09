@@ -1,5 +1,4 @@
 import { Movie } from "@/types/movie";
-import GenreSuggestionsDisplay from "./GenreSuggestionsDisplay";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import MovieReviews from "./MovieReviews";
@@ -33,10 +32,6 @@ const MovieDetailsSection = ({ movie, userId }: MovieDetailsSectionProps) => {
               </Button>
             )}
           </p>
-        </div>
-        <div>
-          <h3 className="font-medium">Suggested Genres</h3>
-          <GenreSuggestionsDisplay movieId={movie.id} />
         </div>
         <div>
           <h3 className="font-medium">Language</h3>

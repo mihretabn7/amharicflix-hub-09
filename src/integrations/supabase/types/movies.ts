@@ -15,6 +15,7 @@ export interface MovieTable {
     duration_minutes: number | null
     watch_count: number | null
     share_count: number | null
+    is_hidden: boolean | null
   }
   Insert: {
     created_at?: string
@@ -30,6 +31,7 @@ export interface MovieTable {
     duration_minutes?: number | null
     watch_count?: number | null
     share_count?: number | null
+    is_hidden?: boolean | null
   }
   Update: {
     created_at?: string
@@ -45,6 +47,7 @@ export interface MovieTable {
     duration_minutes?: number | null
     watch_count?: number | null
     share_count?: number | null
+    is_hidden?: boolean | null
   }
   Relationships: []
 }
