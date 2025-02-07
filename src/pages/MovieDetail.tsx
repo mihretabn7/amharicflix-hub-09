@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Play, Star, Share2, Eye, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,9 @@ import MovieRating from "@/components/MovieRating";
 import GenreSuggestion from "@/components/GenreSuggestion";
 import MovieDetailsSection from "@/components/MovieDetailsSection";
 import MovieReportModal from "@/components/MovieReportModal";
+
+const NETFLIX_VIEW_THRESHOLD = 120; // 2 minutes in seconds
+const WATCH_TIME_UPDATE_INTERVAL = 10; // Update watch time every 10 seconds
 
 const isValidUUID = (uuid: string) => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -21,6 +24,9 @@ const MovieDetail = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [viewStartTime, setViewStartTime] = useState<Date | null>(null);
+  const [currentWatchDuration, setCurrentWatchDuration] = useState(0);
+  const watchTimeInterval = useRef<NodeJS.Timeout | null>(null);
+  const viewCounted = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -36,26 +42,62 @@ const MovieDetail = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Handle watch time tracking
   useEffect(() => {
-    if (isPlaying && !viewStartTime) {
-      setViewStartTime(new Date());
-      if (id) {
-        supabase.rpc('increment_movie_watch_count', { movie_id: id });
+    const updateWatchTime = async () => {
+      if (!session?.user?.id || !id || !isPlaying) return;
+
+      const currentDuration = Math.floor((new Date().getTime() - (viewStartTime?.getTime() || 0)) / 1000);
+      setCurrentWatchDuration(currentDuration);
+
+      // Update watch history every WATCH_TIME_UPDATE_INTERVAL seconds
+      if (currentDuration % WATCH_TIME_UPDATE_INTERVAL === 0) {
+        try {
+          await supabase
+            .from('user_movie_history')
+            .upsert({
+              user_id: session.user.id,
+              movie_id: id,
+              watch_duration: currentDuration,
+              watched_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id,movie_id'
+            });
+        } catch (error) {
+          console.error('Error updating watch time:', error);
+        }
+      }
+
+      // Count view after NETFLIX_VIEW_THRESHOLD seconds (if not already counted)
+      if (currentDuration >= NETFLIX_VIEW_THRESHOLD && !viewCounted.current) {
+        try {
+          await supabase.rpc('increment_movie_watch_count', { movie_id: id });
+          viewCounted.current = true;
+        } catch (error) {
+          console.error('Error incrementing view count:', error);
+        }
+      }
+    };
+
+    if (isPlaying) {
+      // Start tracking when video starts playing
+      if (!viewStartTime) {
+        setViewStartTime(new Date());
+      }
+
+      // Set up interval for watch time updates
+      watchTimeInterval.current = setInterval(updateWatchTime, 1000);
+    } else {
+      // Clear interval when video stops playing
+      if (watchTimeInterval.current) {
+        clearInterval(watchTimeInterval.current);
       }
     }
 
+    // Cleanup on unmount or when video stops
     return () => {
-      if (viewStartTime && session?.user?.id && id) {
-        const duration = Math.floor((new Date().getTime() - viewStartTime.getTime()) / 1000);
-        if (duration > 10) {
-          supabase
-            .from('user_movie_history')
-            .insert({
-              user_id: session.user.id,
-              movie_id: id,
-              watch_duration: duration
-            });
-        }
+      if (watchTimeInterval.current) {
+        clearInterval(watchTimeInterval.current);
       }
     };
   }, [isPlaying, viewStartTime, session, id]);
@@ -83,7 +125,9 @@ const MovieDetail = () => {
           .from('user_movie_history')
           .select('*')
           .eq('movie_id', id)
-          .eq('user_id', session.user.id) : null
+          .eq('user_id', session.user.id)
+          .order('watched_at', { ascending: false })
+          .limit(1) : null
       ]);
 
       if (movieResponse.error) throw movieResponse.error;
@@ -151,7 +195,8 @@ const MovieDetail = () => {
     ? ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / ratings.length
     : 0;
 
-  const totalWatchTime = history.reduce((acc: number, curr: any) => acc + (curr.watch_duration || 0), 0);
+  // Get the total watch time from history plus current session
+  const totalWatchTime = (history[0]?.watch_duration || 0) + (isPlaying ? currentWatchDuration : 0);
   const watchCount = movie.watch_count || 0;
   const shareCount = movie.share_count || 0;
 
