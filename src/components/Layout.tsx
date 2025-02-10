@@ -29,28 +29,25 @@ const Layout = () => {
             const [moviesResponse, seriesResponse] = await Promise.all([
                 supabase
                     .from('movies')
-                    .select('id, title, thumbnail_url, genre, series_id')
+                    .select('*, movie_ratings(*)')
                     .eq('is_hidden', false)
                     .is('series_id', null),
                 supabase
                     .from('movies')
-                    .select('id, title, thumbnail_url, genre, series_id')
+                    .select('*, movie_ratings(*)')
                     .eq('is_hidden', false)
                     .not('series_id', 'is', null)
                     .order('series_id')
             ]);
 
-            // Group series by series_id to get unique series
+            // Group series by series_id
             const uniqueSeries = seriesResponse.data ? 
-                Object.values(seriesResponse.data.reduce((acc: Record<string, Movie>, curr: Movie) => {
-                    if (curr.series_id && !acc[curr.series_id]) {
-                        acc[curr.series_id] = curr;
-                    }
-                    return acc;
-                }, {})) : [];
+                Array.from(new Set(seriesResponse.data.map(movie => movie.series_id)))
+                .map(series_id => seriesResponse.data!.find(movie => movie.series_id === series_id))
+                .filter((movie): movie is Movie => movie !== undefined) : [];
 
             return {
-                movies: moviesResponse.data || [],
+                movies: moviesResponse.data as Movie[] || [],
                 series: uniqueSeries
             };
         },
