@@ -15,6 +15,7 @@ export interface Movie {
   episode_number?: number | null;
   averageRating?: number;
   is_hidden?: boolean;
+  verified_report_count?: number;
   movie_ratings?: MovieRating[];
 }
 

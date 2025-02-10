@@ -205,7 +205,7 @@ const MovieTable = () => {
     queryFn: async () => {
       let query = supabase
         .from("movies")
-        .select("*, movie_ratings(rating)", { count: "exact" });
+        .select("*, movie_ratings(rating, created_at)", { count: "exact" });
 
       // Apply filters
       if (filterGenre !== "all") {
@@ -232,7 +232,16 @@ const MovieTable = () => {
         throw error;
       }
 
-      return { data, count };
+      // Transform the data to ensure movie_ratings has the correct shape
+      const transformedData = data?.map(movie => ({
+        ...movie,
+        movie_ratings: movie.movie_ratings?.map((rating: any) => ({
+          rating: rating.rating,
+          created_at: rating.created_at
+        })) || []
+      }));
+
+      return { data: transformedData, count };
     },
   });
 
