@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { Menu, X, Search } from 'lucide-react';
@@ -36,12 +37,21 @@ const Layout = () => {
                     .select('id, title, thumbnail_url, genre')
                     .eq('is_hidden', false)
                     .not('series_id', 'is', null)
-                    .distinct('series_id')
+                    .order('series_id')
             ]);
+
+            // Group series by series_id to get unique series
+            const uniqueSeries = seriesResponse.data ? 
+                Object.values(seriesResponse.data.reduce((acc: any, curr) => {
+                    if (!acc[curr.series_id]) {
+                        acc[curr.series_id] = curr;
+                    }
+                    return acc;
+                }, {})) : [];
 
             return {
                 movies: moviesResponse.data || [],
-                series: seriesResponse.data || []
+                series: uniqueSeries
             };
         },
         enabled: showSearch
@@ -203,4 +213,4 @@ const Layout = () => {
     );
 };
 
-export default Layout; 
+export default Layout;

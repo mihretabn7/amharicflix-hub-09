@@ -35,6 +35,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+interface MovieRating {
+  rating: number;
+  created_at: string;
+}
+
 interface Movie {
   id: string;
   title: string;
@@ -49,10 +54,9 @@ interface Movie {
   created_at?: string;
   thumbnail_url?: string;
   verified_report_count?: number;
-  movie_ratings?: {
-    rating: number;
-    created_at: string;
-  }[];
+  movie_ratings?: MovieRating[];
+  series_id?: string | null;
+  episode_number?: number | null;
 }
 
 const defaultMovie: Movie = {
@@ -66,6 +70,7 @@ const defaultMovie: Movie = {
   watch_count: null,
   share_count: null,
   is_hidden: false,
+  movie_ratings: [],
 };
 
 interface MovieFormProps {
@@ -83,7 +88,10 @@ const EditMovieModal = ({
   onClose: () => void;
   onSave: (updatedMovie: Movie) => void;
 }) => {
-  const [formData, setFormData] = useState<Movie>(movie);
+  const [formData, setFormData] = useState<Movie>({
+    ...movie,
+    movie_ratings: movie.movie_ratings || []
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {

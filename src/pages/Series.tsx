@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
+interface SeriesWithEpisodes extends Movie {
+  episodes?: Movie[];
+}
+
 const Series = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [filterGenre, setFilterGenre] = useState<string>("all");
@@ -73,13 +77,13 @@ const Series = () => {
             const { data, error } = await query;
             if (error) throw error;
 
-            const processedSeries = data?.map(series => ({
+            const processedSeries = (data?.map(series => ({
                 ...series,
+                episodeCount: Array.isArray(series.episodes) ? series.episodes.length : 0,
                 averageRating: series.movie_ratings?.length > 0
                     ? series.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / series.movie_ratings.length
-                    : 0,
-                episodeCount: series.episodes?.length || 0
-            })) || [];
+                    : 0
+            })) || []) as SeriesWithEpisodes[];
 
             // Apply rating filter
             let filteredSeries = processedSeries;
@@ -90,7 +94,7 @@ const Series = () => {
 
             // Apply sorting
             if (sortBy === "rating") {
-                filteredSeries.sort((a, b) => b.averageRating - a.averageRating);
+                filteredSeries.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
             } else {
                 filteredSeries.sort((a, b) =>
                     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -241,4 +245,4 @@ const Series = () => {
     );
 };
 
-export default Series; 
+export default Series;
