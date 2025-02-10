@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navigation from './components/Navigation';
 import AdminDashboard from './components/AdminDashboard';
 import Dashboard from "@/pages/admin/Dashboard";
 
@@ -8,9 +9,13 @@ import Dashboard from "@/pages/admin/Dashboard";
 function App() {
     return (
         <Router>
-            <Routes>
-                <Route path="/admin" element={<AdminDashboard />} />
-            </Routes>
+            <div>
+                <Navigation />
+                <Routes>
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    {/* Add other routes as needed */}
+                </Routes>
+            </div>
         </Router>
     );
 }
