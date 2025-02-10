@@ -1,10 +1,23 @@
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import MovieTable from "@/components/MovieTable";
 import ReportManagement from "@/components/ReportManagement";
 import AdminStats from "@/components/AdminStats";
 import SeriesManagement from "@/components/SeriesManagement";
-import { Film, Clapperboard, AlertTriangle, LayoutDashboard, Menu } from "lucide-react";
+import Settings from "@/pages/admin/Settings";
+import {
+    Film,
+    Clapperboard,
+    AlertTriangle,
+    LayoutDashboard,
+    Menu,
+    Users,
+    Settings as SettingsIcon,
+    Bell,
+    BarChart3,
+    Shield,
+    Upload
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +27,11 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
+import UserManagement from "@/components/admin/UserManagement";
+import ContentUpload from "@/components/admin/ContentUpload";
+import SecuritySettings from "@/components/admin/SecuritySettings";
+import Analytics from "@/components/admin/Analytics";
+import NotificationCenter from "@/components/admin/NotificationCenter";
 
 const Dashboard = () => {
     const [activeTab, setActiveTab] = useState("overview");
@@ -24,25 +42,71 @@ const Dashboard = () => {
             id: "overview",
             label: "Overview",
             icon: LayoutDashboard,
-            content: <AdminStats />
+            content: <AdminStats />,
+            description: "Platform overview and key metrics"
         },
         {
             id: "movies",
             label: "Movies",
             icon: Film,
-            content: <MovieTable />
+            content: <MovieTable />,
+            description: "Manage movies and content"
         },
         {
             id: "series",
             label: "Series",
             icon: Clapperboard,
-            content: <SeriesManagement />
+            content: <SeriesManagement />,
+            description: "Manage series and episodes"
         },
         {
             id: "reports",
             label: "Reports",
             icon: AlertTriangle,
-            content: <ReportManagement />
+            content: <ReportManagement />,
+            description: "Handle user reports and content flags"
+        },
+        {
+            id: "users",
+            label: "Users",
+            icon: Users,
+            content: <UserManagement />,
+            description: "Manage user accounts and permissions"
+        },
+        {
+            id: "upload",
+            label: "Upload",
+            icon: Upload,
+            content: <ContentUpload />,
+            description: "Upload and process new content"
+        },
+        {
+            id: "analytics",
+            label: "Analytics",
+            icon: BarChart3,
+            content: <Analytics />,
+            description: "View detailed platform analytics"
+        },
+        {
+            id: "notifications",
+            label: "Notifications",
+            icon: Bell,
+            content: <NotificationCenter />,
+            description: "Manage system notifications"
+        },
+        {
+            id: "security",
+            label: "Security",
+            icon: Shield,
+            content: <SecuritySettings />,
+            description: "Platform security settings"
+        },
+        {
+            id: "settings",
+            label: "Settings",
+            icon: SettingsIcon,
+            content: <Settings />,
+            description: "Admin panel settings"
         }
     ];
 
@@ -62,7 +126,12 @@ const Dashboard = () => {
                 )}
             >
                 <Icon className="h-5 w-5" />
-                <span>{tab.label}</span>
+                <div className="flex-1 text-left">
+                    <div>{tab.label}</div>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                        {tab.description}
+                    </p>
+                </div>
             </button>
         );
     };
@@ -99,9 +168,12 @@ const Dashboard = () => {
 
             <div className="flex h-screen">
                 {/* Desktop Sidebar */}
-                <div className="hidden lg:flex flex-col w-64 border-r bg-card/50 backdrop-blur-sm fixed left-0 top-0 bottom-0">
+                <div className="hidden lg:flex flex-col w-80 border-r bg-card/50 backdrop-blur-sm fixed left-0 top-0 bottom-0">
                     <div className="p-6 border-b">
                         <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Manage your platform
+                        </p>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-2">
                         {tabs.map((tab) => (
@@ -111,7 +183,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Main Content */}
-                <main className="flex-1 lg:ml-64 overflow-y-auto">
+                <main className="flex-1 lg:ml-80 overflow-y-auto">
                     <div className="container mx-auto p-4 lg:p-6 mt-16 lg:mt-0">
                         <div className="space-y-6">
                             {/* Desktop Tab Title */}
@@ -119,10 +191,13 @@ const Dashboard = () => {
                                 <h2 className="text-2xl font-semibold">
                                     {tabs.find(t => t.id === activeTab)?.label}
                                 </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    {tabs.find(t => t.id === activeTab)?.description}
+                                </p>
                             </div>
 
                             {/* Content */}
-                            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                            <Tabs value={activeTab} className="space-y-6">
                                 {tabs.map((tab) => (
                                     <TabsContent
                                         key={tab.id}

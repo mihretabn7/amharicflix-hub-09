@@ -1,64 +1,91 @@
+import { formatDistanceToNow } from "date-fns";
+import { Progress } from "@/components/ui/progress";
+import { Play, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
-import { Link } from "react-router-dom";
-import { formatDateTime } from "@/utils/date-utils";
-
-interface WatchHistoryItemProps {
+interface WatchHistoryItem {
   id: string;
+  watch_duration: number;
+  watched_at: string;
   movie: {
     id: string;
     title: string;
     thumbnail_url: string;
-    duration_minutes?: number;
+    duration_minutes: number | null;
   };
-  watch_duration: number;
-  watched_at: string;
 }
 
-export const WatchHistory = ({ items }: { items: WatchHistoryItemProps[] }) => {
+interface WatchHistoryProps {
+  items: WatchHistoryItem[];
+}
+
+export const WatchHistory = ({ items }: WatchHistoryProps) => {
+  const navigate = useNavigate();
+
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No watch history yet. Start watching movies to see them here!
+      </div>
+    );
+  }
+
   return (
-    <div className="grid gap-4 mt-4">
-      {items && items.length > 0 ? (
-        items.map((item) => (
-          <Link
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {items.map((item) => {
+        const progress = item.movie.duration_minutes
+          ? (item.watch_duration / (item.movie.duration_minutes * 60)) * 100
+          : 0;
+
+        return (
+          <div
             key={item.id}
-            to={`/movie/${item.movie.id}`}
-            className="group relative aspect-video overflow-hidden rounded-lg"
+            className="group relative overflow-hidden rounded-lg bg-card hover:shadow-xl transition-all duration-300"
           >
-            <img
-              src={item.movie.thumbnail_url}
-              alt={item.movie.title}
-              className="object-cover w-full h-full transition-transform group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 p-4 w-full">
-              <h3 className="font-medium text-white mb-1">{item.movie.title}</h3>
-              <div className="flex items-center justify-between text-sm text-gray-300">
-                <span>{Math.floor(item.watch_duration / 60)}m watched</span>
-                <span>{formatDateTime(item.watched_at)}</span>
+            <div className="aspect-video relative overflow-hidden">
+              <img
+                src={item.movie.thumbnail_url}
+                alt={item.movie.title}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+
+              {/* Watch Duration Overlay */}
+              <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 rounded-md text-xs flex items-center">
+                <Clock className="w-3 h-3 mr-1" />
+                {Math.floor(item.watch_duration / 60)}m
               </div>
-              {item.movie.duration_minutes && (
-                <div className="mt-2">
-                  <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-netflix-red"
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          (item.watch_duration / (item.movie.duration_minutes * 60)) * 100
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+
+              {/* Play Button Overlay */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute inset-0 m-auto w-12 h-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                onClick={() => navigate(`/movie/${item.movie.id}`)}
+              >
+                <Play className="w-6 h-6" />
+              </Button>
             </div>
-          </Link>
-        ))
-      ) : (
-        <div className="col-span-full text-center py-8 text-muted-foreground">
-          No watch history yet
-        </div>
-      )}
+
+            <div className="p-4">
+              <h3 className="font-medium line-clamp-1 mb-2">{item.movie.title}</h3>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Progress</span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+                <Progress value={progress} className="h-1" />
+
+                <p className="text-xs text-muted-foreground mt-2">
+                  Watched {formatDistanceToNow(new Date(item.watched_at))} ago
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
