@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,22 +52,30 @@ const Profile = () => {
     enabled: !!session?.user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('movies')
+        .from('movie_ratings')
         .select(`
-          id,
-          title,
-          thumbnail_url,
+          rating,
           created_at,
-          movie_ratings!inner (
-            rating,
+          movies (
+            id,
+            title,
+            thumbnail_url,
             created_at
           )
         `)
-        .eq('movie_ratings.user_id', session?.user?.id)
-        .order('movie_ratings(created_at)', { ascending: false });
+        .eq('user_id', session?.user?.id)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Transform the data to match the expected format
+      return data.map((item) => ({
+        ...item.movies,
+        movie_ratings: [{
+          rating: item.rating,
+          created_at: item.created_at
+        }]
+      }));
     }
   });
 
