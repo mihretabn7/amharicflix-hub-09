@@ -13,32 +13,21 @@ export const useSeries = ({ filterGenre, filterRating, sortBy }: UseSeriesProps)
     return useQuery({
         queryKey: ['series', filterGenre, filterRating, sortBy],
         queryFn: async () => {
-            // First, get all unique series IDs
-            const { data: seriesIds } = await supabase
-                .from('movies')
-                .select('series_id')
-                .not('series_id', 'is', null)
-                .not('series_id', 'eq', '')
-                .is('is_hidden', false);
-
-            if (!seriesIds?.length) return [];
-
-            // Get unique series IDs
-            const uniqueSeriesIds = [...new Set(seriesIds.map(item => item.series_id))];
-
-            // Fetch the first episode of each series (which contains series info)
+            // First, get all series (first episode of each series serves as series info)
             let query = supabase
                 .from('movies')
                 .select(`
                     *,
                     movie_ratings (
-                        rating
+                        rating,
+                        created_at
                     ),
                     episodes:movies!series_id(
                         *
                     )
                 `)
-                .in('id', uniqueSeriesIds)
+                .is('episode_number', null) // Get only series headers
+                .not('series_id', 'is', null) // Must be part of a series
                 .is('is_hidden', false);
 
             if (filterGenre !== "all") {
@@ -49,14 +38,20 @@ export const useSeries = ({ filterGenre, filterRating, sortBy }: UseSeriesProps)
             if (error) throw error;
 
             const processedSeries = data?.map(series => {
+                // Ensure episodes is always an array
+                const episodes = Array.isArray(series.episodes) ? series.episodes : [];
+                
                 const seriesData = {
                     ...series,
-                    episodeCount: series.episodes?.length || 0,
+                    episodes,
+                    episodeCount: episodes.length,
+                    movie_ratings: series.movie_ratings || [],
                     averageRating: series.movie_ratings?.length > 0
                         ? series.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / series.movie_ratings.length
                         : 0
-                };
-                return seriesData as SeriesWithEpisodes;
+                } as SeriesWithEpisodes;
+                
+                return seriesData;
             }) || [];
 
             // Apply rating filter

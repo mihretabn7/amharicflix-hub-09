@@ -15,6 +15,7 @@ export interface Movie {
   episode_number?: number | null;
   averageRating?: number;
   is_hidden?: boolean;
+  movie_ratings?: MovieRating[];
 }
 
 export interface MovieRating {
@@ -23,8 +24,8 @@ export interface MovieRating {
 }
 
 export interface SeriesWithEpisodes extends Movie {
-  episodes?: Movie[];
-  episodeCount?: number;
-  averageRating?: number;
-  movie_ratings?: MovieRating[];
+  episodes: Movie[];
+  episodeCount: number;
+  averageRating: number;
+  movie_ratings: MovieRating[];
 }
