@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,7 +109,7 @@ const Profile = () => {
     queryKey: ['user-stats', session?.user?.id],
     enabled: !!session?.user?.id,
     queryFn: async () => {
-      const [ratingsResponse, reportsResponse] = await Promise.all([
+      const [ratingsResponse, reportsResponse, watchHistoryResponse] = await Promise.all([
         supabase
           .from('movie_ratings')
           .select('rating')
@@ -116,11 +117,16 @@ const Profile = () => {
         supabase
           .from('movie_reports')
           .select('id')
-          .eq('reporter_id', session?.user?.id)
+          .eq('reporter_id', session?.user?.id),
+        supabase
+          .from('user_movie_history')
+          .select('id')
+          .eq('user_id', session?.user?.id)
       ]);
 
       if (ratingsResponse.error) throw ratingsResponse.error;
       if (reportsResponse.error) throw reportsResponse.error;
+      if (watchHistoryResponse.error) throw watchHistoryResponse.error;
 
       const averageRating = ratingsResponse.data.length > 0
         ? ratingsResponse.data.reduce((acc, curr) => acc + curr.rating, 0) / ratingsResponse.data.length
@@ -129,7 +135,8 @@ const Profile = () => {
       return {
         totalRatings: ratingsResponse.data.length,
         averageRating,
-        totalReports: reportsResponse.data.length
+        totalReports: reportsResponse.data.length,
+        totalWatches: watchHistoryResponse.data.length
       };
     }
   });
@@ -181,6 +188,7 @@ const Profile = () => {
               averageRating: userStats?.averageRating || 0,
               totalRatings: userStats?.totalRatings || 0,
               totalReports: userStats?.totalReports || 0,
+              totalWatches: userStats?.totalWatches || 0,
             }}
           />
 
