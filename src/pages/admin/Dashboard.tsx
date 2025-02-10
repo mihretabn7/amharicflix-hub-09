@@ -16,7 +16,10 @@ import {
     Bell,
     BarChart3,
     Shield,
-    Upload
+    Upload,
+    ChevronLeft,
+    ChevronRight,
+    FileSpreadsheet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,10 +35,12 @@ import ContentUpload from "@/components/admin/ContentUpload";
 import SecuritySettings from "@/components/admin/SecuritySettings";
 import Analytics from "@/components/admin/Analytics";
 import NotificationCenter from "@/components/admin/NotificationCenter";
+import CSVUpload from "@/components/admin/CSVUpload";
 
 const Dashboard = () => {
     const [activeTab, setActiveTab] = useState("overview");
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const tabs = [
         {
@@ -107,10 +112,17 @@ const Dashboard = () => {
             icon: SettingsIcon,
             content: <Settings />,
             description: "Admin panel settings"
+        },
+        {
+            id: "csv-upload",
+            label: "CSV Upload",
+            icon: FileSpreadsheet,
+            content: <CSVUpload />,
+            description: "Bulk upload content via CSV"
         }
     ];
 
-    const NavItem = ({ tab, onClick }: { tab: typeof tabs[0], onClick?: () => void }) => {
+    const NavItem = ({ tab, onClick, collapsed }: { tab: typeof tabs[0], onClick?: () => void, collapsed: boolean }) => {
         const Icon = tab.icon;
         return (
             <button
@@ -119,19 +131,21 @@ const Dashboard = () => {
                     onClick?.();
                 }}
                 className={cn(
-                    "flex items-center space-x-3 w-full px-4 py-3 text-sm rounded-lg transition-colors",
+                    "flex items-center w-full px-4 py-3 text-sm rounded-lg transition-colors",
                     activeTab === tab.id
                         ? "bg-primary text-primary-foreground font-medium"
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
                 )}
             >
                 <Icon className="h-5 w-5" />
-                <div className="flex-1 text-left">
-                    <div>{tab.label}</div>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                        {tab.description}
-                    </p>
-                </div>
+                {!collapsed && (
+                    <div className="flex-1 ml-3 text-left">
+                        <div>{tab.label}</div>
+                        <p className="text-xs text-muted-foreground line-clamp-1">
+                            {tab.description}
+                        </p>
+                    </div>
+                )}
             </button>
         );
     };
@@ -158,6 +172,7 @@ const Dashboard = () => {
                                         key={tab.id}
                                         tab={tab}
                                         onClick={() => setIsSidebarOpen(false)}
+                                        collapsed={false}
                                     />
                                 ))}
                             </div>
@@ -168,22 +183,39 @@ const Dashboard = () => {
 
             <div className="flex h-screen">
                 {/* Desktop Sidebar */}
-                <div className="hidden lg:flex flex-col w-80 border-r bg-card/50 backdrop-blur-sm fixed left-0 top-0 bottom-0">
-                    <div className="p-6 border-b">
-                        <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Manage your platform
-                        </p>
+                <div
+                    className={`hidden lg:flex flex-col border-r bg-card/50 backdrop-blur-sm fixed left-0 top-0 bottom-0 transition-all duration-300 ${isSidebarCollapsed ? 'w-16' : 'w-80'
+                        }`}
+                >
+                    <div className="p-6 border-b flex items-center justify-between">
+                        <div className={`${isSidebarCollapsed ? 'hidden' : 'block'}`}>
+                            <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                Manage your platform
+                            </p>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
+                        >
+                            {isSidebarCollapsed ? (
+                                <ChevronRight className="h-4 w-4" />
+                            ) : (
+                                <ChevronLeft className="h-4 w-4" />
+                            )}
+                        </Button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    <div className="flex-1 p-4 space-y-2">
                         {tabs.map((tab) => (
-                            <NavItem key={tab.id} tab={tab} />
+                            <NavItem key={tab.id} tab={tab} collapsed={isSidebarCollapsed} />
                         ))}
                     </div>
                 </div>
 
                 {/* Main Content */}
-                <main className="flex-1 lg:ml-80 overflow-y-auto">
+                <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
+                    }`}>
                     <div className="container mx-auto p-4 lg:p-6 mt-16 lg:mt-0">
                         <div className="space-y-6">
                             {/* Desktop Tab Title */}

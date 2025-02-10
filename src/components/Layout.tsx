@@ -15,6 +15,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
+import Navbar from "./Navbar";
 
 const Layout = () => {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -48,13 +49,13 @@ const Layout = () => {
                 })) || []
             }));
 
-            const uniqueSeries = seriesResponse.data ? 
+            const uniqueSeries = seriesResponse.data ?
                 Array.from(new Set(seriesResponse.data.map(movie => movie.series_id)))
-                .map(series_id => {
-                    const movie = seriesResponse.data!.find(movie => movie.series_id === series_id);
-                    return movie ? transformMovies([movie])[0] : undefined;
-                })
-                .filter((movie): movie is Movie => movie !== undefined) : [];
+                    .map(series_id => {
+                        const movie = seriesResponse.data!.find(movie => movie.series_id === series_id);
+                        return movie ? transformMovies([movie])[0] : undefined;
+                    })
+                    .filter((movie): movie is Movie => movie !== undefined) : [];
 
             return {
                 movies: transformMovies(moviesResponse.data || []),
@@ -71,6 +72,7 @@ const Layout = () => {
 
     return (
         <>
+            <Navbar />
             <NotificationSystem />
 
             <CommandDialog open={showSearch} onOpenChange={setShowSearch}>
