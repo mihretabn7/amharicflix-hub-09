@@ -1,3 +1,4 @@
+
 export interface Movie {
   id: string;
   youtube_id: string;
@@ -14,4 +15,16 @@ export interface Movie {
   episode_number?: number | null;
   averageRating?: number;
   is_hidden?: boolean;
+}
+
+export interface MovieRating {
+  rating: number;
+  created_at: string;
+}
+
+export interface SeriesWithEpisodes extends Movie {
+  episodes?: Movie[];
+  episodeCount?: number;
+  averageRating?: number;
+  movie_ratings?: MovieRating[];
 }
