@@ -12,6 +12,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminRoute from "./components/AdminRoute";
 import Profile from "./pages/Profile";
 import AdminLogin from "./pages/AdminLogin";
+import Series from "./pages/Series";
+import SeriesDetail from "./pages/SeriesDetail";
 import { toast } from "sonner";
 
 function App() {
@@ -46,6 +48,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/movies" element={<Movies />} />
+          <Route path="/series" element={<Series />} />
+          <Route path="/series/:id" element={<SeriesDetail />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/movie/:id" element={<MovieDetail />} />
           <Route path="/login" element={<Login />} />

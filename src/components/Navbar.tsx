@@ -1,17 +1,9 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Search, User, Menu, Bell } from "lucide-react";
+import { User, Menu, Bell } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { checkIsAdmin } from "@/utils/auth";
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import {
   Sheet,
   SheetContent,
@@ -26,14 +18,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { DialogTitle } from "./ui/dialog";
 import { toast } from "sonner";
 
 const Navbar = () => {
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
@@ -114,33 +103,12 @@ const Navbar = () => {
 
       if (error) throw error;
 
-      setNotifications(notifications.map(n => 
+      setNotifications(notifications.map(n =>
         n.id === notificationId ? { ...n, read: true } : n
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error: any) {
       toast.error('Failed to mark notification as read');
-    }
-  };
-
-  const handleSearch = async (value: string) => {
-    if (!value) {
-      setSearchResults([]);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('movies')
-        .select('*')
-        .ilike('title', `%${value.trim()}%`)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      setSearchResults(data || []);
-    } catch (error: any) {
-      toast.error('Search failed');
     }
   };
 
@@ -152,6 +120,9 @@ const Navbar = () => {
     <>
       <Link to="/movies" className="text-sm font-medium text-gray-300 hover:text-white">
         Movies
+      </Link>
+      <Link to="/series" className="text-sm font-medium text-gray-300 hover:text-white">
+        Series
       </Link>
       <Link to="/categories" className="text-sm font-medium text-gray-300 hover:text-white">
         Categories
@@ -204,8 +175,8 @@ const Navbar = () => {
               {!isMobile && "Profile"}
             </Button>
           </Link>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="text-gray-300 hover:text-white"
             onClick={handleSignOut}
           >
@@ -235,19 +206,12 @@ const Navbar = () => {
         <Link to="/" className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-netflix-red">አማርኛFlix</span>
         </Link>
-        
+
         <div className="hidden md:flex items-center space-x-6">
           <NavLinks />
         </div>
 
         <div className="flex items-center space-x-4">
-          <button 
-            className="text-sm font-medium text-gray-300 hover:text-white"
-            onClick={() => setOpen(true)}
-          >
-            <Search className="h-5 w-5" />
-          </button>
-
           <div className="hidden md:flex items-center space-x-4">
             <AuthButtons />
           </div>
@@ -274,37 +238,6 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <DialogTitle className="sr-only">Search movies</DialogTitle>
-        <CommandInput 
-          placeholder="Search movies..." 
-          onValueChange={handleSearch}
-        />
-        <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
-          <CommandGroup heading="Movies">
-            {searchResults.map((movie) => (
-              <CommandItem
-                key={movie.id}
-                onSelect={() => {
-                  navigate(`/movie/${movie.id}`);
-                  setOpen(false);
-                }}
-              >
-                <div className="flex items-center">
-                  <img 
-                    src={movie.thumbnail_url} 
-                    alt={movie.title} 
-                    className="w-8 h-8 object-cover rounded mr-2"
-                  />
-                  {movie.title}
-                </div>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
     </nav>
   );
 };

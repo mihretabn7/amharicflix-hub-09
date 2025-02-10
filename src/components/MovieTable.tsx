@@ -55,6 +55,25 @@ interface Movie {
   }[];
 }
 
+const defaultMovie: Movie = {
+  id: '',
+  title: '',
+  description: null,
+  genre: null,
+  youtube_id: '',
+  language: null,
+  duration_minutes: null,
+  watch_count: null,
+  share_count: null,
+  is_hidden: false,
+};
+
+interface MovieFormProps {
+  initialData?: Movie;
+  onSubmit: (data: Movie) => void;
+  onCancel: () => void;
+}
+
 const EditMovieModal = ({
   movie,
   onClose,

@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 interface MovieWithRating {
   id: string;
@@ -213,27 +214,43 @@ const Profile = () => {
 
   const { data: watchHistory } = useQuery({
     queryKey: ['watch-history', session?.user?.id],
-    enabled: !!session?.user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('Fetching watch history for user:', session?.user?.id);
+
+      const { data: historyData, error } = await supabase
         .from('user_movie_history')
         .select(`
           id,
           watch_duration,
           watched_at,
-          movie:movies (
+          movie:movies(
             id,
             title,
-            thumbnail_url
+            thumbnail_url,
+            duration_minutes
           )
         `)
         .eq('user_id', session?.user?.id)
         .order('watched_at', { ascending: false });
 
-      if (error) throw error;
-      return data as unknown as WatchHistoryItem[];
-    }
+      if (error) {
+        console.error('Watch history error:', error);
+        return [];
+      }
+
+      console.log('Raw watch history data:', historyData);
+
+      // Filter out any entries where the movie might have been deleted
+      const validHistory = historyData?.filter(item => item.movie) || [];
+      console.log('Filtered watch history:', validHistory);
+
+      return validHistory;
+    },
+    enabled: !!session?.user?.id
   });
+
+  // Add a console log to see the watch history data in the render
+  console.log('Watch history in render:', watchHistory);
 
   if (!session) return null;
 
@@ -373,31 +390,49 @@ const Profile = () => {
                 </TabsList>
                 <TabsContent value="history">
                   <div className="grid gap-4 mt-4">
-                    {watchHistory?.map((item) => (
-                      <Link to={`/movie/${item.movie.id}`} key={item.id}>
-                        <Card className="transition-colors hover:bg-accent">
-                          <CardContent className="pt-4">
-                            <div className="flex gap-4">
-                              <img
-                                src={item.movie.thumbnail_url}
-                                alt={item.movie.title}
-                                className="w-32 h-20 object-cover rounded-md"
-                              />
-                              <div>
-                                <h3 className="font-medium">{item.movie.title}</h3>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <Clock className="h-4 w-4" />
-                                  <span>Watched for {Math.floor(item.watch_duration / 60)}m</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                  Last watched on {formatDateTime(item.last_watched_at)}
-                                </p>
-                              </div>
+                    {watchHistory && watchHistory.length > 0 ? (
+                      watchHistory.map((item) => (
+                        <Link
+                          key={item.id}
+                          to={`/movie/${item.movie.id}`}
+                          className="group relative aspect-video overflow-hidden rounded-lg"
+                        >
+                          <img
+                            src={item.movie.thumbnail_url}
+                            alt={item.movie.title}
+                            className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-0 p-4 w-full">
+                            <h3 className="font-medium text-white mb-1">{item.movie.title}</h3>
+                            <div className="flex items-center justify-between text-sm text-gray-300">
+                              <span>
+                                {Math.floor(item.watch_duration / 60)}m watched
+                              </span>
+                              <span>
+                                {formatDateTime(item.watched_at)}
+                              </span>
                             </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ))}
+                            {item.movie.duration_minutes && (
+                              <div className="mt-2">
+                                <div className="h-1 bg-gray-600 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-netflix-red"
+                                    style={{
+                                      width: `${Math.min(100, (item.watch_duration / (item.movie.duration_minutes * 60)) * 100)}%`
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-8 text-muted-foreground">
+                        No watch history yet
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
                 <TabsContent value="ratings">

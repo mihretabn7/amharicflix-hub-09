@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import MovieRating from "@/components/MovieRating";
-import GenreSuggestion from "@/components/GenreSuggestion";
 import MovieDetailsSection from "@/components/MovieDetailsSection";
 import MovieReportModal from "@/components/MovieReportModal";
 
@@ -45,36 +44,91 @@ const MovieDetail = () => {
   // Handle watch time tracking
   useEffect(() => {
     const updateWatchTime = async () => {
-      if (!session?.user?.id || !id || !isPlaying) return;
+      if (!session?.user?.id || !id || !isPlaying) {
+        console.log('Watch time update skipped:', {
+          hasSession: !!session?.user?.id,
+          hasId: !!id,
+          isPlaying
+        });
+        return;
+      }
 
       const currentDuration = Math.floor((new Date().getTime() - (viewStartTime?.getTime() || 0)) / 1000);
       setCurrentWatchDuration(currentDuration);
 
       // Update watch history every WATCH_TIME_UPDATE_INTERVAL seconds
       if (currentDuration % WATCH_TIME_UPDATE_INTERVAL === 0) {
+        console.log('Updating watch history:', {
+          userId: session.user.id,
+          movieId: id,
+          watchDuration: currentDuration,
+          watchedAt: new Date().toISOString()
+        });
+
         try {
-          await supabase
+          // First check if a record exists
+          const { data: existingRecord, error: fetchError } = await supabase
             .from('user_movie_history')
-            .upsert({
-              user_id: session.user.id,
-              movie_id: id,
-              watch_duration: currentDuration,
-              watched_at: new Date().toISOString()
-            }, {
-              onConflict: 'user_id,movie_id'
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('movie_id', id)
+            .single();
+
+          if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no record found
+            console.error('Error checking existing record:', fetchError);
+            return;
+          }
+
+          const watchData = {
+            user_id: session.user.id,
+            movie_id: id,
+            watch_duration: currentDuration,
+            watched_at: new Date().toISOString()
+          };
+
+          let result;
+          if (existingRecord) {
+            // Update existing record
+            result = await supabase
+              .from('user_movie_history')
+              .update(watchData)
+              .eq('id', existingRecord.id);
+          } else {
+            // Insert new record
+            result = await supabase
+              .from('user_movie_history')
+              .insert(watchData);
+          }
+
+          if (result.error) {
+            console.error('Error updating watch history:', result.error);
+            console.error('Error details:', {
+              code: result.error.code,
+              message: result.error.message,
+              details: result.error.details,
+              hint: result.error.hint
             });
+          } else {
+            console.log('Watch history updated successfully:', result.data);
+          }
         } catch (error) {
-          console.error('Error updating watch time:', error);
+          console.error('Exception updating watch time:', error);
         }
       }
 
       // Count view after NETFLIX_VIEW_THRESHOLD seconds (if not already counted)
       if (currentDuration >= NETFLIX_VIEW_THRESHOLD && !viewCounted.current) {
+        console.log('Incrementing view count for movie:', id);
         try {
-          await supabase.rpc('increment_movie_watch_count', { movie_id: id });
-          viewCounted.current = true;
+          const { error } = await supabase.rpc('increment_movie_watch_count', { movie_id: id });
+          if (error) {
+            console.error('Error incrementing view count:', error);
+          } else {
+            console.log('View count incremented successfully');
+            viewCounted.current = true;
+          }
         } catch (error) {
-          console.error('Error incrementing view count:', error);
+          console.error('Exception incrementing view count:', error);
         }
       }
     };
@@ -101,6 +155,12 @@ const MovieDetail = () => {
       }
     };
   }, [isPlaying, viewStartTime, session, id]);
+
+  // Add logging for isPlaying changes
+  useEffect(() => {
+    console.log('isPlaying state changed:', isPlaying);
+    console.log('viewStartTime:', viewStartTime);
+  }, [isPlaying, viewStartTime]);
 
   const { data: movieData, isLoading, error, refetch } = useQuery({
     queryKey: ['movie', id],
@@ -137,7 +197,6 @@ const MovieDetail = () => {
         throw new Error("Movie not found");
       }
 
-      // Check if movie should be hidden
       if (movieResponse.data.verified_report_count >= 5) {
         toast.error("This movie is currently unavailable");
         navigate('/movies');
@@ -259,7 +318,10 @@ const MovieDetail = () => {
                   <Button
                     size="lg"
                     className="bg-netflix-red hover:bg-netflix-red/90"
-                    onClick={() => setIsPlaying(true)}
+                    onClick={() => {
+                      console.log('Play button clicked, setting isPlaying to true');
+                      setIsPlaying(true);
+                    }}
                   >
                     <Play className="mr-2 h-5 w-5" /> Play Now
                   </Button>
