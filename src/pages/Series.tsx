@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Movie } from "@/types/movie";
-import { Star, MessageSquare, Search, Filter } from "lucide-react";
+import { Star, Search, Filter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
@@ -22,7 +22,9 @@ import {
 import { Button } from "@/components/ui/button";
 
 interface SeriesWithEpisodes extends Movie {
-  episodes?: Movie[];
+    episodes?: Movie[];
+    episodeCount?: number;
+    averageRating?: number;
 }
 
 const Series = () => {
@@ -51,20 +53,12 @@ const Series = () => {
             let query = supabase
                 .from('movies')
                 .select(`
-                    id,
-                    title,
-                    description,
-                    thumbnail_url,
-                    genre,
-                    language,
-                    created_at,
+                    *,
                     movie_ratings (
                         rating
                     ),
                     episodes:movies!series_id(
-                        id,
-                        title,
-                        episode_number
+                        *
                     )
                 `)
                 .in('id', uniqueSeriesIds)
@@ -77,19 +71,22 @@ const Series = () => {
             const { data, error } = await query;
             if (error) throw error;
 
-            const processedSeries = (data?.map(series => ({
-                ...series,
-                episodeCount: Array.isArray(series.episodes) ? series.episodes.length : 0,
-                averageRating: series.movie_ratings?.length > 0
-                    ? series.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / series.movie_ratings.length
-                    : 0
-            })) || []) as SeriesWithEpisodes[];
+            const processedSeries = data?.map(series => {
+                const seriesData = {
+                    ...series,
+                    episodeCount: Array.isArray(series.episodes) ? series.episodes.length : 0,
+                    averageRating: series.movie_ratings?.length > 0
+                        ? series.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / series.movie_ratings.length
+                        : 0
+                };
+                return seriesData as SeriesWithEpisodes;
+            }) || [];
 
             // Apply rating filter
             let filteredSeries = processedSeries;
             if (filterRating !== "all") {
                 const minRating = parseInt(filterRating);
-                filteredSeries = filteredSeries.filter(s => s.averageRating >= minRating);
+                filteredSeries = filteredSeries.filter(s => (s.averageRating || 0) >= minRating);
             }
 
             // Apply sorting

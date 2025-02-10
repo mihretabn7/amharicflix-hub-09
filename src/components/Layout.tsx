@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { Menu, X, Search } from 'lucide-react';
@@ -7,6 +6,7 @@ import NotificationSystem from './NotificationSystem';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Movie } from '@/types/movie';
 import {
     CommandDialog,
     CommandEmpty,
@@ -29,12 +29,12 @@ const Layout = () => {
             const [moviesResponse, seriesResponse] = await Promise.all([
                 supabase
                     .from('movies')
-                    .select('id, title, thumbnail_url, genre')
+                    .select('id, title, thumbnail_url, genre, series_id')
                     .eq('is_hidden', false)
                     .is('series_id', null),
                 supabase
                     .from('movies')
-                    .select('id, title, thumbnail_url, genre')
+                    .select('id, title, thumbnail_url, genre, series_id')
                     .eq('is_hidden', false)
                     .not('series_id', 'is', null)
                     .order('series_id')
@@ -42,8 +42,8 @@ const Layout = () => {
 
             // Group series by series_id to get unique series
             const uniqueSeries = seriesResponse.data ? 
-                Object.values(seriesResponse.data.reduce((acc: any, curr) => {
-                    if (!acc[curr.series_id]) {
+                Object.values(seriesResponse.data.reduce((acc: Record<string, Movie>, curr: Movie) => {
+                    if (curr.series_id && !acc[curr.series_id]) {
                         acc[curr.series_id] = curr;
                     }
                     return acc;
@@ -70,9 +70,9 @@ const Layout = () => {
                 <CommandInput placeholder="Search movies and series..." />
                 <CommandList>
                     <CommandEmpty>No results found.</CommandEmpty>
-                    {searchResults?.movies.length > 0 && (
+                    {searchResults?.movies?.length > 0 && (
                         <CommandGroup heading="Movies">
-                            {searchResults.movies.map((movie) => (
+                            {searchResults.movies.map((movie: Movie) => (
                                 <CommandItem
                                     key={movie.id}
                                     onSelect={() => {
@@ -95,9 +95,9 @@ const Layout = () => {
                             ))}
                         </CommandGroup>
                     )}
-                    {searchResults?.series.length > 0 && (
+                    {searchResults?.series?.length > 0 && (
                         <CommandGroup heading="Series">
-                            {searchResults.series.map((series) => (
+                            {searchResults.series.map((series: Movie) => (
                                 <CommandItem
                                     key={series.id}
                                     onSelect={() => {
