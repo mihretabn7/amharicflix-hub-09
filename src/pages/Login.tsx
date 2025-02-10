@@ -6,15 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthError } from "@supabase/supabase-js";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -24,9 +15,6 @@ const Login = () => {
     password: "",
     rememberMe: false,
   });
-  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [isResetting, setIsResetting] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -73,14 +61,14 @@ const Login = () => {
     try {
       const isPhone = formData.identifier.includes('+') || /^\d+$/.test(formData.identifier);
       let email = formData.identifier;
-
+      
       if (isPhone) {
         const formattedPhone = formatPhoneNumber(formData.identifier);
-
+        
         if (!isValidPhoneNumber(formattedPhone)) {
           throw new Error("Invalid phone number format. Please use format: +251912345678");
         }
-
+        
         email = `${formattedPhone}@placeholder.com`;
         console.log('Attempting login with phone:', formattedPhone);
       } else {
@@ -105,35 +93,15 @@ const Login = () => {
       navigate("/");
     } catch (error: any) {
       console.error('Login error:', error);
-
+      
       toast({
         variant: "destructive",
         title: "Error",
         description: getErrorMessage(error),
       });
-
+      
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsResetting(true);
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
-      toast.success("Password reset email sent! Please check your inbox.");
-      setIsResetDialogOpen(false);
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setIsResetting(false);
     }
   };
 
@@ -144,7 +112,7 @@ const Login = () => {
           <h2 className="text-4xl font-bold text-netflix-red">Sign In</h2>
           <p className="mt-2 text-gray-300">Welcome back to አማርኛFlix</p>
         </div>
-
+        
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
             <div>
@@ -185,8 +153,8 @@ const Login = () => {
             </div>
           </div>
 
-          <Button
-            type="submit"
+          <Button 
+            type="submit" 
             className="w-full bg-netflix-red hover:bg-netflix-red/90"
             disabled={loading}
           >
@@ -201,44 +169,6 @@ const Login = () => {
               Sign up now
             </Link>
           </p>
-        </div>
-
-        <div className="text-center text-sm">
-          <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="link" className="text-sm">
-                Forgot your password?
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Reset Password</DialogTitle>
-                <DialogDescription>
-                  Enter your email address and we'll send you a link to reset your password.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handlePasswordReset} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reset-email">Email</Label>
-                  <Input
-                    id="reset-email"
-                    placeholder="m@example.com"
-                    required
-                    type="email"
-                    value={resetEmail}
-                    onChange={(e) => setResetEmail(e.target.value)}
-                  />
-                </div>
-                <Button
-                  className="w-full"
-                  type="submit"
-                  disabled={isResetting}
-                >
-                  {isResetting ? "Sending..." : "Send Reset Link"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
     </div>
