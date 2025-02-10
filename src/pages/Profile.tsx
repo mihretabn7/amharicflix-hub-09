@@ -145,13 +145,13 @@ const Profile = () => {
           title,
           thumbnail_url,
           created_at,
-          movie_ratings (
+          movie_ratings!inner (
             rating,
             created_at
           )
         `)
         .eq('movie_ratings.user_id', session?.user?.id)
-        .order('movie_ratings.created_at', { ascending: false });
+        .order('movie_ratings(created_at)', { ascending: false });
 
       if (error) throw error;
       return data as MovieWithRating[];
