@@ -198,9 +198,12 @@ export type Database = {
           created_at: string
           description: string | null
           duration_minutes: number | null
+          episode_number: number | null
           genre: string | null
           id: string
+          is_hidden: boolean
           language: string | null
+          series_id: string | null
           share_count: number | null
           thumbnail_url: string
           title: string
@@ -212,9 +215,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
+          episode_number?: number | null
           genre?: string | null
           id?: string
+          is_hidden?: boolean
           language?: string | null
+          series_id?: string | null
           share_count?: number | null
           thumbnail_url: string
           title: string
@@ -226,9 +232,12 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
+          episode_number?: number | null
           genre?: string | null
           id?: string
+          is_hidden?: boolean
           language?: string | null
+          series_id?: string | null
           share_count?: number | null
           thumbnail_url?: string
           title?: string
@@ -236,7 +245,15 @@ export type Database = {
           watch_count?: number | null
           youtube_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "movies_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -314,25 +331,28 @@ export type Database = {
       }
       user_movie_history: {
         Row: {
+          created_at: string | null
           id: string
           movie_id: string | null
           user_id: string | null
           watch_duration: number | null
-          watched_at: string
+          watched_at: string | null
         }
         Insert: {
+          created_at?: string | null
           id?: string
           movie_id?: string | null
           user_id?: string | null
           watch_duration?: number | null
-          watched_at?: string
+          watched_at?: string | null
         }
         Update: {
+          created_at?: string | null
           id?: string
           movie_id?: string | null
           user_id?: string | null
           watch_duration?: number | null
-          watched_at?: string
+          watched_at?: string | null
         }
         Relationships: [
           {
