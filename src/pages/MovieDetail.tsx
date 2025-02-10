@@ -187,7 +187,8 @@ const MovieDetail = () => {
           .eq('movie_id', id)
           .eq('user_id', session.user.id)
           .order('watched_at', { ascending: false })
-          .limit(1) : null
+          .limit(1)
+          .maybeSingle() : null
       ]);
 
       if (movieResponse.error) throw movieResponse.error;
@@ -206,7 +207,7 @@ const MovieDetail = () => {
       return {
         movie: movieResponse.data,
         ratings: ratingsResponse.data || [],
-        history: historyResponse?.data || []
+        history: historyResponse?.data ? [historyResponse.data] : []
       };
     },
   });
