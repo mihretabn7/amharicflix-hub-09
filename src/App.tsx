@@ -1,21 +1,20 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
-import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Movies from "./pages/Movies";
 import Categories from "./pages/Categories";
 import MovieDetail from "./pages/MovieDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import AdminDashboard from "./pages/AdminDashboard";
+import Dashboard from "./pages/admin/Dashboard";
 import AdminRoute from "./components/AdminRoute";
 import Profile from "./pages/Profile";
 import AdminLogin from "./pages/AdminLogin";
 import Series from "./pages/Series";
 import SeriesDetail from "./pages/SeriesDetail";
 import { toast } from "sonner";
+import Layout from "./components/Layout";
 
 function App() {
   useEffect(() => {
@@ -38,7 +37,7 @@ function App() {
           localStorage.removeItem('supabase.auth.token');
         }
       }
-      
+
       if (event === 'SIGNED_OUT') {
         toast.error("Session expired. Please sign in again.");
       } else if (event === 'SIGNED_IN') {
@@ -55,23 +54,24 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-background">
-        <Navbar />
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/movies" element={<Movies />} />
-          <Route path="/series" element={<Series />} />
-          <Route path="/series/:id" element={<SeriesDetail />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/movie/:id" element={<MovieDetail />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="/movies" element={<Movies />} />
+            <Route path="/series" element={<Series />} />
+            <Route path="/series/:id" element={<SeriesDetail />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/movie/:id" element={<MovieDetail />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
+          </Route>
           <Route
             path="/admin/*"
             element={
               <AdminRoute>
-                <AdminDashboard />
+                <Dashboard />
               </AdminRoute>
             }
           />

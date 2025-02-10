@@ -83,9 +83,9 @@ const NotificationSystem = () => {
     }, [notifications]);
 
     useEffect(() => {
-        // Subscribe to new reports (admin only)
-        const reportsChannel = userRole === 'admin'
-            ? supabase.channel('reports')
+        if (userRole === 'admin') {
+            // Subscribe to new reports (admin only)
+            const reportsChannel = supabase.channel('reports')
                 .on(
                     'postgres_changes',
                     {
@@ -113,7 +113,7 @@ const NotificationSystem = () => {
                                     title: 'New Report',
                                     message: `New report for "${report.movie.title}"`,
                                     type: 'report',
-                                    read: false,
+                                    is_sent: true,
                                     link: '/admin/dashboard'
                                 });
                                 refetchNotifications();
@@ -132,59 +132,98 @@ const NotificationSystem = () => {
                         }
                     }
                 )
-                .subscribe()
-            : null;
+                .subscribe();
 
-        // Subscribe to new movies (all users)
-        const moviesChannel = supabase.channel('movies')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'movies'
-                },
-                async (payload) => {
-                    const { data: movie } = await supabase
-                        .from('movies')
-                        .select('id, title, is_hidden')
-                        .eq('id', payload.new.id)
-                        .single() as { data: MovieData | null };
+            return () => {
+                reportsChannel.unsubscribe();
+            };
+        } else {
+            // Subscribe to new movies (regular users)
+            const moviesChannel = supabase.channel('movies')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'movies'
+                    },
+                    async (payload) => {
+                        const { data: movie } = await supabase
+                            .from('movies')
+                            .select('id, title, is_hidden')
+                            .eq('id', payload.new.id)
+                            .single() as { data: MovieData | null };
 
-                    if (movie && !movie.is_hidden) {
-                        // Create notification
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (user) {
-                            await supabase.from('notifications').insert({
-                                user_id: user.id,
-                                title: 'New Movie',
-                                message: `New movie added: ${movie.title}`,
-                                type: 'new_movie',
-                                read: false,
-                                link: `/movie/${movie.id}`
-                            });
-                            refetchNotifications();
-                        }
-
-                        toast.info(
-                            'New Movie Added!',
-                            {
-                                description: movie.title,
-                                action: {
-                                    label: 'Watch',
-                                    onClick: () => window.location.href = `/movie/${movie.id}`
-                                }
+                        if (movie && !movie.is_hidden) {
+                            // Create notification
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user) {
+                                await supabase.from('notifications').insert({
+                                    user_id: user.id,
+                                    title: 'New Movie',
+                                    message: `New movie added: ${movie.title}`,
+                                    type: 'new_movie',
+                                    is_sent: true,
+                                    link: `/movie/${movie.id}`
+                                });
+                                refetchNotifications();
                             }
-                        );
-                    }
-                }
-            )
-            .subscribe();
 
-        return () => {
-            if (reportsChannel) reportsChannel.unsubscribe();
-            moviesChannel.unsubscribe();
-        };
+                            toast.info(
+                                'New Movie Added!',
+                                {
+                                    description: movie.title,
+                                    action: {
+                                        label: 'Watch',
+                                        onClick: () => window.location.href = `/movie/${movie.id}`
+                                    }
+                                }
+                            );
+                        }
+                    }
+                )
+                .subscribe();
+
+            // Subscribe to report status changes (for the reporter)
+            const reportStatusChannel = supabase.channel('report-status')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'movie_reports'
+                    },
+                    async (payload) => {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user && payload.new.reporter_id === user.id && payload.new.status === 'resolved') {
+                            const { data: movie } = await supabase
+                                .from('movies')
+                                .select('title')
+                                .eq('id', payload.new.movie_id)
+                                .single();
+
+                            if (movie) {
+                                toast.success(
+                                    'Report Status Updated',
+                                    {
+                                        description: `Your report for "${movie.title}" has been reviewed.`,
+                                        action: {
+                                            label: 'View',
+                                            onClick: () => window.location.href = '/profile'
+                                        }
+                                    }
+                                );
+                            }
+                        }
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                moviesChannel.unsubscribe();
+                reportStatusChannel.unsubscribe();
+            };
+        }
     }, [userRole, refetchNotifications]);
 
     const handleNotificationClick = async (notification: Notification) => {

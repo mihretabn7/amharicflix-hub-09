@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,10 +18,68 @@ import {
     Cell
 } from "recharts";
 import { Loader2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE'];
+const REFETCH_INTERVAL = 30000; // 30 seconds
 
 const Analytics = () => {
+    const queryClient = useQueryClient();
+
+    // Set up real-time subscriptions
+    useEffect(() => {
+        const channels = [
+            supabase
+                .channel('analytics-views')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'user_movie_history'
+                    },
+                    () => {
+                        queryClient.invalidateQueries({ queryKey: ['analytics-views'] });
+                    }
+                )
+                .subscribe(),
+
+            supabase
+                .channel('analytics-genres')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'movies'
+                    },
+                    () => {
+                        queryClient.invalidateQueries({ queryKey: ['analytics-genres'] });
+                    }
+                )
+                .subscribe(),
+
+            supabase
+                .channel('analytics-users')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'profiles'
+                    },
+                    () => {
+                        queryClient.invalidateQueries({ queryKey: ['analytics-users'] });
+                    }
+                )
+                .subscribe()
+        ];
+
+        return () => {
+            channels.forEach(channel => supabase.removeChannel(channel));
+        };
+    }, [queryClient]);
+
     const { data: viewsData, isLoading: isLoadingViews } = useQuery({
         queryKey: ['analytics-views'],
         queryFn: async () => {
@@ -45,7 +104,8 @@ const Analytics = () => {
                 date,
                 views
             }));
-        }
+        },
+        refetchInterval: REFETCH_INTERVAL
     });
 
     const { data: genreData, isLoading: isLoadingGenres } = useQuery({
@@ -69,7 +129,8 @@ const Analytics = () => {
                 name,
                 value
             }));
-        }
+        },
+        refetchInterval: REFETCH_INTERVAL
     });
 
     const { data: userStats, isLoading: isLoadingUsers } = useQuery({
@@ -95,7 +156,8 @@ const Analytics = () => {
                 date,
                 users
             }));
-        }
+        },
+        refetchInterval: REFETCH_INTERVAL
     });
 
     if (isLoadingViews || isLoadingGenres || isLoadingUsers) {
