@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Play, Star, Share2, Eye, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import MovieRating from "@/components/MovieRating";
 import MovieDetailsSection from "@/components/MovieDetailsSection";
-import MovieReportModal from "@/components/MovieReportModal";
+import MovieHero from "@/components/movie/MovieHero";
+import MoviePlayer from "@/components/movie/MoviePlayer";
+import MovieStats from "@/components/movie/MovieStats";
 
 const NETFLIX_VIEW_THRESHOLD = 120; // 2 minutes in seconds
 const WATCH_TIME_UPDATE_INTERVAL = 10; // Update watch time every 10 seconds
@@ -41,7 +40,6 @@ const MovieDetail = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Handle watch time tracking
   useEffect(() => {
     const updateWatchTime = async () => {
       if (!session?.user?.id || !id || !isPlaying) {
@@ -56,7 +54,6 @@ const MovieDetail = () => {
       const currentDuration = Math.floor((new Date().getTime() - (viewStartTime?.getTime() || 0)) / 1000);
       setCurrentWatchDuration(currentDuration);
 
-      // Update watch history every WATCH_TIME_UPDATE_INTERVAL seconds
       if (currentDuration % WATCH_TIME_UPDATE_INTERVAL === 0) {
         console.log('Updating watch history:', {
           userId: session.user.id,
@@ -66,7 +63,6 @@ const MovieDetail = () => {
         });
 
         try {
-          // First check if a record exists
           const { data: existingRecord, error: fetchError } = await supabase
             .from('user_movie_history')
             .select('id')
@@ -74,7 +70,7 @@ const MovieDetail = () => {
             .eq('movie_id', id)
             .single();
 
-          if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no record found
+          if (fetchError && fetchError.code !== 'PGRST116') {
             console.error('Error checking existing record:', fetchError);
             return;
           }
@@ -88,13 +84,11 @@ const MovieDetail = () => {
 
           let result;
           if (existingRecord) {
-            // Update existing record
             result = await supabase
               .from('user_movie_history')
               .update(watchData)
               .eq('id', existingRecord.id);
           } else {
-            // Insert new record
             result = await supabase
               .from('user_movie_history')
               .insert(watchData);
@@ -116,7 +110,6 @@ const MovieDetail = () => {
         }
       }
 
-      // Count view after NETFLIX_VIEW_THRESHOLD seconds (if not already counted)
       if (currentDuration >= NETFLIX_VIEW_THRESHOLD && !viewCounted.current) {
         console.log('Incrementing view count for movie:', id);
         try {
@@ -134,21 +127,17 @@ const MovieDetail = () => {
     };
 
     if (isPlaying) {
-      // Start tracking when video starts playing
       if (!viewStartTime) {
         setViewStartTime(new Date());
       }
 
-      // Set up interval for watch time updates
       watchTimeInterval.current = setInterval(updateWatchTime, 1000);
     } else {
-      // Clear interval when video stops playing
       if (watchTimeInterval.current) {
         clearInterval(watchTimeInterval.current);
       }
     }
 
-    // Cleanup on unmount or when video stops
     return () => {
       if (watchTimeInterval.current) {
         clearInterval(watchTimeInterval.current);
@@ -156,7 +145,6 @@ const MovieDetail = () => {
     };
   }, [isPlaying, viewStartTime, session, id]);
 
-  // Add logging for isPlaying changes
   useEffect(() => {
     console.log('isPlaying state changed:', isPlaying);
     console.log('viewStartTime:', viewStartTime);
@@ -255,7 +243,6 @@ const MovieDetail = () => {
     ? ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / ratings.length
     : 0;
 
-  // Get the total watch time from history plus current session
   const totalWatchTime = (history[0]?.watch_duration || 0) + (isPlaying ? currentWatchDuration : 0);
   const watchCount = movie.watch_count || 0;
   const shareCount = movie.share_count || 0;
@@ -264,81 +251,21 @@ const MovieDetail = () => {
     <div className="min-h-screen pt-16">
       <div className="relative h-[70vh]">
         {isPlaying ? (
-          <div className="flex flex-col h-full">
-            <div className="flex-grow bg-black">
-              <iframe
-                width="100%"
-                height="100%"
-                src={`https://www.youtube.com/embed/${movie.youtube_id}?autoplay=1`}
-                title="YouTube video player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
-            {session && (
-              <div className="bg-card p-4 border-t border-border space-y-6">
-                <MovieRating
-                  movieId={movie.id}
-                  userId={session.user.id}
-                  onRatingSubmit={refetch}
-                />
-                <div className="flex justify-end">
-                  <MovieReportModal
-                    movieId={movie.id}
-                    userId={session.user.id}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <MoviePlayer
+            movie={movie}
+            userId={session?.user?.id}
+            onRatingSubmit={refetch}
+          />
         ) : (
-          <>
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{
-                backgroundImage: `url(${movie.thumbnail_url})`
-              }}
-            >
-              <div className="hero-gradient" />
-            </div>
-            <div className="relative h-full flex items-center">
-              <div className="container mx-auto px-4">
-                <h1 className="font-display text-4xl md:text-6xl font-bold mb-4">
-                  {movie.title}
-                </h1>
-                <div className="flex items-center space-x-4 text-sm text-gray-300 mb-6">
-                  <span>{new Date(movie.created_at).getFullYear()}</span>
-                  <span>{movie.genre || 'Genre pending'}</span>
-                  <span>{movie.language || 'Amharic'}</span>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                    <span>{averageRating.toFixed(1)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <Button
-                    size="lg"
-                    className="bg-netflix-red hover:bg-netflix-red/90"
-                    onClick={() => {
-                      console.log('Play button clicked, setting isPlaying to true');
-                      setIsPlaying(true);
-                    }}
-                  >
-                    <Play className="mr-2 h-5 w-5" /> Play Now
-                  </Button>
-                  <Button size="lg" variant="outline" onClick={handleShare}>
-                    <Share2 className="mr-2 h-5 w-5" /> Share
-                  </Button>
-                  {session && (
-                    <MovieReportModal
-                      movieId={movie.id}
-                      userId={session.user.id}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
+          <MovieHero
+            movie={movie}
+            onPlay={() => {
+              console.log('Play button clicked, setting isPlaying to true');
+              setIsPlaying(true);
+            }}
+            onShare={handleShare}
+            userId={session?.user?.id}
+          />
         )}
       </div>
 
@@ -347,32 +274,12 @@ const MovieDetail = () => {
           <div className="md:col-span-2">
             {!isPlaying && session && (
               <div className="space-y-8">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-card p-4 rounded-lg">
-                    <div className="flex items-center gap-2 text-netflix-gold">
-                      <Eye className="w-5 h-5" />
-                      <span>{watchCount} views</span>
-                    </div>
-                  </div>
-                  <div className="bg-card p-4 rounded-lg">
-                    <div className="flex items-center gap-2 text-netflix-gold">
-                      <Share2 className="w-5 h-5" />
-                      <span>{shareCount} shares</span>
-                    </div>
-                  </div>
-                  <div className="bg-card p-4 rounded-lg">
-                    <div className="flex items-center gap-2 text-netflix-gold">
-                      <Star className="w-5 h-5" />
-                      <span>{averageRating.toFixed(1)} rating</span>
-                    </div>
-                  </div>
-                  <div className="bg-card p-4 rounded-lg">
-                    <div className="flex items-center gap-2 text-netflix-gold">
-                      <Clock className="w-5 h-5" />
-                      <span>{Math.floor(totalWatchTime / 60)}m watched</span>
-                    </div>
-                  </div>
-                </div>
+                <MovieStats
+                  watchCount={watchCount}
+                  shareCount={shareCount}
+                  averageRating={averageRating}
+                  totalWatchTime={totalWatchTime}
+                />
               </div>
             )}
           </div>
