@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthError } from "@supabase/supabase-js";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -15,6 +23,9 @@ const Login = () => {
     password: "",
     rememberMe: false,
   });
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -23,7 +34,7 @@ const Login = () => {
     });
   };
 
-  const handleRememberMeChange = (checked: boolean) => {
+  const handleRememberMeChange = async (checked: boolean) => {
     setFormData({
       ...formData,
       rememberMe: checked,
@@ -75,14 +86,32 @@ const Login = () => {
         console.log('Attempting login with email:', email);
       }
 
+      // Sign in with remember me option
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password: formData.password,
+        options: {
+          data: {
+            remember_me: formData.rememberMe
+          }
+        }
       });
 
       if (error) {
         console.error('Login error:', error);
         throw error;
+      }
+
+      // Update the remember_me preference in the profiles table
+      if (data.user) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ remember_me: formData.rememberMe })
+          .eq('id', data.user.id);
+
+        if (updateError) {
+          console.error('Error updating remember_me:', updateError);
+        }
       }
 
       toast({
@@ -102,6 +131,34 @@ const Login = () => {
       
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Password reset instructions have been sent to your email.",
+        duration: 5000,
+      });
+      setShowForgotPassword(false);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -138,18 +195,27 @@ const Login = () => {
                 minLength={6}
               />
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="rememberMe"
-                checked={formData.rememberMe}
-                onCheckedChange={handleRememberMeChange}
-              />
-              <label
-                htmlFor="rememberMe"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="rememberMe"
+                  checked={formData.rememberMe}
+                  onCheckedChange={handleRememberMeChange}
+                />
+                <label
+                  htmlFor="rememberMe"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Remember me
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-netflix-red hover:underline"
               >
-                Remember me
-              </label>
+                Forgot password?
+              </button>
             </div>
           </div>
 
@@ -171,6 +237,33 @@ const Login = () => {
           </p>
         </div>
       </div>
+
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you instructions to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <Input
+              type="email"
+              placeholder="Email address"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              required
+            />
+            <Button
+              type="submit"
+              className="w-full bg-netflix-red hover:bg-netflix-red/90"
+              disabled={resetLoading}
+            >
+              {resetLoading ? "Sending..." : "Send Reset Instructions"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

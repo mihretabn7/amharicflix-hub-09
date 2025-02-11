@@ -335,6 +335,7 @@ export type Database = {
           is_blocked: boolean | null
           last_sign_in_at: string | null
           phone_number: string
+          remember_me: boolean | null
           subscription_plan: string | null
           updated_at: string
           username: string | null
@@ -348,6 +349,7 @@ export type Database = {
           is_blocked?: boolean | null
           last_sign_in_at?: string | null
           phone_number: string
+          remember_me?: boolean | null
           subscription_plan?: string | null
           updated_at?: string
           username?: string | null
@@ -361,6 +363,7 @@ export type Database = {
           is_blocked?: boolean | null
           last_sign_in_at?: string | null
           phone_number?: string
+          remember_me?: boolean | null
           subscription_plan?: string | null
           updated_at?: string
           username?: string | null
