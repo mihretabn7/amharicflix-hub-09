@@ -24,6 +24,35 @@ export type Database = {
         }
         Relationships: []
       }
+      anonymous_views: {
+        Row: {
+          id: string
+          ip_address: string | null
+          movie_id: string | null
+          viewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          ip_address?: string | null
+          movie_id?: string | null
+          viewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          ip_address?: string | null
+          movie_id?: string | null
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anonymous_views_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       csv_movie_uploads: {
         Row: {
           created_at: string
@@ -336,6 +365,7 @@ export type Database = {
           movie_id: string | null
           user_id: string | null
           watch_duration: number | null
+          watch_position: number | null
           watched_at: string | null
         }
         Insert: {
@@ -344,6 +374,7 @@ export type Database = {
           movie_id?: string | null
           user_id?: string | null
           watch_duration?: number | null
+          watch_position?: number | null
           watched_at?: string | null
         }
         Update: {
@@ -352,6 +383,7 @@ export type Database = {
           movie_id?: string | null
           user_id?: string | null
           watch_duration?: number | null
+          watch_position?: number | null
           watched_at?: string | null
         }
         Relationships: [

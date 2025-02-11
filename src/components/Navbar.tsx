@@ -25,6 +25,7 @@ const Navbar = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
@@ -116,21 +117,26 @@ const Navbar = () => {
     await supabase.auth.signOut();
   };
 
+  const handleLinkClick = (path: string) => {
+    navigate(path);
+    setIsOpen(false); // Close the menu immediately after navigation
+  };
+
   const NavLinks = () => (
     <>
-      <Link to="/movies" className="text-sm font-medium text-gray-300 hover:text-white">
+      <button onClick={() => handleLinkClick("/movies")} className="text-sm font-medium text-gray-300 hover:text-white">
         Movies
-      </Link>
-      <Link to="/series" className="text-sm font-medium text-gray-300 hover:text-white">
+      </button>
+      <button onClick={() => handleLinkClick("/series")} className="text-sm font-medium text-gray-300 hover:text-white">
         Series
-      </Link>
-      <Link to="/categories" className="text-sm font-medium text-gray-300 hover:text-white">
+      </button>
+      <button onClick={() => handleLinkClick("/categories")} className="text-sm font-medium text-gray-300 hover:text-white">
         Categories
-      </Link>
+      </button>
       {isAdmin && (
-        <Link to="/admin" className="text-sm font-medium text-gray-300 hover:text-white">
+        <button onClick={() => handleLinkClick("/admin")} className="text-sm font-medium text-gray-300 hover:text-white">
           Admin
-        </Link>
+        </button>
       )}
     </>
   );
@@ -169,12 +175,12 @@ const Navbar = () => {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Link to="/profile">
+          <button onClick={() => handleLinkClick("/profile")}>
             <Button variant="ghost" className="text-gray-300 hover:text-white">
               <User className="h-5 w-5 mr-2" />
               {!isMobile && "Profile"}
             </Button>
-          </Link>
+          </button>
           <Button
             variant="ghost"
             className="text-gray-300 hover:text-white"
@@ -185,16 +191,16 @@ const Navbar = () => {
         </>
       ) : (
         <>
-          <Link to="/login">
+          <button onClick={() => handleLinkClick("/login")}>
             <Button variant="ghost" className="text-gray-300 hover:text-white">
               Sign In
             </Button>
-          </Link>
-          <Link to="/register">
+          </button>
+          <button onClick={() => handleLinkClick("/register")}>
             <Button className="bg-netflix-red hover:bg-netflix-red/90">
               Sign Up
             </Button>
-          </Link>
+          </button>
         </>
       )}
     </>
@@ -203,9 +209,9 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 z-50 w-full bg-gradient-to-b from-background to-background/0 px-4 py-4">
       <div className="container mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center space-x-2">
+        <button onClick={() => handleLinkClick("/")} className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-netflix-red">አማርኛFlix</span>
-        </Link>
+        </button>
 
         <div className="hidden md:flex items-center space-x-6">
           <NavLinks />
@@ -217,7 +223,7 @@ const Navbar = () => {
           </div>
 
           <div className="md:hidden">
-            <Sheet>
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <Menu className="h-5 w-5" />
