@@ -40,7 +40,7 @@ interface MovieData {
     is_hidden: boolean;
 }
 
-interface NotificationSystem {
+interface NotificationSystemProps {
     id: string;
     title: string;
     message: string;
@@ -194,7 +194,7 @@ const NotificationSystem = () => {
         };
     }, [userRole, refetchNotifications]);
 
-    const handleNotificationClick = async (notification: NotificationSystem) => {
+    const handleNotificationClick = async (notification: Notification) => {
         if (!notification.read) {
             await supabase
                 .from('notifications')

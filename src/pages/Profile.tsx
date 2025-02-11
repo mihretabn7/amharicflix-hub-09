@@ -69,7 +69,6 @@ const Profile = () => {
 
       if (error) throw error;
 
-      // Transform the data to match the expected format
       return data.map((item) => ({
         ...item.movies,
         movie_ratings: [{
@@ -120,7 +119,7 @@ const Profile = () => {
           .eq('reporter_id', session?.user?.id),
         supabase
           .from('user_movie_history')
-          .select('id')
+          .select('watch_duration, movie:movies(duration_minutes)')
           .eq('user_id', session?.user?.id)
       ]);
 
@@ -132,11 +131,21 @@ const Profile = () => {
         ? ratingsResponse.data.reduce((acc, curr) => acc + curr.rating, 0) / ratingsResponse.data.length
         : 0;
 
+      // Calculate total watch time and completion rate
+      const totalWatchTime = watchHistoryResponse.data.reduce((acc, curr) => acc + (curr.watch_duration || 0), 0);
+      const completionRate = watchHistoryResponse.data.reduce((acc, curr) => {
+        const movieDuration = curr.movie?.duration_minutes || 0;
+        if (movieDuration === 0) return acc;
+        return acc + ((curr.watch_duration || 0) / (movieDuration * 60)) * 100;
+      }, 0) / (watchHistoryResponse.data.length || 1);
+
       return {
         totalRatings: ratingsResponse.data.length,
         averageRating,
         totalReports: reportsResponse.data.length,
-        totalWatches: watchHistoryResponse.data.length
+        totalWatches: watchHistoryResponse.data.length,
+        totalWatchTime,
+        completionRate
       };
     }
   });
@@ -189,6 +198,8 @@ const Profile = () => {
               totalRatings: userStats?.totalRatings || 0,
               totalReports: userStats?.totalReports || 0,
               totalWatches: userStats?.totalWatches || 0,
+              totalWatchTime: userStats?.totalWatchTime || 0,
+              completionRate: userStats?.completionRate || 0,
             }}
           />
 

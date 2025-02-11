@@ -99,7 +99,8 @@ export default function Settings() {
                         // Active users (users who watched something)
                         const { count: activeUsers } = await supabase
                             .from("user_movie_history")
-                            .select("user_id", { count: "exact", distinct: true })
+                            .select("id", { count: "exact" })
+                            .eq("user_id", null)
                             .gte("watched_at", date)
                             .lt("watched_at", nextDate.toISOString());
 
@@ -214,4 +215,4 @@ export default function Settings() {
             </Tabs>
         </div>
     );
-} 
+}
