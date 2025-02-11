@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import MovieTable from "@/components/MovieTable";
 import ReportManagement from "@/components/ReportManagement";
@@ -32,21 +33,10 @@ import ContentUpload from "@/components/admin/ContentUpload";
 import SecuritySettings from "@/components/admin/SecuritySettings";
 import Analytics from "@/components/admin/Analytics";
 import NotificationCenter from "@/components/admin/NotificationCenter";
-import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 
 const Dashboard = () => {
-    const [activeTab, setActiveTab] = useState("analytics");
+    const [activeTab, setActiveTab] = useState("overview");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-    useEffect(() => {
-        const content = document.getElementById('dashboard-content');
-        if (content) {
-            content.style.opacity = '0';
-            setTimeout(() => {
-                content.style.opacity = '1';
-            }, 0);
-        }
-    }, [activeTab]);
 
     const tabs = [
         {
@@ -95,7 +85,7 @@ const Dashboard = () => {
             id: "analytics",
             label: "Analytics",
             icon: BarChart3,
-            content: <AnalyticsDashboard />,
+            content: <Analytics />,
             description: "View detailed platform analytics"
         },
         {
@@ -124,21 +114,13 @@ const Dashboard = () => {
     const NavItem = ({ tab, onClick }: { tab: typeof tabs[0], onClick?: () => void }) => {
         const Icon = tab.icon;
         return (
-            <div
+            <button
                 onClick={() => {
                     setActiveTab(tab.id);
                     onClick?.();
                 }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        setActiveTab(tab.id);
-                        onClick?.();
-                    }
-                }}
                 className={cn(
-                    "flex items-center space-x-3 w-full px-4 py-3 text-sm rounded-lg transition-colors cursor-pointer",
+                    "flex items-center space-x-3 w-full px-4 py-3 text-sm rounded-lg transition-colors",
                     activeTab === tab.id
                         ? "bg-primary text-primary-foreground font-medium"
                         : "hover:bg-muted text-muted-foreground hover:text-foreground"
@@ -151,7 +133,7 @@ const Dashboard = () => {
                         {tab.description}
                     </p>
                 </div>
-            </div>
+            </button>
         );
     };
 
@@ -203,7 +185,7 @@ const Dashboard = () => {
 
                 {/* Main Content */}
                 <main className="flex-1 lg:ml-80 overflow-y-auto">
-                    <div id="dashboard-content" className="container mx-auto p-4 lg:p-6 mt-16 lg:mt-0">
+                    <div className="container mx-auto p-4 lg:p-6 mt-16 lg:mt-0">
                         <div className="space-y-6">
                             {/* Desktop Tab Title */}
                             <div className="hidden lg:block">
@@ -223,7 +205,7 @@ const Dashboard = () => {
                                         value={tab.id}
                                         className="m-0 outline-none"
                                     >
-                                        {tab.id === "analytics" ? <AnalyticsDashboard /> : tab.content}
+                                        {tab.content}
                                     </TabsContent>
                                 ))}
                             </Tabs>

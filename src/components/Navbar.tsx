@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
-import AuthButtons from "./AuthButtons";
 
 const Navbar = () => {
   const [session, setSession] = useState<any>(null);
@@ -125,35 +124,84 @@ const Navbar = () => {
 
   const NavLinks = () => (
     <>
-      <Link
-        to="/movies"
-        className="text-sm font-medium text-gray-300 hover:text-white"
-        onClick={() => setIsOpen(false)}
-      >
+      <button onClick={() => handleLinkClick("/movies")} className="text-sm font-medium text-gray-300 hover:text-white">
         Movies
-      </Link>
-      <Link
-        to="/series"
-        className="text-sm font-medium text-gray-300 hover:text-white"
-        onClick={() => setIsOpen(false)}
-      >
+      </button>
+      <button onClick={() => handleLinkClick("/series")} className="text-sm font-medium text-gray-300 hover:text-white">
         Series
-      </Link>
-      <Link
-        to="/categories"
-        className="text-sm font-medium text-gray-300 hover:text-white"
-        onClick={() => setIsOpen(false)}
-      >
+      </button>
+      <button onClick={() => handleLinkClick("/categories")} className="text-sm font-medium text-gray-300 hover:text-white">
         Categories
-      </Link>
+      </button>
       {isAdmin && (
-        <Link
-          to="/admin"
-          className="text-sm font-medium text-gray-300 hover:text-white"
-          onClick={() => setIsOpen(false)}
-        >
+        <button onClick={() => handleLinkClick("/admin")} className="text-sm font-medium text-gray-300 hover:text-white">
           Admin
-        </Link>
+        </button>
+      )}
+    </>
+  );
+
+  const AuthButtons = () => (
+    <>
+      {session ? (
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5 text-gray-300" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-netflix-red text-[10px] flex items-center justify-center text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              {notifications.length === 0 ? (
+                <DropdownMenuItem>No notifications</DropdownMenuItem>
+              ) : (
+                notifications.map((notification) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className="p-4 cursor-pointer"
+                    onClick={() => markAsRead(notification.id)}
+                  >
+                    <div className={`space-y-1 ${!notification.read ? 'font-medium' : ''}`}>
+                      <p className="text-sm">{notification.title}</p>
+                      <p className="text-xs text-gray-500">{notification.message}</p>
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <button onClick={() => handleLinkClick("/profile")}>
+            <Button variant="ghost" className="text-gray-300 hover:text-white">
+              <User className="h-5 w-5 mr-2" />
+              {!isMobile && "Profile"}
+            </Button>
+          </button>
+          <Button
+            variant="ghost"
+            className="text-gray-300 hover:text-white"
+            onClick={handleSignOut}
+          >
+            Sign Out
+          </Button>
+        </>
+      ) : (
+        <>
+          <button onClick={() => handleLinkClick("/login")}>
+            <Button variant="ghost" className="text-gray-300 hover:text-white">
+              Sign In
+            </Button>
+          </button>
+          <button onClick={() => handleLinkClick("/register")}>
+            <Button className="bg-netflix-red hover:bg-netflix-red/90">
+              Sign Up
+            </Button>
+          </button>
+        </>
       )}
     </>
   );
@@ -161,12 +209,9 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 z-50 w-full bg-gradient-to-b from-background to-background/0 px-4 py-4">
       <div className="container mx-auto flex items-center justify-between">
-        <Link
-          to="/"
-          className="flex items-center space-x-2"
-        >
+        <button onClick={() => handleLinkClick("/")} className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-netflix-red">አማርኛFlix</span>
-        </Link>
+        </button>
 
         <div className="hidden md:flex items-center space-x-6">
           <NavLinks />
@@ -174,11 +219,7 @@ const Navbar = () => {
 
         <div className="flex items-center space-x-4">
           <div className="hidden md:flex items-center space-x-4">
-            <AuthButtons
-              session={session}
-              isAdmin={isAdmin}
-              handleSignOut={handleSignOut}
-            />
+            <AuthButtons />
           </div>
 
           <div className="md:hidden">
@@ -195,11 +236,7 @@ const Navbar = () => {
                 <div className="flex flex-col space-y-4 mt-4">
                   <NavLinks />
                   <div className="pt-4 border-t">
-                    <AuthButtons
-                      session={session}
-                      isAdmin={isAdmin}
-                      handleSignOut={handleSignOut}
-                    />
+                    <AuthButtons />
                   </div>
                 </div>
               </SheetContent>

@@ -17,77 +17,8 @@ import { Card, CardContent } from "@/components/ui/card";
 
 const Home = () => {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState({
-    genre: 'all',
-    language: 'all',
-    rating: 'all'
-  });
+  const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [session, setSession] = useState<any>(null);
-
-  // Fetch available filters
-  const { data: filterOptions } = useQuery({
-    queryKey: ['filter-options'],
-    queryFn: async () => {
-      const [genresResponse, languagesResponse] = await Promise.all([
-        supabase.from("movies").select("genre").not("genre", "is", null),
-        supabase.from("movies").select("language").not("language", "is", null)
-      ]);
-
-      const uniqueGenres = [...new Set(genresResponse.data?.map(m => m.genre))];
-      const uniqueLanguages = [...new Set(languagesResponse.data?.map(m => m.language))];
-
-      return {
-        genres: uniqueGenres,
-        languages: uniqueLanguages
-      };
-    }
-  });
-
-  const { data: movies, isLoading } = useQuery({
-    queryKey: ['movies', filters],
-    queryFn: async () => {
-      let query = supabase
-        .from('movies')
-        .select(`
-          *,
-          movie_ratings(rating)
-        `)
-        .eq('is_hidden', false);
-
-      if (filters.genre !== 'all') {
-        query = query.eq('genre', filters.genre);
-      }
-      if (filters.language !== 'all') {
-        query = query.eq('language', filters.language);
-      }
-
-      const { data: moviesData, error } = await query;
-
-      if (error) throw error;
-
-      // Calculate average ratings
-      const processedMovies = moviesData?.map(movie => {
-        const ratings = movie.movie_ratings || [];
-        const averageRating = ratings.length > 0
-          ? ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / ratings.length
-          : 0;
-
-        return {
-          ...movie,
-          averageRating,
-          hasRatings: ratings.length > 0
-        };
-      });
-
-      // Filter by rating if needed
-      if (filters.rating !== 'all') {
-        const minRating = parseInt(filters.rating);
-        return processedMovies.filter(movie => movie.hasRatings && movie.averageRating >= minRating);
-      }
-
-      return processedMovies;
-    },
-  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -102,6 +33,36 @@ const Home = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const { data: movies, isLoading } = useQuery({
+    queryKey: ['movies', ratingFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from('movies')
+        .select(`
+          *,
+          movie_ratings(rating)
+        `)
+        .eq('is_hidden', false)
+        .order('created_at', { ascending: false });
+
+      if (ratingFilter !== 'all') {
+        const minRating = parseInt(ratingFilter);
+        query = query.gte('movie_ratings.rating', minRating);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      return data?.map(movie => ({
+        ...movie,
+        averageRating: movie.movie_ratings.length > 0
+          ? movie.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / movie.movie_ratings.length
+          : 0
+      }));
+    },
+  });
 
   if (isLoading) {
     return (
@@ -170,59 +131,22 @@ const Home = () => {
       <section className="py-12 bg-gradient-to-b from-background/80 to-background">
         <Card className="container mx-auto px-4">
           <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
-
-              <div className="flex flex-wrap gap-4">
-                <Select
-                  value={filters.genre}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, genre: value }))}
-                >
-                  <SelectTrigger className="w-[140px] bg-card border-netflix-gray/20">
-                    <SelectValue placeholder="Genre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Genres</SelectItem>
-                    {filterOptions?.genres.map((genre) => (
-                      <SelectItem key={genre} value={genre}>
-                        {genre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={filters.language}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, language: value }))}
-                >
-                  <SelectTrigger className="w-[140px] bg-card border-netflix-gray/20">
-                    <SelectValue placeholder="Language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Languages</SelectItem>
-                    {filterOptions?.languages.map((language) => (
-                      <SelectItem key={language} value={language}>
-                        {language}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={filters.rating}
-                  onValueChange={(value) => setFilters(prev => ({ ...prev, rating: value }))}
-                >
-                  <SelectTrigger className="w-[140px] bg-card border-netflix-gray/20">
-                    <SelectValue placeholder="Rating" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Ratings</SelectItem>
-                    <SelectItem value="4">4+ Stars</SelectItem>
-                    <SelectItem value="3">3+ Stars</SelectItem>
-                    <SelectItem value="2">2+ Stars</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select
+                value={ratingFilter}
+                onValueChange={(value) => setRatingFilter(value)}
+              >
+                <SelectTrigger className="w-[180px] bg-card border-netflix-gray/20">
+                  <SelectValue placeholder="Filter by rating" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ratings</SelectItem>
+                  <SelectItem value="4">4+ Stars</SelectItem>
+                  <SelectItem value="3">3+ Stars</SelectItem>
+                  <SelectItem value="2">2+ Stars</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
