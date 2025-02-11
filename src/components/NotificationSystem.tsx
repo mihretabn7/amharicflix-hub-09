@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -17,36 +18,6 @@ interface Notification {
     message: string;
     created_at: string;
     read: boolean;
-    type: 'report' | 'new_movie';
-    link?: string;
-}
-
-interface MovieReport {
-    id: string;
-    movie: {
-        id: string;
-        title: string;
-    };
-    reporter_id: string;
-    reporter: {
-        email: string | null;
-        phone_number: string | null;
-    };
-}
-
-interface MovieData {
-    id: string;
-    title: string;
-    is_hidden: boolean;
-}
-
-interface NotificationSystemProps {
-    id: string;
-    title: string;
-    message: string;
-    created_at: string;
-    read: boolean;
-    is_sent: boolean;
     type: 'report' | 'new_movie';
     link?: string;
 }
@@ -112,7 +83,7 @@ const NotificationSystem = () => {
                                 reporter:profiles!movie_reports_reporter_id_fkey(email, phone_number)
                             `)
                             .eq('id', payload.new.id)
-                            .single() as { data: MovieReport | null };
+                            .single();
 
                         if (report) {
                             const { data: { user } } = await supabase.auth.getUser();
@@ -157,7 +128,7 @@ const NotificationSystem = () => {
                         .from('movies')
                         .select('id, title, is_hidden')
                         .eq('id', payload.new.id)
-                        .single() as { data: MovieData | null };
+                        .single();
 
                     if (movie && !movie.is_hidden) {
                         const { data: { user } } = await supabase.auth.getUser();

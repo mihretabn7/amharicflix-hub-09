@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,29 +24,15 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-interface BaseNotification {
+interface Notification {
     id: string;
     title: string;
     message: string;
     type: string;
     created_at: string;
     user_id: string | null;
-}
-
-// For backward compatibility during migration
-interface OldNotification extends BaseNotification {
-    read: boolean;
-}
-
-interface NewNotification extends BaseNotification {
     is_sent: boolean;
 }
-
-type Notification = OldNotification | NewNotification;
-
-const isNewNotification = (notification: Notification): notification is NewNotification => {
-    return 'is_sent' in notification;
-};
 
 const NotificationCenter = () => {
     const [searchQuery, setSearchQuery] = useState("");
@@ -74,8 +61,7 @@ const NotificationCenter = () => {
                 .from('notifications')
                 .insert({
                     ...newNotification,
-                    is_sent: true,
-                    read: true // For backward compatibility
+                    is_sent: true
                 });
 
             if (error) throw error;
@@ -211,32 +197,28 @@ const NotificationCenter = () => {
                                         <TableCell>{notification.message}</TableCell>
                                         <TableCell>
                                             <span
-                                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${notification.type === "success"
-                                                    ? "bg-green-50 text-green-700"
-                                                    : notification.type === "error"
-                                                        ? "bg-red-50 text-red-700"
-                                                        : notification.type === "warning"
-                                                            ? "bg-yellow-50 text-yellow-700"
-                                                            : "bg-blue-50 text-blue-700"
-                                                    }`}
+                                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                                    notification.type === "success"
+                                                        ? "bg-green-50 text-green-700"
+                                                        : notification.type === "error"
+                                                            ? "bg-red-50 text-red-700"
+                                                            : notification.type === "warning"
+                                                                ? "bg-yellow-50 text-yellow-700"
+                                                                : "bg-blue-50 text-blue-700"
+                                                }`}
                                             >
                                                 {notification.type}
                                             </span>
                                         </TableCell>
                                         <TableCell>
                                             <span
-                                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${isNewNotification(notification)
-                                                    ? notification.is_sent
+                                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                                    notification.is_sent
                                                         ? "bg-green-50 text-green-700"
                                                         : "bg-yellow-50 text-yellow-700"
-                                                    : !notification.read
-                                                        ? "bg-blue-50 text-blue-700"
-                                                        : "bg-gray-50 text-gray-700"
-                                                    }`}
+                                                }`}
                                             >
-                                                {isNewNotification(notification)
-                                                    ? notification.is_sent ? "Sent" : "Pending"
-                                                    : notification.read ? "Read" : "Unread"}
+                                                {notification.is_sent ? "Sent" : "Pending"}
                                             </span>
                                         </TableCell>
                                         <TableCell>
@@ -262,4 +244,4 @@ const NotificationCenter = () => {
     );
 };
 
-export default NotificationCenter; 
+export default NotificationCenter;

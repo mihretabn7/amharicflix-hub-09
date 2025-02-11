@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -200,4 +201,4 @@ const Analytics = () => {
     );
 };
 
-export default Analytics; 
+export default Analytics;
