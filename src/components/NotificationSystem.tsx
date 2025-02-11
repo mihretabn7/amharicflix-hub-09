@@ -40,6 +40,17 @@ interface MovieData {
     is_hidden: boolean;
 }
 
+interface NotificationSystem {
+    id: string;
+    title: string;
+    message: string;
+    created_at: string;
+    read: boolean;
+    is_sent: boolean;
+    type: 'report' | 'new_movie';
+    link?: string;
+}
+
 const NotificationSystem = () => {
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -83,7 +94,6 @@ const NotificationSystem = () => {
     }, [notifications]);
 
     useEffect(() => {
-        // Subscribe to new reports (admin only)
         const reportsChannel = userRole === 'admin'
             ? supabase.channel('reports')
                 .on(
@@ -105,7 +115,6 @@ const NotificationSystem = () => {
                             .single() as { data: MovieReport | null };
 
                         if (report) {
-                            // Create notification
                             const { data: { user } } = await supabase.auth.getUser();
                             if (user) {
                                 await supabase.from('notifications').insert({
@@ -135,7 +144,6 @@ const NotificationSystem = () => {
                 .subscribe()
             : null;
 
-        // Subscribe to new movies (all users)
         const moviesChannel = supabase.channel('movies')
             .on(
                 'postgres_changes',
@@ -152,7 +160,6 @@ const NotificationSystem = () => {
                         .single() as { data: MovieData | null };
 
                     if (movie && !movie.is_hidden) {
-                        // Create notification
                         const { data: { user } } = await supabase.auth.getUser();
                         if (user) {
                             await supabase.from('notifications').insert({
@@ -187,8 +194,7 @@ const NotificationSystem = () => {
         };
     }, [userRole, refetchNotifications]);
 
-    const handleNotificationClick = async (notification: Notification) => {
-        // Mark as read
+    const handleNotificationClick = async (notification: NotificationSystem) => {
         if (!notification.read) {
             await supabase
                 .from('notifications')
@@ -197,7 +203,6 @@ const NotificationSystem = () => {
             refetchNotifications();
         }
 
-        // Navigate to link if present
         if (notification.link) {
             window.location.href = notification.link;
         }
@@ -246,4 +251,4 @@ const NotificationSystem = () => {
     );
 };
 
-export default NotificationSystem; 
+export default NotificationSystem;

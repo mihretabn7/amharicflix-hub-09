@@ -5,21 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Key, UserPlus, AlertTriangle } from "lucide-react";
-
-interface SecuritySettings {
-    max_login_attempts: number;
-    require_phone_verification: boolean;
-    auto_block_suspicious_ips: boolean;
-    content_report_threshold: number;
-}
+import { Shield, Key, AlertTriangle } from "lucide-react";
+import type { SecuritySettings } from "@/types/security";
 
 const SecuritySettings = () => {
     const [settings, setSettings] = useState<SecuritySettings>({
+        id: 1, // Single row for global settings
         max_login_attempts: 5,
         require_phone_verification: true,
         auto_block_suspicious_ips: true,
-        content_report_threshold: 5
+        content_report_threshold: 5,
+        updated_at: new Date().toISOString()
     });
 
     const handleSaveSettings = async () => {
@@ -27,7 +23,6 @@ const SecuritySettings = () => {
             const { error } = await supabase
                 .from('security_settings')
                 .upsert({
-                    id: 1, // Single row for global settings
                     ...settings,
                     updated_at: new Date().toISOString()
                 });
@@ -155,4 +150,4 @@ const SecuritySettings = () => {
     );
 };
 
-export default SecuritySettings; 
+export default SecuritySettings;

@@ -21,15 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Lock, Unlock, UserX, Search } from "lucide-react";
-
-interface User {
-    id: string;
-    email: string;
-    phone_number: string | null;
-    created_at: string;
-    last_sign_in_at: string | null;
-    is_blocked: boolean;
-}
+import type { User } from "@/types/user";
 
 const UserManagement = () => {
     const [searchQuery, setSearchQuery] = useState("");
@@ -37,13 +29,17 @@ const UserManagement = () => {
     const { data: users, refetch } = useQuery({
         queryKey: ['admin-users'],
         queryFn: async () => {
-            const { data, error } = await supabase
+            const { data: profiles, error } = await supabase
                 .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
+                .select('*');
 
             if (error) throw error;
-            return data as User[];
+
+            return profiles.map(profile => ({
+                ...profile,
+                is_blocked: profile.is_blocked || false,
+                last_sign_in_at: null // This will be updated when we implement sign-in tracking
+            })) as User[];
         }
     });
 
@@ -199,4 +195,4 @@ const UserManagement = () => {
     );
 };
 
-export default UserManagement; 
+export default UserManagement;

@@ -290,6 +290,7 @@ export type Database = {
           id: string
           is_sent: boolean | null
           message: string
+          read: boolean | null
           title: string
           type: string
           user_id: string | null
@@ -299,6 +300,7 @@ export type Database = {
           id?: string
           is_sent?: boolean | null
           message: string
+          read?: boolean | null
           title: string
           type: string
           user_id?: string | null
@@ -308,6 +310,7 @@ export type Database = {
           id?: string
           is_sent?: boolean | null
           message?: string
+          read?: boolean | null
           title?: string
           type?: string
           user_id?: string | null
@@ -329,6 +332,8 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_blocked: boolean | null
+          last_sign_in_at: string | null
           phone_number: string
           subscription_plan: string | null
           updated_at: string
@@ -340,6 +345,8 @@ export type Database = {
           created_at?: string
           email?: string | null
           id: string
+          is_blocked?: boolean | null
+          last_sign_in_at?: string | null
           phone_number: string
           subscription_plan?: string | null
           updated_at?: string
@@ -351,10 +358,39 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_blocked?: boolean | null
+          last_sign_in_at?: string | null
           phone_number?: string
           subscription_plan?: string | null
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      security_settings: {
+        Row: {
+          auto_block_suspicious_ips: boolean | null
+          content_report_threshold: number | null
+          id: number
+          max_login_attempts: number | null
+          require_phone_verification: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_block_suspicious_ips?: boolean | null
+          content_report_threshold?: number | null
+          id: number
+          max_login_attempts?: number | null
+          require_phone_verification?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_block_suspicious_ips?: boolean | null
+          content_report_threshold?: number | null
+          id?: number
+          max_login_attempts?: number | null
+          require_phone_verification?: boolean | null
+          updated_at?: string | null
         }
         Relationships: []
       }
