@@ -7,9 +7,6 @@ import MovieDetailsSection from "@/components/MovieDetailsSection";
 import MovieHero from "@/components/movie/MovieHero";
 import MoviePlayer from "@/components/movie/MoviePlayer";
 import MovieStats from "@/components/movie/MovieStats";
-import MovieRating from "@/components/MovieRating";
-import MovieReviews from "@/components/MovieReviews";
-import { format } from "date-fns";
 
 const NETFLIX_VIEW_THRESHOLD = 120; // 2 minutes in seconds
 const WATCH_TIME_UPDATE_INTERVAL = 10; // Update watch time every 10 seconds
@@ -250,13 +247,6 @@ const MovieDetail = () => {
   const watchCount = movie.watch_count || 0;
   const shareCount = movie.share_count || 0;
 
-  const stats = {
-    watchCount,
-    shareCount,
-    averageRating,
-    totalWatchTime
-  };
-
   return (
     <div className="min-h-screen pt-16">
       <div className="relative h-[70vh]">
@@ -282,35 +272,19 @@ const MovieDetail = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            <div className="space-y-8">
-              <MovieStats {...stats} />
-              <MovieRating
-                movieId={movie.id}
-                userId={session?.user?.id}
-                onRatingSubmit={refetch}
-              />
-              <MovieReviews movieId={movie.id} />
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-card rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">Movie Details</h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm text-gray-400">Description</h3>
-                  <p>{movie.description || 'No description available.'}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm text-gray-400">Language</h3>
-                  <p>{movie.language}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm text-gray-400">Added on</h3>
-                  <p>{format(new Date(movie.created_at), 'M/d/yyyy')}</p>
-                </div>
+            {!isPlaying && session && (
+              <div className="space-y-8">
+                <MovieStats
+                  watchCount={watchCount}
+                  shareCount={shareCount}
+                  averageRating={averageRating}
+                  totalWatchTime={totalWatchTime}
+                />
               </div>
-            </div>
+            )}
+          </div>
+          <div>
+            <MovieDetailsSection movie={movie} userId={session?.user?.id} />
           </div>
         </div>
       </div>
