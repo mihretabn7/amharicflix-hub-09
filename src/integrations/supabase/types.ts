@@ -397,6 +397,33 @@ export type Database = {
         }
         Relationships: []
       }
+      system_alerts: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          resolved_at: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          resolved_at?: string | null
+          severity: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
       user_movie_history: {
         Row: {
           created_at: string | null

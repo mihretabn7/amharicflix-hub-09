@@ -24,6 +24,7 @@ function App() {
       if (!session) {
         // Clear any stale auth data
         localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('supabase.auth.expires_at');
       }
     }).catch((error) => {
       console.error("Error checking auth session:", error);
@@ -31,22 +32,36 @@ function App() {
     });
 
     // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        if (!session) {
-          // Clear any auth-related state or cached data
-          localStorage.removeItem('supabase.auth.token');
-        }
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event);
       
       if (event === 'SIGNED_OUT') {
+        // Clear auth data on sign out
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('supabase.auth.expires_at');
         toast.error("Session expired. Please sign in again.");
       } else if (event === 'SIGNED_IN') {
         toast.success("Successfully signed in!");
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log("Token refreshed successfully");
+      }
+
+      // Handle session recovery
+      if (!session && event === 'INITIAL_SESSION') {
+        try {
+          const { error } = await supabase.auth.getSession();
+          if (error) {
+            throw error;
+          }
+        } catch (error) {
+          console.error("Error recovering session:", error);
+          // Clear any potentially stale auth data
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('supabase.auth.expires_at');
+        }
       }
     });
 
-    // Cleanup subscription
     return () => {
       subscription.unsubscribe();
     };

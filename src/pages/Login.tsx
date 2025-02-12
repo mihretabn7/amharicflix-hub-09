@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,11 +89,6 @@ const Login = () => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password: formData.password,
-        options: {
-          data: {
-            remember_me: formData.rememberMe
-          }
-        }
       });
 
       if (error) {
