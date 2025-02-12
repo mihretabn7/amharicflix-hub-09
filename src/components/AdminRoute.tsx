@@ -18,7 +18,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
-        
+
         if (session?.user) {
           const adminStatus = await checkIsAdmin(session.user.id);
           setIsAdmin(adminStatus);

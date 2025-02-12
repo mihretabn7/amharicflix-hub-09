@@ -35,7 +35,7 @@ const Home = () => {
   }, []);
 
   const { data: movies, isLoading } = useQuery({
-    queryKey: ['movies', ratingFilter],
+    queryKey: ['movies'],
     queryFn: async () => {
       let query = supabase
         .from('movies')
@@ -45,11 +45,6 @@ const Home = () => {
         `)
         .eq('is_hidden', false)
         .order('created_at', { ascending: false });
-
-      if (ratingFilter !== 'all') {
-        const minRating = parseInt(ratingFilter);
-        query = query.gte('movie_ratings.rating', minRating);
-      }
 
       const { data, error } = await query;
 
@@ -133,20 +128,6 @@ const Home = () => {
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
-              <Select
-                value={ratingFilter}
-                onValueChange={(value) => setRatingFilter(value)}
-              >
-                <SelectTrigger className="w-[180px] bg-card border-netflix-gray/20">
-                  <SelectValue placeholder="Filter by rating" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ratings</SelectItem>
-                  <SelectItem value="4">4+ Stars</SelectItem>
-                  <SelectItem value="3">3+ Stars</SelectItem>
-                  <SelectItem value="2">2+ Stars</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">

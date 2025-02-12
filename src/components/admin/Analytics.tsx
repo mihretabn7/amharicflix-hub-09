@@ -1,7 +1,13 @@
-
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     LineChart,
@@ -15,13 +21,52 @@ import {
     ResponsiveContainer,
     PieChart,
     Pie,
-    Cell
+    Cell,
+    Legend,
+    AreaChart,
+    Area
 } from "recharts";
 import { Loader2 } from "lucide-react";
+import { format, subDays, startOfDay, endOfDay, parseISO } from "date-fns";
+import { processWatchTimeData, processUserRetention, processHeatmapData, processGenreTrends, processLanguageDistribution } from "@/lib/utils/analytics";
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE'];
 
-const Analytics = () => {
+interface AnalyticsProps {
+    activeSection: string;
+}
+
+const Analytics = ({ activeSection }: AnalyticsProps) => {
+    const [activeTab, setActiveTab] = useState("overview");
+    const [data, setData] = useState({
+        // Content Analytics
+        popularMovies: [],
+        ratingDistribution: [],
+        languagePreferences: [],
+        genreTrends: [],
+        contentGrowth: [],
+
+        // User Analytics
+        userGrowth: [],
+        userEngagement: [],
+        watchTimePerUser: [],
+        retentionRates: [],
+        subscriptionStatus: [],
+
+        // Engagement Metrics
+        watchDuration: [],
+        ratingPatterns: [],
+        shareBehavior: [],
+        activityHeatmap: [],
+        peakTimes: [],
+
+        // Content Management
+        reportStats: [],
+        moderationMetrics: [],
+        uploadPatterns: [],
+        seriesStats: []
+    });
+
     const { data: viewsData, isLoading: isLoadingViews } = useQuery({
         queryKey: ['analytics-views'],
         queryFn: async () => {
@@ -99,6 +144,101 @@ const Analytics = () => {
         }
     });
 
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            switch (activeSection) {
+                case "popularity":
+                    const { data: movies } = await supabase
+                        .from('movies')
+                        .select('title, watch_count')
+                        .order('watch_count', { ascending: false })
+                        .limit(10);
+                    setData(prev => ({ ...prev, popularMovies: movies }));
+                    break;
+
+                case "ratings":
+                    const { data: ratings } = await supabase
+                        .from('movie_ratings')
+                        .select('rating');
+                    // Process ratings distribution
+                    const distribution = Array(5).fill(0);
+                    ratings?.forEach(r => distribution[r.rating - 1]++);
+                    setData(prev => ({
+                        ...prev,
+                        ratingDistribution: distribution.map((count, i) => ({
+                            rating: i + 1,
+                            count
+                        }))
+                    }));
+                    break;
+
+                case "languages":
+                    const { data: languages } = await supabase
+                        .from('movies')
+                        .select('language, watch_count');
+                    setData(prev => ({
+                        ...prev,
+                        languagePreferences: processLanguageDistribution(languages || [])
+                    }));
+                    break;
+
+                case "genres":
+                    const { data: genres } = await supabase
+                        .from('movies')
+                        .select('genre, watch_count');
+                    setData(prev => ({
+                        ...prev,
+                        genreTrends: processGenreTrends(genres || [])
+                    }));
+                    break;
+
+                case "user-growth":
+                    const { data: users } = await supabase
+                        .from('profiles')
+                        .select('created_at')
+                        .order('created_at', { ascending: true });
+                    // Process user growth data
+                    break;
+
+                case "watch-time":
+                    const { data: watchTime } = await supabase
+                        .from('user_movie_history')
+                        .select('watch_duration, created_at')
+                        .gte('created_at', subDays(new Date(), 30).toISOString());
+                    setData(prev => ({
+                        ...prev,
+                        watchDuration: processWatchTimeData(watchTime || [])
+                    }));
+                    break;
+
+                case "retention":
+                    const { data: retention } = await supabase
+                        .from('profiles')
+                        .select('last_sign_in');
+                    setData(prev => ({
+                        ...prev,
+                        retentionRates: processUserRetention(retention || [])
+                    }));
+                    break;
+
+                case "peak-times":
+                    const { data: activity } = await supabase
+                        .from('user_movie_history')
+                        .select('created_at')
+                        .gte('created_at', subDays(new Date(), 7).toISOString());
+                    setData(prev => ({
+                        ...prev,
+                        activityHeatmap: processHeatmapData(activity || [])
+                    }));
+                    break;
+
+                // Add more cases for other sections...
+            }
+        };
+
+        fetchAnalytics();
+    }, [activeSection]);
+
     if (isLoadingViews || isLoadingGenres || isLoadingUsers) {
         return (
             <div className="flex items-center justify-center h-96">
@@ -107,97 +247,95 @@ const Analytics = () => {
         );
     }
 
-    return (
-        <Tabs defaultValue="views" className="space-y-4">
-            <TabsList>
-                <TabsTrigger value="views">Views</TabsTrigger>
-                <TabsTrigger value="genres">Genres</TabsTrigger>
-                <TabsTrigger value="users">Users</TabsTrigger>
-            </TabsList>
+    const renderContent = () => {
+        switch (activeSection) {
+            case "overview":
+                return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Total Views</CardTitle>
+                                <CardDescription>Overall movie views</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <AreaChart data={data.watchDuration}>
+                                        <XAxis dataKey="date" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Area type="monotone" dataKey="views" fill="#ff0000" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
 
-            <TabsContent value="views">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Daily Views (Last 30 Days)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[400px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={viewsData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="views"
-                                        stroke="#8884d8"
-                                        strokeWidth={2}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Active Users</CardTitle>
+                                <CardDescription>Daily active users</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <LineChart data={data.userEngagement}>
+                                        <XAxis dataKey="date" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Line type="monotone" dataKey="users" stroke="#ff0000" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
 
-            <TabsContent value="genres">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Views by Genre</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[400px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={genreData}
-                                        cx="50%"
-                                        cy="50%"
-                                        labelLine={false}
-                                        label={({ name, percent }) =>
-                                            `${name} (${(percent * 100).toFixed(0)}%)`
-                                        }
-                                        outerRadius={150}
-                                        fill="#8884d8"
-                                        dataKey="value"
-                                    >
-                                        {genreData?.map((entry, index) => (
-                                            <Cell
-                                                key={`cell-${index}`}
-                                                fill={COLORS[index % COLORS.length]}
-                                            />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Content Growth</CardTitle>
+                                <CardDescription>New content added</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <BarChart data={data.contentGrowth}>
+                                        <XAxis dataKey="date" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Bar dataKey="content" fill="#ff0000" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                );
 
-            <TabsContent value="users">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>New Users Over Time</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[400px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={userStats}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" />
-                                    <YAxis />
+            case "popularity":
+                return (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Most Popular Movies</CardTitle>
+                            <CardDescription>By watch count</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ResponsiveContainer width="100%" height={400}>
+                                <BarChart data={data.popularMovies} layout="vertical">
+                                    <XAxis type="number" />
+                                    <YAxis dataKey="title" type="category" width={150} />
                                     <Tooltip />
-                                    <Bar dataKey="users" fill="#82ca9d" />
+                                    <Bar dataKey="watch_count" fill="#ff0000" />
                                 </BarChart>
                             </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-        </Tabs>
+                        </CardContent>
+                    </Card>
+                );
+
+            // Add more cases for other sections...
+
+            default:
+                return <div>Select a section to view analytics</div>;
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            {renderContent()}
+        </div>
     );
 };
 
