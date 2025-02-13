@@ -116,7 +116,7 @@ const AdminDashboard = () => {
               <Film className="h-8 w-8 text-netflix-red" />
             </div>
           </div>
-          
+
           <div className="bg-card p-6 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -126,7 +126,7 @@ const AdminDashboard = () => {
               <Users className="h-8 w-8 text-netflix-gold" />
             </div>
           </div>
-          
+
           <div className="bg-card p-6 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
@@ -136,7 +136,7 @@ const AdminDashboard = () => {
               <MessageSquare className="h-8 w-8 text-blue-500" />
             </div>
           </div>
-          
+
           <div className="bg-card p-6 rounded-lg">
             <div className="flex items-center justify-between">
               <div>

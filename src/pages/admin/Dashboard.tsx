@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import MovieTable from "@/components/MovieTable";
 import ReportManagement from "@/components/ReportManagement";
@@ -33,10 +32,47 @@ import ContentUpload from "@/components/admin/ContentUpload";
 import SecuritySettings from "@/components/admin/SecuritySettings";
 import Analytics from "@/components/admin/Analytics";
 import NotificationCenter from "@/components/admin/NotificationCenter";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import MovieUploadForm from "@/components/MovieUploadForm";
+import CsvMovieUpload from "@/components/CsvMovieUpload";
+import {
+    LineChart,
+    PieChart,
+    Line,
+    Pie,
+    Cell,
+    ResponsiveContainer,
+    Tooltip
+} from "recharts";
+
+const COLORS = ['#4B56D2', '#82ca9d', '#F7D060', '#FF6B6B'];
 
 const Dashboard = () => {
     const [activeTab, setActiveTab] = useState("overview");
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [stats, setStats] = useState({
+        revenue: 24583,
+        profitShare: 1046,
+        dailySales: 342,
+        totalIncome: 3567.56,
+        monthlyAvg: 769.08,
+        totalSales: 5489
+    });
+
+    const [locationData] = useState([
+        { name: "Saint Lucia", value: 845 },
+        { name: "Liberia", value: 548 },
+        { name: "Saint Helena", value: 624 },
+        { name: "Kenya", value: 624 },
+        { name: "Christmas Island", value: 412 }
+    ]);
+
+    const [revenueTrend] = useState(Array.from({ length: 30 }, (_, i) => ({
+        date: i + 1,
+        value: Math.floor(Math.random() * 1000) + 500
+    })));
 
     const tabs = [
         {
@@ -137,82 +173,156 @@ const Dashboard = () => {
         );
     };
 
+    useEffect(() => {
+        const fetchStats = async () => {
+            const { data: watchHistory } = await supabase
+                .from('user_movie_history')
+                .select('*');
+
+            // Calculate stats based on watch history
+            // For now using static data as shown in the image
+        };
+
+        fetchStats();
+    }, []);
+
     return (
-        <div className="min-h-screen bg-background">
-            {/* Mobile Header */}
-            <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b p-4">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <Menu className="h-5 w-5" />
-                            </Button>
-                        </SheetTrigger>
-                        <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-                            <SheetHeader>
-                                <SheetTitle>Admin Dashboard</SheetTitle>
-                            </SheetHeader>
-                            <div className="flex flex-col space-y-2 mt-6">
-                                {tabs.map((tab) => (
-                                    <NavItem
-                                        key={tab.id}
-                                        tab={tab}
-                                        onClick={() => setIsSidebarOpen(false)}
-                                    />
-                                ))}
+        <div className="p-8 bg-[#1a1f37] min-h-screen">
+            {/* Top Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <Card className="bg-[#1a1f37] border-[#2d3250]">
+                    <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-gray-400">Revenue</p>
+                                <h2 className="text-2xl font-bold text-white">${stats.revenue}</h2>
                             </div>
-                        </SheetContent>
-                    </Sheet>
-                </div>
+                            <span className="text-red-500 text-sm">-15%</span>
+                        </div>
+                        <p className="text-xs text-gray-400">May 20 - Jun 20 2019</p>
+                        <Button variant="link" className="text-blue-400 p-0 h-auto text-xs mt-2">
+                            Read more
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-[#1a1f37] border-[#2d3250]">
+                    <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-gray-400">Profit Share</p>
+                                <h2 className="text-2xl font-bold text-white">${stats.profitShare}</h2>
+                            </div>
+                            <span className="text-green-500 text-sm">+51%</span>
+                        </div>
+                        <p className="text-xs text-gray-400">May 20 - Jun 20 2019</p>
+                        <Button variant="link" className="text-blue-400 p-0 h-auto text-xs mt-2">
+                            Read more
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-[#1a1f37] border-[#2d3250]">
+                    <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-gray-400">Daily Sales</p>
+                                <h2 className="text-2xl font-bold text-white">${stats.dailySales}</h2>
+                            </div>
+                            <span className="text-green-500 text-sm">+24%</span>
+                        </div>
+                        <p className="text-xs text-gray-400">May 20 - Jun 20 2019</p>
+                        <Button variant="link" className="text-blue-400 p-0 h-auto text-xs mt-2">
+                            Read more
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
 
-            <div className="flex h-screen">
-                {/* Desktop Sidebar */}
-                <div className="hidden lg:flex flex-col w-80 border-r bg-card/50 backdrop-blur-sm fixed left-0 top-0 bottom-0">
-                    <div className="p-6 border-b">
-                        <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Manage your platform
-                        </p>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                        {tabs.map((tab) => (
-                            <NavItem key={tab.id} tab={tab} />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Main Content */}
-                <main className="flex-1 lg:ml-80 overflow-y-auto">
-                    <div className="container mx-auto p-4 lg:p-6 mt-16 lg:mt-0">
-                        <div className="space-y-6">
-                            {/* Desktop Tab Title */}
-                            <div className="hidden lg:block">
-                                <h2 className="text-2xl font-semibold">
-                                    {tabs.find(t => t.id === activeTab)?.label}
-                                </h2>
-                                <p className="text-sm text-muted-foreground">
-                                    {tabs.find(t => t.id === activeTab)?.description}
-                                </p>
-                            </div>
-
-                            {/* Content */}
-                            <Tabs value={activeTab} className="space-y-6">
-                                {tabs.map((tab) => (
-                                    <TabsContent
-                                        key={tab.id}
-                                        value={tab.id}
-                                        className="m-0 outline-none"
-                                    >
-                                        {tab.content}
-                                    </TabsContent>
-                                ))}
-                            </Tabs>
+            {/* Sales Status Section */}
+            <Card className="bg-[#1a1f37] border-[#2d3250] mb-8">
+                <CardContent className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 className="text-xl font-bold text-white">Sales Status</h2>
+                            <p className="text-sm text-gray-400">Performance For Online Revenue</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button variant="ghost" size="sm" className="text-gray-400">Week</Button>
+                            <Button variant="ghost" size="sm" className="text-gray-400">Month</Button>
+                            <Button variant="ghost" size="sm" className="text-gray-400">Year</Button>
+                            <Button variant="ghost" size="sm" className="text-gray-400">All</Button>
                         </div>
                     </div>
-                </main>
-            </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Orders by Location */}
+                        <div>
+                            <h3 className="text-sm font-medium text-white mb-4">Orders by Location</h3>
+                            <div className="space-y-2">
+                                {locationData.map((item, index) => (
+                                    <div key={index} className="flex justify-between text-sm">
+                                        <span className="text-gray-400">{item.name}</span>
+                                        <span className="text-white">${item.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Sales by Location */}
+                        <div>
+                            <h3 className="text-sm font-medium text-white mb-4">Sales by Location</h3>
+                            <ResponsiveContainer width="100%" height={200}>
+                                <PieChart>
+                                    <Pie
+                                        data={locationData}
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {locationData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Revenue Trend */}
+                        <div>
+                            <h3 className="text-sm font-medium text-white mb-4">Revenue for Last Month</h3>
+                            <ResponsiveContainer width="100%" height={200}>
+                                <LineChart data={revenueTrend}>
+                                    <Line
+                                        type="monotone"
+                                        dataKey="value"
+                                        stroke="#00C49F"
+                                        strokeWidth={2}
+                                        dot={false}
+                                    />
+                                    <Tooltip />
+                                </LineChart>
+                            </ResponsiveContainer>
+                            <div className="grid grid-cols-3 gap-4 mt-4">
+                                <div>
+                                    <p className="text-gray-400 text-sm">Total Income</p>
+                                    <p className="text-white font-bold">${stats.totalIncome}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400 text-sm">Monthly Avg</p>
+                                    <p className="text-white font-bold">${stats.monthlyAvg}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400 text-sm">Total Sales</p>
+                                    <p className="text-white font-bold">{stats.totalSales}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };

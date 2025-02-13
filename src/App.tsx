@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "./integrations/supabase/client";
@@ -16,6 +15,7 @@ import AdminLogin from "./pages/AdminLogin";
 import Series from "./pages/Series";
 import SeriesDetail from "./pages/SeriesDetail";
 import { toast } from "sonner";
+import Dashboard from "@/pages/admin/Dashboard";
 
 function App() {
   useEffect(() => {
@@ -34,7 +34,7 @@ function App() {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
-      
+
       if (event === 'SIGNED_OUT') {
         // Clear auth data on sign out
         localStorage.removeItem('supabase.auth.token');
@@ -82,14 +82,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/admin-login" element={<AdminLogin />} />
-          <Route
-            path="/admin/*"
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            }
-          />
+          <Route path="/admin" element={<Dashboard />} />
         </Routes>
       </div>
     </Router>
