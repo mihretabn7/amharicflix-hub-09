@@ -12,7 +12,7 @@ interface StatCardProps {
 
 export const StatCard = ({ title, value, change, icon, date }: StatCardProps) => {
     return (
-        <Card>
+        <Card className="hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
             <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                     <div>

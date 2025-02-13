@@ -72,12 +72,17 @@ const Dashboard = () => {
         <div className="min-h-screen bg-background">
             <DashboardHeader />
             
-            <main className="p-4 space-y-4">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold">Dashboard Overview</h2>
+            <main className="p-4 space-y-6">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                        Dashboard Overview
+                    </h2>
                     <Dialog>
                         <DialogTrigger asChild>
-                            <Button className="bg-netflix-red hover:bg-netflix-red/90">
+                            <Button 
+                                className="bg-netflix-red hover:bg-netflix-red/90 shadow-lg hover:shadow-xl transition-all duration-200"
+                                size="lg"
+                            >
                                 Add New Movie
                             </Button>
                         </DialogTrigger>
@@ -103,49 +108,49 @@ const Dashboard = () => {
                     </Dialog>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
                         title="Total Revenue"
                         value={`$${stats?.revenue || 0}`}
                         change={15}
-                        icon={<Wallet className="h-4 w-4 text-muted-foreground" />}
+                        icon={<Wallet className="h-8 w-8 text-green-500" />}
                         date="May 20 - Jun 20 2024"
                     />
                     <StatCard
                         title="Total Movies"
                         value={stats?.totalMovies || 0}
                         change={5}
-                        icon={<Film className="h-4 w-4 text-muted-foreground" />}
+                        icon={<Film className="h-8 w-8 text-blue-500" />}
                         date="May 20 - Jun 20 2024"
                     />
                     <StatCard
                         title="Total Users"
                         value={stats?.totalUsers || 0}
                         change={12}
-                        icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                        icon={<Users className="h-8 w-8 text-purple-500" />}
                         date="May 20 - Jun 20 2024"
                     />
                     <StatCard
                         title="Total Views"
                         value={stats?.totalViews || 0}
                         change={8}
-                        icon={<PlayCircle className="h-4 w-4 text-muted-foreground" />}
+                        icon={<PlayCircle className="h-8 w-8 text-orange-500" />}
                         date="May 20 - Jun 20 2024"
                     />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-6">
                         <SecuritySettings />
                         <AnalyticsSection />
                     </div>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         <NotificationCenter />
                         
-                        <Card>
+                        <Card className="hover:shadow-lg transition-all duration-200">
                             <CardHeader>
-                                <CardTitle>System Alerts</CardTitle>
+                                <CardTitle className="text-lg font-semibold">System Alerts</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ScrollArea className="h-[300px]">
@@ -153,12 +158,12 @@ const Dashboard = () => {
                                         {systemAlerts?.map((alert) => (
                                             <div
                                                 key={alert.id}
-                                                className={`p-4 rounded-lg border ${
+                                                className={`p-4 rounded-lg border backdrop-blur-sm transition-all duration-200 hover:scale-[1.02] ${
                                                     alert.severity === 'warning'
-                                                        ? 'bg-yellow-50 border-yellow-200'
+                                                        ? 'bg-yellow-500/10 border-yellow-500/20'
                                                         : alert.severity === 'error'
-                                                        ? 'bg-red-50 border-red-200'
-                                                        : 'bg-blue-50 border-blue-200'
+                                                        ? 'bg-red-500/10 border-red-500/20'
+                                                        : 'bg-blue-500/10 border-blue-500/20'
                                                 }`}
                                             >
                                                 <h4 className="font-medium">{alert.title}</h4>
