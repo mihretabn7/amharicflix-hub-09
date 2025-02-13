@@ -23,7 +23,7 @@ export const DashboardHeader = () => {
 
     return (
         <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-4">
+            {/* <div className="flex items-center gap-4">
                 <h1 className="text-xl font-semibold">Dashboard Overview</h1>
             </div>
             <div className="flex items-center gap-4">
@@ -42,7 +42,7 @@ export const DashboardHeader = () => {
                 <Button variant="outline" size="sm">
                     Monthly
                 </Button>
-            </div>
+            </div> */}
         </div>
     );
 };

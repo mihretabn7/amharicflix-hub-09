@@ -8,7 +8,6 @@ import Categories from "./pages/Categories";
 import MovieDetail from "./pages/MovieDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import AdminDashboard from "./pages/AdminDashboard";
 import AdminRoute from "./components/AdminRoute";
 import Profile from "./pages/Profile";
 import AdminLogin from "./pages/AdminLogin";
@@ -16,6 +15,13 @@ import Series from "./pages/Series";
 import SeriesDetail from "./pages/SeriesDetail";
 import { toast } from "sonner";
 import Dashboard from "@/pages/admin/Dashboard";
+import DashboardLayout from "@/components/admin/DashboardLayout";
+import MovieManagement from "@/pages/admin/MovieManagement";
+import UserManagement from "@/pages/admin/UserManagement";
+import Reports from "@/pages/admin/Reports";
+import Notifications from "@/pages/admin/Notifications";
+import Security from "@/pages/admin/Security";
+import Settings from "@/pages/admin/Settings";
 
 function App() {
   useEffect(() => {
@@ -70,19 +76,33 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-background">
-        <Navbar />
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/movies" element={<Movies />} />
-          <Route path="/series" element={<Series />} />
-          <Route path="/series/:id" element={<SeriesDetail />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/movie/:id" element={<MovieDetail />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin-login" element={<AdminLogin />} />
-          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/*" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="movies" element={<MovieManagement />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="security" element={<Security />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+          <Route path="*" element={
+            <>
+              <Navbar />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/movies" element={<Movies />} />
+                <Route path="/series" element={<Series />} />
+                <Route path="/series/:id" element={<SeriesDetail />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/movie/:id" element={<MovieDetail />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
+              </Routes>
+            </>
+          } />
         </Routes>
       </div>
     </Router>

@@ -7,18 +7,21 @@ import { toast } from "sonner";
 
 interface MovieUploadFormProps {
   onSuccess?: () => void;
+  initialData?: any;
+  isEditing?: boolean;
+  onSubmit?: (formData: any) => Promise<void>;
 }
 
-const MovieUploadForm = ({ onSuccess }: MovieUploadFormProps) => {
+const MovieUploadForm = ({ onSuccess, initialData, isEditing = false, onSubmit }: MovieUploadFormProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    title: "",
-    youtubeId: "",
-    thumbnailUrl: "",
-    description: "",
-    genre: "",
-    language: "Amharic",
-    durationMinutes: 0,
+    title: initialData?.title || "",
+    youtubeId: initialData?.youtube_id || "",
+    thumbnailUrl: initialData?.thumbnail_url || "",
+    description: initialData?.description || "",
+    genre: initialData?.genre || "",
+    language: initialData?.language || "Amharic",
+    durationMinutes: initialData?.duration_minutes || 0,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,8 +29,8 @@ const MovieUploadForm = ({ onSuccess }: MovieUploadFormProps) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.from("movies").insert([
-        {
+      if (isEditing && onSubmit) {
+        await onSubmit({
           title: formData.title,
           youtube_id: formData.youtubeId,
           thumbnail_url: formData.thumbnailUrl,
@@ -35,21 +38,24 @@ const MovieUploadForm = ({ onSuccess }: MovieUploadFormProps) => {
           genre: formData.genre,
           language: formData.language,
           duration_minutes: formData.durationMinutes,
-        },
-      ]);
+        });
+      } else {
+        const { error } = await supabase.from("movies").insert([
+          {
+            title: formData.title,
+            youtube_id: formData.youtubeId,
+            thumbnail_url: formData.thumbnailUrl,
+            description: formData.description,
+            genre: formData.genre,
+            language: formData.language,
+            duration_minutes: formData.durationMinutes,
+          },
+        ]);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success("Movie uploaded successfully!");
+      }
 
-      toast.success("Movie uploaded successfully!");
-      setFormData({
-        title: "",
-        youtubeId: "",
-        thumbnailUrl: "",
-        description: "",
-        genre: "",
-        language: "Amharic",
-        durationMinutes: 0,
-      });
       onSuccess?.();
     } catch (error: any) {
       toast.error(error.message);
@@ -127,7 +133,7 @@ const MovieUploadForm = ({ onSuccess }: MovieUploadFormProps) => {
         className="w-full bg-netflix-red hover:bg-netflix-red/90"
         disabled={loading}
       >
-        {loading ? "Uploading..." : "Upload Movie"}
+        {loading ? (isEditing ? "Updating..." : "Uploading...") : (isEditing ? "Update Movie" : "Upload Movie")}
       </Button>
     </form>
   );
