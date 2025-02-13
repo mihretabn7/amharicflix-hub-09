@@ -7,7 +7,7 @@ import { StatCard } from "@/components/admin/StatCard";
 import { AnalyticsSection } from "@/components/admin/AnalyticsSection";
 import SecuritySettings from "@/components/admin/SecuritySettings";
 import { Film, Users, PlayCircle, Wallet } from "lucide-react";
-import { NotificationCenter } from "@/components/admin/NotificationCenter";
+import NotificationCenter from "@/components/admin/NotificationCenter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
