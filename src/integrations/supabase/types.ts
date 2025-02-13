@@ -494,7 +494,11 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      notification_type:
+        | "report"
+        | "new_movie"
+        | "system_alert"
+        | "security_warning"
     }
     CompositeTypes: {
       [_ in never]: never

@@ -5,7 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardHeader } from "@/components/admin/DashboardHeader";
 import { StatCard } from "@/components/admin/StatCard";
 import { AnalyticsSection } from "@/components/admin/AnalyticsSection";
+import SecuritySettings from "@/components/admin/SecuritySettings";
 import { Film, Users, PlayCircle, Wallet } from "lucide-react";
+import { NotificationCenter } from "@/components/admin/NotificationCenter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Dashboard = () => {
     const { data: stats, refetch } = useQuery({
@@ -27,6 +31,19 @@ const Dashboard = () => {
                 totalViews: totalViews || 0,
                 revenue: 0 // Placeholder for future implementation
             };
+        }
+    });
+
+    // Query system alerts
+    const { data: systemAlerts } = useQuery({
+        queryKey: ['system-alerts'],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from('system_alerts')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(5);
+            return data;
         }
     });
 
@@ -83,7 +100,48 @@ const Dashboard = () => {
                     />
                 </div>
 
-                <AnalyticsSection />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                        <SecuritySettings />
+                        <AnalyticsSection />
+                    </div>
+                    
+                    <div className="space-y-4">
+                        <NotificationCenter />
+                        
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>System Alerts</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ScrollArea className="h-[300px]">
+                                    <div className="space-y-4">
+                                        {systemAlerts?.map((alert) => (
+                                            <div
+                                                key={alert.id}
+                                                className={`p-4 rounded-lg border ${
+                                                    alert.severity === 'warning'
+                                                        ? 'bg-yellow-50 border-yellow-200'
+                                                        : alert.severity === 'error'
+                                                        ? 'bg-red-50 border-red-200'
+                                                        : 'bg-blue-50 border-blue-200'
+                                                }`}
+                                            >
+                                                <h4 className="font-medium">{alert.title}</h4>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {alert.message}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground mt-2">
+                                                    {new Date(alert.created_at).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
             </main>
         </div>
     );
