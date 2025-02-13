@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import MovieTable from "@/components/MovieTable";
@@ -73,105 +74,56 @@ const Dashboard = () => {
         date: i + 1,
         value: Math.floor(Math.random() * 1000) + 500
     })));
+=======
 
-    const tabs = [
-        {
-            id: "overview",
-            label: "Overview",
-            icon: LayoutDashboard,
-            content: <AdminStats />,
-            description: "Platform overview and key metrics"
-        },
-        {
-            id: "movies",
-            label: "Movies",
-            icon: Film,
-            content: <MovieTable />,
-            description: "Manage movies and content"
-        },
-        {
-            id: "series",
-            label: "Series",
-            icon: Clapperboard,
-            content: <SeriesManagement />,
-            description: "Manage series and episodes"
-        },
-        {
-            id: "reports",
-            label: "Reports",
-            icon: AlertTriangle,
-            content: <ReportManagement />,
-            description: "Handle user reports and content flags"
-        },
-        {
-            id: "users",
-            label: "Users",
-            icon: Users,
-            content: <UserManagement />,
-            description: "Manage user accounts and permissions"
-        },
-        {
-            id: "upload",
-            label: "Upload",
-            icon: Upload,
-            content: <ContentUpload />,
-            description: "Upload and process new content"
-        },
-        {
-            id: "analytics",
-            label: "Analytics",
-            icon: BarChart3,
-            content: <Analytics />,
-            description: "View detailed platform analytics"
-        },
-        {
-            id: "notifications",
-            label: "Notifications",
-            icon: Bell,
-            content: <NotificationCenter />,
-            description: "Manage system notifications"
-        },
-        {
-            id: "security",
-            label: "Security",
-            icon: Shield,
-            content: <SecuritySettings />,
-            description: "Platform security settings"
-        },
-        {
-            id: "settings",
-            label: "Settings",
-            icon: SettingsIcon,
-            content: <Settings />,
-            description: "Admin panel settings"
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { DashboardHeader } from "@/components/admin/DashboardHeader";
+import { StatCard } from "@/components/admin/StatCard";
+import { AnalyticsSection } from "@/components/admin/AnalyticsSection";
+import { Film, Users, PlayCircle, Wallet } from "lucide-react";
+
+const Dashboard = () => {
+    const { data: stats, refetch } = useQuery({
+        queryKey: ['dashboard-stats'],
+        queryFn: async () => {
+            const [
+                { count: totalMovies },
+                { count: totalUsers },
+                { count: totalViews }
+            ] = await Promise.all([
+                supabase.from('movies').select('*', { count: 'exact', head: true }),
+                supabase.from('profiles').select('*', { count: 'exact', head: true }),
+                supabase.from('user_movie_history').select('*', { count: 'exact', head: true })
+            ]);
+>>>>>>> a70cf498d6f913c2e1ae862edf458a6d4b9e0013
+
+            return {
+                totalMovies: totalMovies || 0,
+                totalUsers: totalUsers || 0,
+                totalViews: totalViews || 0,
+                revenue: 0 // Placeholder for future implementation
+            };
         }
-    ];
+    });
 
-    const NavItem = ({ tab, onClick }: { tab: typeof tabs[0], onClick?: () => void }) => {
-        const Icon = tab.icon;
-        return (
-            <button
-                onClick={() => {
-                    setActiveTab(tab.id);
-                    onClick?.();
-                }}
-                className={cn(
-                    "flex items-center space-x-3 w-full px-4 py-3 text-sm rounded-lg transition-colors",
-                    activeTab === tab.id
-                        ? "bg-primary text-primary-foreground font-medium"
-                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                )}
-            >
-                <Icon className="h-5 w-5" />
-                <div className="flex-1 text-left">
-                    <div>{tab.label}</div>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                        {tab.description}
-                    </p>
-                </div>
-            </button>
-        );
-    };
+    useEffect(() => {
+        // Set up real-time listeners
+        const channel = supabase.channel('dashboard-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public' },
+                () => {
+                    refetch();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [refetch]);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -187,6 +139,7 @@ const Dashboard = () => {
     }, []);
 
     return (
+<<<<<<< HEAD
         <div className="p-8 bg-[#1a1f37] min-h-screen">
             {/* Top Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -323,6 +276,45 @@ const Dashboard = () => {
                     </div>
                 </CardContent>
             </Card>
+=======
+        <div className="min-h-screen bg-background">
+            <DashboardHeader />
+            
+            <main className="p-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatCard
+                        title="Total Revenue"
+                        value={`$${stats?.revenue || 0}`}
+                        change={15}
+                        icon={<Wallet className="h-4 w-4 text-muted-foreground" />}
+                        date="May 20 - Jun 20 2024"
+                    />
+                    <StatCard
+                        title="Total Movies"
+                        value={stats?.totalMovies || 0}
+                        change={5}
+                        icon={<Film className="h-4 w-4 text-muted-foreground" />}
+                        date="May 20 - Jun 20 2024"
+                    />
+                    <StatCard
+                        title="Total Users"
+                        value={stats?.totalUsers || 0}
+                        change={12}
+                        icon={<Users className="h-4 w-4 text-muted-foreground" />}
+                        date="May 20 - Jun 20 2024"
+                    />
+                    <StatCard
+                        title="Total Views"
+                        value={stats?.totalViews || 0}
+                        change={8}
+                        icon={<PlayCircle className="h-4 w-4 text-muted-foreground" />}
+                        date="May 20 - Jun 20 2024"
+                    />
+                </div>
+
+                <AnalyticsSection />
+            </main>
+>>>>>>> a70cf498d6f913c2e1ae862edf458a6d4b9e0013
         </div>
     );
 };
