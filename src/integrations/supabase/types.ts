@@ -474,6 +474,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_report_status_values: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          status_value: string
+        }[]
+      }
       increment_movie_share_count: {
         Args: {
           movie_id: string
@@ -494,6 +500,7 @@ export type Database = {
       }
     }
     Enums: {
+      movie_reports_status: "pending" | "resolved" | "dismissed" | "new_value"
       notification_type:
         | "report"
         | "new_movie"
