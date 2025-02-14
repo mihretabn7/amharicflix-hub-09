@@ -23,13 +23,11 @@ const MovieReportModal = ({ movieId, userId }: MovieReportModalProps) => {
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
-        .from('movie_reports')
-        .insert({
-          movie_id: movieId,
-          reporter_id: userId,
-          reason: reason
-        });
+      const { error } = await supabase.rpc('submit_report', {
+        p_movie_id: movieId,
+        p_reporter_id: userId,
+        p_reason: reason
+      });
 
       if (error) throw error;
 
