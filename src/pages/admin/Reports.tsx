@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,12 +60,8 @@ export default function Reports() {
             if (!report) throw new Error('Report not found');
             if (report.status !== 'pending') throw new Error('Report already processed');
 
-            // Try with these status values
+            // Use the correct status values based on our enum
             const newStatus = action === 'resolve' ? 'done' : 'cancel';
-            // Or try these
-            // const newStatus = action === 'resolve' ? 'completed' : 'cancelled';
-            // Or these
-            // const newStatus = action === 'resolve' ? 'accept' : 'decline';
 
             const { error } = await supabase
                 .from('movie_reports')
@@ -76,18 +73,9 @@ export default function Reports() {
                 })
                 .eq('id', reportId);
 
-            if (error) {
-                console.error('Update error details:', {
-                    error,
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    status: newStatus // Log the attempted status value
-                });
-                throw error;
-            }
+            if (error) throw error;
 
-            toast.success(`Report ${newStatus} successfully`);
+            toast.success(`Report ${action === 'resolve' ? 'resolved' : 'rejected'} successfully`);
             refetch();
         } catch (error: any) {
             console.error('Resolution error details:', error);
@@ -199,11 +187,12 @@ export default function Reports() {
                                                         Reported by: {report.reporter?.username}
                                                     </p>
                                                 </div>
-                                                <span className={`px-2 py-1 rounded-full text-xs ${report.status === 'resolved'
-                                                    ? 'bg-green-500/10 text-green-500'
-                                                    : 'bg-red-500/10 text-red-500'
-                                                    }`}>
-                                                    {report.status === 'resolved' ? 'Resolved' : 'Rejected'}
+                                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                                    report.status === 'done'
+                                                        ? 'bg-green-500/10 text-green-500'
+                                                        : 'bg-red-500/10 text-red-500'
+                                                }`}>
+                                                    {report.status === 'done' ? 'Resolved' : 'Rejected'}
                                                 </span>
                                             </div>
                                             <div className="mt-4 p-3 bg-muted rounded-md">
@@ -232,4 +221,4 @@ export default function Reports() {
             </Tabs>
         </div>
     );
-} 
+}
