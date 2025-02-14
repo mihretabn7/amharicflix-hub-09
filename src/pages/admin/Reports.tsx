@@ -49,22 +49,18 @@ export default function Reports() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            // First check if the report exists and isn't already resolved
-            const { data: report } = await supabase
+            const { data: report, error: queryError } = await supabase
                 .from('movie_reports')
-                .select('status')
+                .select('*')
                 .eq('id', reportId)
                 .single();
 
+            if (queryError) throw queryError;
             if (!report) throw new Error('Report not found');
             if (report.status !== 'pending') throw new Error('Report already processed');
 
-            // Try with these status values
-            const newStatus = action === 'resolve' ? 'done' : 'cancel';
-            // Or try these
-            // const newStatus = action === 'resolve' ? 'completed' : 'cancelled';
-            // Or these
-            // const newStatus = action === 'resolve' ? 'accept' : 'decline';
+            // Match the status values used in the UI
+            const newStatus = action === 'resolve' ? 'resolved' : 'rejected';
 
             const { error } = await supabase
                 .from('movie_reports')
@@ -76,16 +72,7 @@ export default function Reports() {
                 })
                 .eq('id', reportId);
 
-            if (error) {
-                console.error('Update error details:', {
-                    error,
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    status: newStatus // Log the attempted status value
-                });
-                throw error;
-            }
+            if (error) throw error;
 
             toast.success(`Report ${newStatus} successfully`);
             refetch();
