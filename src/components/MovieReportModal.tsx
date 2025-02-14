@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,9 +15,14 @@ interface MovieReportModalProps {
 const MovieReportModal = ({ movieId, userId }: MovieReportModalProps) => {
   const [reason, setReason] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
+    
     try {
+      setIsSubmitting(true);
+      
       const { error } = await supabase
         .from('movie_reports')
         .insert({
@@ -31,7 +37,10 @@ const MovieReportModal = ({ movieId, userId }: MovieReportModalProps) => {
       setIsOpen(false);
       setReason("");
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error("Failed to submit report");
+      console.error('Report submission error:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -55,7 +64,7 @@ const MovieReportModal = ({ movieId, userId }: MovieReportModalProps) => {
           />
           <Button 
             onClick={handleSubmit}
-            disabled={!reason.trim()}
+            disabled={!reason.trim() || isSubmitting}
           >
             Submit Report
           </Button>
