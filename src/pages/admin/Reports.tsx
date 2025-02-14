@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,37 +49,34 @@ export default function Reports() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
+            // First get the current report
             const { data: report, error: queryError } = await supabase
                 .from('movie_reports')
                 .select('*')
                 .eq('id', reportId)
                 .single();
 
+            console.log('Current report:', report);
+
             if (queryError) throw queryError;
             if (!report) throw new Error('Report not found');
             if (report.status !== 'pending') throw new Error('Report already processed');
 
-<<<<<<< HEAD
-            // Match the status values used in the UI
-            const newStatus = action === 'resolve' ? 'resolved' : 'rejected';
-=======
-            // Use the correct status values based on our enum
-            const newStatus = action === 'resolve' ? 'done' : 'cancel';
->>>>>>> 79e78660b579bde474d3091cdf4660da8148eabf
-
+            // Use the exact values from the database
             const { error } = await supabase
                 .from('movie_reports')
                 .update({
-                    status: newStatus,
-                    resolved_at: new Date().toISOString(),
-                    resolved_by: user.id,
-                    admin_notes: action === 'reject' ? 'Report rejected by admin' : 'Report resolved by admin'
+                    status: action === 'resolve' ? 'done' : 'cancel',  // Using actual values from DB
+                    resolved_by: user.id
                 })
                 .eq('id', reportId);
 
-            if (error) throw error;
+            if (error) {
+                console.error('Update error:', error);
+                throw error;
+            }
 
-            toast.success(`Report ${action === 'resolve' ? 'resolved' : 'rejected'} successfully`);
+            toast.success(`Report ${action === 'resolve' ? 'resolved' : 'cancelled'} successfully`);
             refetch();
         } catch (error: any) {
             console.error('Resolution error details:', error);
@@ -192,11 +188,10 @@ export default function Reports() {
                                                         Reported by: {report.reporter?.username}
                                                     </p>
                                                 </div>
-                                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                                    report.status === 'done'
-                                                        ? 'bg-green-500/10 text-green-500'
-                                                        : 'bg-red-500/10 text-red-500'
-                                                }`}>
+                                                <span className={`px-2 py-1 rounded-full text-xs ${report.status === 'done'
+                                                    ? 'bg-green-500/10 text-green-500'
+                                                    : 'bg-red-500/10 text-red-500'
+                                                    }`}>
                                                     {report.status === 'done' ? 'Resolved' : 'Rejected'}
                                                 </span>
                                             </div>
