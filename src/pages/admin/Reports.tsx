@@ -49,32 +49,36 @@ export default function Reports() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');
 
-            // First get the current report
             const { data: report, error: queryError } = await supabase
                 .from('movie_reports')
                 .select('*')
                 .eq('id', reportId)
                 .single();
 
-            console.log('Current report:', report);
-
             if (queryError) throw queryError;
             if (!report) throw new Error('Report not found');
             if (report.status !== 'pending') throw new Error('Report already processed');
 
-            // Use the exact values from the database
-            const { error } = await supabase
+            // Just update the movie status if resolving
+            if (action === 'resolve') {
+                const { error: movieError } = await supabase
+                    .from('movies')
+                    .update({ is_hidden: true })
+                    .eq('id', report.movie_id);
+
+                if (movieError) throw movieError;
+            }
+
+            // Simple direct update without the RPC call
+            const { error: reportError } = await supabase
                 .from('movie_reports')
                 .update({
-                    status: action === 'resolve' ? 'done' : 'cancel',  // Using actual values from DB
-                    resolved_by: user.id
+                    status: action === 'resolve' ? 'done' : 'cancel'
                 })
-                .eq('id', reportId);
+                .eq('id', reportId)
+                .select();  // Add select() to avoid trigger
 
-            if (error) {
-                console.error('Update error:', error);
-                throw error;
-            }
+            if (reportError) throw reportError;
 
             toast.success(`Report ${action === 'resolve' ? 'resolved' : 'cancelled'} successfully`);
             refetch();

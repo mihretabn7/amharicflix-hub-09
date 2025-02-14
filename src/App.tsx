@@ -19,7 +19,6 @@ import DashboardLayout from "@/components/admin/DashboardLayout";
 import MovieManagement from "@/pages/admin/MovieManagement";
 import UserManagement from "@/pages/admin/UserManagement";
 import Reports from "@/pages/admin/Reports";
-import Notifications from "@/pages/admin/Notifications";
 import Security from "@/pages/admin/Security";
 import Settings from "@/pages/admin/Settings";
 
@@ -82,7 +81,6 @@ function App() {
             <Route path="movies" element={<MovieManagement />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="reports" element={<Reports />} />
-            <Route path="notifications" element={<Notifications />} />
             <Route path="security" element={<Security />} />
             <Route path="settings" element={<Settings />} />
           </Route>

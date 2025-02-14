@@ -49,60 +49,23 @@ export default function MovieManagement() {
 
     // Filter movies based on search and filters
     const filteredMovies = movies?.filter(movie => {
-        const matchesSearch = 
+        const matchesSearch =
             movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             movie.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             movie.genre?.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesGenre = filterGenre === "all" || movie.genre === filterGenre;
         const matchesLanguage = filterLanguage === "all" || movie.language === filterLanguage;
-        const matchesVisibility = filterVisibility === "all" || 
+        const matchesVisibility = filterVisibility === "all" ||
             (filterVisibility === "visible" && !movie.is_hidden) ||
             (filterVisibility === "hidden" && movie.is_hidden);
 
         return matchesSearch && matchesGenre && matchesLanguage && matchesVisibility;
     });
 
-    // Subscribe to report notifications
+    // Remove the notification subscription
     useEffect(() => {
-        const channel = supabase.channel('report-notifications')
-            .on(
-                'postgres_changes',
-                {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'movie_reports'
-                },
-                async (payload) => {
-                    const { data: report } = await supabase
-                        .from('movie_reports')
-                        .select(`
-                            *,
-                            movie:movies!movie_id(title),
-                            reporter:profiles!reporter_id(username)
-                        `)
-                        .eq('id', payload.new.id)
-                        .single();
-
-                    if (report) {
-                        toast.warning(
-                            `New report for "${report.movie.title}"`,
-                            {
-                                description: `Reported by ${report.reporter.username}`,
-                                action: {
-                                    label: 'View Reports',
-                                    onClick: () => window.location.href = '/admin/reports'
-                                }
-                            }
-                        );
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        // Any other effects you need...
     }, []);
 
     const columns: ColumnDef<any>[] = [

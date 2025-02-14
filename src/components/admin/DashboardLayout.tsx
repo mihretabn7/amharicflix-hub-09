@@ -8,14 +8,12 @@ import {
     Users,
     AlertTriangle,
     Settings,
-    Bell,
     Shield,
     Menu,
     X,
     LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ReportNotifications from './ReportNotifications';
 
 const sidebarItems = [
     {
@@ -37,11 +35,6 @@ const sidebarItems = [
         title: "Reports",
         icon: AlertTriangle,
         path: "/admin/reports"
-    },
-    {
-        title: "Notifications",
-        icon: Bell,
-        path: "/admin/notifications"
     },
     {
         title: "Security",
@@ -69,7 +62,6 @@ export default function DashboardLayout() {
     return (
         <div className="min-h-screen bg-black">
             <Navbar />
-            <ReportNotifications />
             {/* Admin Sidebar */}
             <div
                 className={cn(
