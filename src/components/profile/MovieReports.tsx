@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateTime } from "@/utils/date-utils";
@@ -33,13 +32,18 @@ export const MovieReports = ({ reports }: { reports: MovieReport[] }) => {
                   <p className="text-sm text-muted-foreground mt-1">{report.reason}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${
-                        report.status === "resolved"
+                      className={`text-xs px-2 py-0.5 rounded-full ${report.status === "done"
                           ? "bg-green-500/10 text-green-500"
-                          : "bg-yellow-500/10 text-yellow-500"
-                      }`}
+                          : report.status === "cancel"
+                            ? "bg-red-500/10 text-red-500"
+                            : "bg-yellow-500/10 text-yellow-500"
+                        }`}
                     >
-                      {report.status === "resolved" ? "Resolved" : "Pending"}
+                      {report.status === "done"
+                        ? "Resolved"
+                        : report.status === "cancel"
+                          ? "Rejected"
+                          : "Pending"}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {formatDateTime(report.created_at)}

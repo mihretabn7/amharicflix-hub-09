@@ -13,7 +13,22 @@ export default function Reports() {
         queryFn: async () => {
             const { data } = await supabase
                 .from('movie_reports')
-                .select('*')
+                .select(`
+                    *,
+                    movie:movies!movie_id(
+                        id,
+                        title,
+                        thumbnail_url,
+                        youtube_id
+                    ),
+                    reporter:profiles!reporter_id(
+                        username,
+                        email
+                    ),
+                    resolver:profiles!resolved_by(
+                        username
+                    )
+                `)
                 .order('created_at', { ascending: false });
             return data;
         }
