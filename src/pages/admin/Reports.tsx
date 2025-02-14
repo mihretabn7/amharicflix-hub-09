@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,34 +11,41 @@ export default function Reports() {
     const { data: reports, refetch } = useQuery({
         queryKey: ['reports'],
         queryFn: async () => {
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('movie_reports')
-                .select(`
-                    *,
-                    movie:movies!movie_id(
-                        id,
-                        title,
-                        thumbnail_url,
-                        youtube_id
-                    ),
-                    reporter:profiles!reporter_id(
-                        username,
-                        email
-                    ),
-                    resolver:profiles!resolved_by(
-                        username
-                    )
-                `)
+                .select('*')
                 .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Reports query error:', error);
-                throw error;
-            }
-
-            return data || [];
+            return data;
         }
     });
+
+    // Add real-time subscription for new reports
+    useEffect(() => {
+        const channel = supabase.channel('reports-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'movie_reports'
+                },
+                (payload) => {
+                    // Refetch reports when any change occurs
+                    refetch();
+
+                    // Show toast for new reports
+                    if (payload.eventType === 'INSERT') {
+                        toast.info('New report received');
+                    }
+                }
+            )
+            .subscribe();
+
+        // Cleanup subscription
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [refetch]);
 
     const handlePreviewVideo = (youtubeId: string) => {
         window.open(`https://www.youtube.com/watch?v=${youtubeId}`, '_blank');
