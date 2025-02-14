@@ -5,21 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import MovieUploadForm from "@/components/MovieUploadForm";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { Edit, Trash2, Eye, EyeOff, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function MovieManagement() {
     const [selectedMovie, setSelectedMovie] = useState<any>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterGenre, setFilterGenre] = useState<string>("all");
+    const [filterLanguage, setFilterLanguage] = useState<string>("all");
+    const [filterVisibility, setFilterVisibility] = useState<string>("all");
 
     const { data: movies, refetch } = useQuery({
         queryKey: ['movies'],
         queryFn: async () => {
             const { data, error } = await supabase
                 .from('movies')
-                .select('*')  // Simplified query first to debug
+                .select('*')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -27,10 +39,71 @@ export default function MovieManagement() {
                 throw error;
             }
 
-            console.log('Movies data:', data); // Let's see what we're getting
-            return data || []; // Ensure we return an empty array if data is null
+            return data || [];
         }
     });
+
+    // Get unique genres and languages for filters
+    const genres = [...new Set(movies?.map(movie => movie.genre).filter(Boolean))];
+    const languages = [...new Set(movies?.map(movie => movie.language).filter(Boolean))];
+
+    // Filter movies based on search and filters
+    const filteredMovies = movies?.filter(movie => {
+        const matchesSearch = 
+            movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            movie.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            movie.genre?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesGenre = filterGenre === "all" || movie.genre === filterGenre;
+        const matchesLanguage = filterLanguage === "all" || movie.language === filterLanguage;
+        const matchesVisibility = filterVisibility === "all" || 
+            (filterVisibility === "visible" && !movie.is_hidden) ||
+            (filterVisibility === "hidden" && movie.is_hidden);
+
+        return matchesSearch && matchesGenre && matchesLanguage && matchesVisibility;
+    });
+
+    // Subscribe to report notifications
+    useEffect(() => {
+        const channel = supabase.channel('report-notifications')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'movie_reports'
+                },
+                async (payload) => {
+                    const { data: report } = await supabase
+                        .from('movie_reports')
+                        .select(`
+                            *,
+                            movie:movies!movie_id(title),
+                            reporter:profiles!reporter_id(username)
+                        `)
+                        .eq('id', payload.new.id)
+                        .single();
+
+                    if (report) {
+                        toast.warning(
+                            `New report for "${report.movie.title}"`,
+                            {
+                                description: `Reported by ${report.reporter.username}`,
+                                action: {
+                                    label: 'View Reports',
+                                    onClick: () => window.location.href = '/admin/reports'
+                                }
+                            }
+                        );
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
 
     const columns: ColumnDef<any>[] = [
         {
@@ -215,8 +288,58 @@ export default function MovieManagement() {
                 </Dialog>
             </div>
 
+            <div className="mb-6 space-y-4">
+                <div className="flex gap-4">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder="Search movies..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
+                    <Select value={filterGenre} onValueChange={setFilterGenre}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by genre" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Genres</SelectItem>
+                            {genres.map((genre) => (
+                                <SelectItem key={genre} value={genre}>
+                                    {genre}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Languages</SelectItem>
+                            {languages.map((language) => (
+                                <SelectItem key={language} value={language}>
+                                    {language}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={filterVisibility} onValueChange={setFilterVisibility}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by visibility" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="visible">Visible</SelectItem>
+                            <SelectItem value="hidden">Hidden</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
             <DataTable
-                data={movies || []}
+                data={filteredMovies || []}
                 columns={columns}
             />
 
@@ -236,4 +359,4 @@ export default function MovieManagement() {
             </Dialog>
         </div>
     );
-} 
+}
