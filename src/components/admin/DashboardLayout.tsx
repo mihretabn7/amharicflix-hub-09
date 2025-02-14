@@ -11,7 +11,8 @@ import {
     Shield,
     Menu,
     X,
-    LogOut
+    LogOut,
+    BarChart2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -45,6 +46,11 @@ const sidebarItems = [
         title: "Settings",
         icon: Settings,
         path: "/admin/settings"
+    },
+    {
+        title: "Analytics",
+        icon: BarChart2,
+        path: "/admin/analytics"
     }
 ];
 

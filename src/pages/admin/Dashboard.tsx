@@ -1,11 +1,11 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardHeader } from "@/components/admin/DashboardHeader";
 import { StatCard } from "@/components/admin/StatCard";
 import { AnalyticsSection } from "@/components/admin/AnalyticsSection";
 import SecuritySettings from "@/components/admin/SecuritySettings";
-import { Film, Users, PlayCircle, Wallet } from "lucide-react";
+import { Film, Users, PlayCircle, Wallet, AlertTriangle } from "lucide-react";
 import NotificationCenter from "@/components/admin/NotificationCenter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,26 +25,122 @@ import {
     Pie,
     Cell
 } from "recharts";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+// Add these interfaces at the top
+interface MovieView {
+    movie_id: string;
+    movie: { title: string };
+}
+
+interface MovieRating {
+    movie_id: string;
+    movie: { title: string };
+    rating: number;
+}
 
 const Dashboard = () => {
+    const [timeRange, setTimeRange] = useState<TimeRange>('daily');
+
+    // Stats query with time range
     const { data: stats, refetch } = useQuery({
-        queryKey: ['dashboard-stats'],
+        queryKey: ['dashboard-stats', timeRange],
         queryFn: async () => {
-            const [
-                { count: totalMovies },
-                { count: totalUsers },
-                { count: totalViews }
-            ] = await Promise.all([
-                supabase.from('movies').select('*', { count: 'exact', head: true }),
-                supabase.from('profiles').select('*', { count: 'exact', head: true }),
-                supabase.from('user_movie_history').select('*', { count: 'exact', head: true })
+            const timeAgo = new Date();
+            switch (timeRange) {
+                case 'yearly':
+                    timeAgo.setFullYear(timeAgo.getFullYear() - 1);
+                    break;
+                case 'monthly':
+                    timeAgo.setMonth(timeAgo.getMonth() - 1);
+                    break;
+                case 'weekly':
+                    timeAgo.setDate(timeAgo.getDate() - 7);
+                    break;
+                case 'daily':
+                    timeAgo.setDate(timeAgo.getDate() - 1);
+                    break;
+            }
+
+            const [reports, views, ratings] = await Promise.all([
+                // Reports stats
+                supabase
+                    .from('movie_reports')
+                    .select('*')
+                    .gte('created_at', timeAgo.toISOString()),
+
+                // Views stats
+                supabase
+                    .from('user_movie_history')
+                    .select(`
+                        *,
+                        movie:movies(title)
+                    `)
+                    .gte('watched_at', timeAgo.toISOString()),
+
+                // Ratings stats
+                supabase
+                    .from('movie_ratings')
+                    .select(`
+                        *,
+                        movie:movies(title)
+                    `)
+                    .gte('created_at', timeAgo.toISOString())
             ]);
 
+            // Process stats
+            const topViewedMovies = (views.data as MovieView[])?.reduce((acc: any, view) => {
+                acc[view.movie_id] = acc[view.movie_id] || {
+                    title: view.movie.title,
+                    count: 0
+                };
+                acc[view.movie_id].count++;
+                return acc;
+            }, {});
+
+            const topRatedMovies = (ratings.data as MovieRating[])?.reduce((acc: any, rating) => {
+                acc[rating.movie_id] = acc[rating.movie_id] || {
+                    title: rating.movie.title,
+                    ratings: [],
+                    avgRating: 0
+                };
+                acc[rating.movie_id].ratings.push(rating.rating);
+                acc[rating.movie_id].avgRating =
+                    acc[rating.movie_id].ratings.reduce((a: number, b: number) => a + b, 0) /
+                    acc[rating.movie_id].ratings.length;
+                return acc;
+            }, {});
+
+            const { data: moviesCount } = await supabase
+                .from('movies')
+                .select('id', { count: 'exact', head: true }) as { data: any, count: number };
+
+            const { data: usersCount } = await supabase
+                .from('profiles')
+                .select('id', { count: 'exact', head: true }) as { data: any, count: number };
+
+            // In the queryFn, add status distribution data
+            const reportsStatusData = [
+                { name: 'Pending', value: reports.data?.filter(r => r.status === 'pending').length || 0 },
+                { name: 'Done', value: reports.data?.filter(r => r.status === 'done').length || 0 },
+                { name: 'Cancelled', value: reports.data?.filter(r => r.status === 'cancel').length || 0 }
+            ];
+
             return {
-                totalMovies: totalMovies || 0,
-                totalUsers: totalUsers || 0,
-                totalViews: totalViews || 0,
-                revenue: 0 // Placeholder for future implementation
+                reportsCount: reports.data?.length || 0,
+                viewsCount: views.data?.length || 0,
+                ratingsCount: ratings.data?.length || 0,
+                totalMovies: moviesCount?.count || 0,
+                totalUsers: usersCount?.count || 0,
+                topViewed: Object.entries(topViewedMovies || {})
+                    .sort(([, a]: any, [, b]: any) => b.count - a.count)
+                    .slice(0, 5),
+                topRated: Object.entries(topRatedMovies || {})
+                    .sort(([, a]: any, [, b]: any) => b.avgRating - a.avgRating)
+                    .slice(0, 5),
+                reportsStatusData
             };
         }
     });
@@ -99,15 +195,35 @@ const Dashboard = () => {
         }
     });
 
+    // Real-time updates
     useEffect(() => {
-        // Set up real-time listeners
         const channel = supabase.channel('dashboard-changes')
             .on(
                 'postgres_changes',
-                { event: '*', schema: 'public' },
-                () => {
-                    refetch();
-                }
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'movie_reports'
+                },
+                () => refetch()
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'user_movie_history'
+                },
+                () => refetch()
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'movie_ratings'
+                },
+                () => refetch()
             )
             .subscribe();
 
@@ -125,6 +241,14 @@ const Dashboard = () => {
                     <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
                         Dashboard Overview
                     </h2>
+                    <Tabs value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
+                        <TabsList>
+                            <TabsTrigger value="daily">Daily</TabsTrigger>
+                            <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                            <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                            <TabsTrigger value="yearly">Yearly</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button
@@ -158,32 +282,24 @@ const Dashboard = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
-                        title="Total Revenue"
-                        value={`$${stats?.revenue || 0}`}
-                        change={15}
-                        icon={<Wallet className="h-8 w-8 text-green-500" />}
-                        date="May 20 - Jun 20 2024"
-                    />
-                    <StatCard
                         title="Total Movies"
                         value={stats?.totalMovies || 0}
-                        change={5}
                         icon={<Film className="h-8 w-8 text-blue-500" />}
-                        date="May 20 - Jun 20 2024"
                     />
                     <StatCard
                         title="Total Users"
                         value={stats?.totalUsers || 0}
-                        change={12}
                         icon={<Users className="h-8 w-8 text-purple-500" />}
-                        date="May 20 - Jun 20 2024"
                     />
                     <StatCard
                         title="Total Views"
-                        value={stats?.totalViews || 0}
-                        change={8}
+                        value={stats?.viewsCount || 0}
                         icon={<PlayCircle className="h-8 w-8 text-orange-500" />}
-                        date="May 20 - Jun 20 2024"
+                    />
+                    <StatCard
+                        title="Total Reports"
+                        value={stats?.reportsCount || 0}
+                        icon={<AlertTriangle className="h-8 w-8 text-red-500" />}
                     />
                 </div>
 
@@ -240,21 +356,17 @@ const Dashboard = () => {
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
-                                            data={[
-                                                { name: 'Pending', value: reportsStats?.statusCount.pending || 0 },
-                                                { name: 'Resolved', value: reportsStats?.statusCount.resolved || 0 },
-                                                { name: 'Rejected', value: reportsStats?.statusCount.rejected || 0 }
-                                            ]}
+                                            data={stats?.reportsStatusData}
+                                            dataKey="value"
+                                            nameKey="name"
                                             cx="50%"
                                             cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
-                                            dataKey="value"
+                                            outerRadius={100}
+                                            label
                                         >
-                                            <Cell fill="#f59e0b" /> {/* Pending - Amber */}
-                                            <Cell fill="#22c55e" /> {/* Resolved - Green */}
-                                            <Cell fill="#ef4444" /> {/* Rejected - Red */}
+                                            <Cell fill="#fbbf24" /> {/* Pending - Amber */}
+                                            <Cell fill="#22c55e" /> {/* Done - Green */}
+                                            <Cell fill="#ef4444" /> {/* Cancelled - Red */}
                                         </Pie>
                                         <Tooltip />
                                     </PieChart>
@@ -262,15 +374,15 @@ const Dashboard = () => {
                                 <div className="flex justify-center gap-4 mt-4">
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-amber-500" />
-                                        <span className="text-sm">Pending ({reportsStats?.statusCount.pending})</span>
+                                        <span className="text-sm">Pending</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-green-500" />
-                                        <span className="text-sm">Resolved ({reportsStats?.statusCount.resolved})</span>
+                                        <span className="text-sm">Done</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 rounded-full bg-red-500" />
-                                        <span className="text-sm">Rejected ({reportsStats?.statusCount.rejected})</span>
+                                        <span className="text-sm">Cancelled</span>
                                     </div>
                                 </div>
                             </div>
@@ -292,6 +404,52 @@ const Dashboard = () => {
                                         <Bar dataKey="reports" fill="#4b5563" />
                                     </BarChart>
                                 </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Detailed Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Top Viewed */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Most Viewed Movies</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {stats?.topViewed.map(([id, data]: any) => (
+                                    <div key={id} className="flex items-center justify-between p-2 rounded-lg bg-accent/50">
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">{data.title}</span>
+                                            <span className="text-sm text-muted-foreground">
+                                                {data.count} views
+                                            </span>
+                                        </div>
+                                        <div className="text-xl font-bold">
+                                            #{stats.topViewed.findIndex((item: any) => item[0] === id) + 1}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Top Rated */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Top Rated Movies</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-2">
+                                {stats?.topRated.map(([id, data]: any) => (
+                                    <div key={id} className="flex justify-between">
+                                        <span className="truncate">{data.title}</span>
+                                        <span className="font-bold">
+                                            {data.avgRating.toFixed(1)}★
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         </CardContent>
                     </Card>

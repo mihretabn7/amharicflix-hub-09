@@ -21,6 +21,7 @@ import UserManagement from "@/pages/admin/UserManagement";
 import Reports from "@/pages/admin/Reports";
 import Security from "@/pages/admin/Security";
 import Settings from "@/pages/admin/Settings";
+import Analytics from "@/pages/admin/Analytics";
 
 function App() {
   useEffect(() => {
@@ -83,6 +84,7 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="security" element={<Security />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="analytics" element={<Analytics />} />
           </Route>
           <Route path="*" element={
             <>
