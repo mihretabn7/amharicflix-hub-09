@@ -14,6 +14,15 @@ import { DateRange } from "react-day-picker";
 import { DetailedListModal } from "@/components/admin/DetailedListModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+interface MovieData {
+    id: string;
+    title: string;
+    thumbnail_url: string;
+    count: number;
+    rating?: number;
+    ratings?: number[];
+}
+
 interface MovieStats {
     id: string;
     title: string;
@@ -21,6 +30,14 @@ interface MovieStats {
     count: number;
     rating?: number;
     ratings?: number[];
+}
+
+interface ListItem {
+    id: string;
+    title: string;
+    thumbnail_url: string;
+    count: number;
+    suffix?: string;
 }
 
 export default function Analytics() {
@@ -33,12 +50,12 @@ export default function Analytics() {
     // Add state for modal
     const [selectedList, setSelectedList] = useState<{
         type: 'views' | 'ratings' | 'reviews' | 'reports';
-        data: any[];
+        data: ListItem[];
         title: string;
     } | null>(null);
 
     const { data: stats, isLoading, refetch } = useQuery({
-        queryKey: ['dashboard-stats', timeRange],
+        queryKey: ['dashboard-stats', timeRange, dateRange],
         queryFn: async () => {
             const timeAgo = new Date();
             if (timeRange !== 'alltime') {
@@ -64,18 +81,16 @@ export default function Analytics() {
                     `)
                     .gte('created_at', timeAgo.toISOString()),
 
-                // Views stats
+                // Views stats - Fetch watch_count from movies table
                 supabase
-                    .from('user_movie_history')
+                    .from('movies')
                     .select(`
-                        *,
-                        movie:movies(
-                            id,
-                            title,
-                            thumbnail_url
-                        )
+                        id,
+                        title,
+                        thumbnail_url,
+                        watch_count
                     `)
-                    .gte('watched_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01'),
+                    .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01'),
 
                 // Ratings stats
                 supabase
@@ -91,18 +106,13 @@ export default function Analytics() {
                     .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01')
             ]);
 
-            // Process stats
-            const topViewedMovies = views.data?.reduce((acc: any, view) => {
-                if (!view.movie_id || !view.movie?.title) return acc;
-                acc[view.movie_id] = acc[view.movie_id] || {
-                    id: view.movie_id,
-                    title: view.movie.title,
-                    thumbnail_url: view.movie.thumbnail_url,
-                    count: 0
-                };
-                acc[view.movie_id].count++;
-                return acc;
-            }, {});
+            // Process stats - Use watch_count from movies table
+            const topViewedMovies = views.data?.map(movie => ({
+                id: movie.id,
+                title: movie.title,
+                thumbnail_url: movie.thumbnail_url,
+                count: movie.watch_count || 0 // Use watch_count
+            })).sort((a, b) => b.count - a.count).slice(0, 5) || [];
 
             const topRatedMovies = ratings.data?.reduce((acc: any, rating) => {
                 if (!rating.movie_id || !rating.movie?.title) return acc;
@@ -132,9 +142,7 @@ export default function Analytics() {
 
             return {
                 topMovies: {
-                    viewed: Object.values(topViewedMovies || {})
-                        .sort((a: any, b: any) => b.count - a.count)
-                        .slice(0, 5),
+                    viewed: topViewedMovies,
                     rated: Object.values(topRatedMovies || {})
                         .map((movie: any) => ({
                             ...movie,
@@ -153,8 +161,7 @@ export default function Analytics() {
     const handleExport = () => {
         if (!stats) return;
 
-        const csvData = prepareExportData(stats);
-
+        const csvData = prepareExportData(stats, dateRange);
         downloadCSV(csvData, `analytics_${dateRange.from?.toISOString()}_${dateRange.to?.toISOString()}`);
     };
 
@@ -213,7 +220,7 @@ export default function Analytics() {
         };
     }, [refetch]);
 
-    const totalViews = stats?.topMovies.viewed.reduce((sum, c) => sum + c.count, 0) || 1;
+    const totalViews = stats?.topMovies.viewed.reduce((sum: number, c: MovieData) => sum + c.count, 0) || 1;
 
     return (
         <div className="space-y-6">
@@ -241,7 +248,7 @@ export default function Analytics() {
                 {/* Most Viewed Movies */}
                 <Card className="cursor-pointer hover:bg-accent/50" onClick={() => setSelectedList({
                     type: 'views',
-                    data: stats?.topMovies.viewed.map(movie => ({
+                    data: stats?.topMovies.viewed.map((movie: MovieData) => ({
                         id: movie.id,
                         title: movie.title,
                         thumbnail_url: movie.thumbnail_url,
@@ -313,8 +320,11 @@ export default function Analytics() {
                 {/* Most Reported Movies */}
                 <Card className="cursor-pointer hover:bg-accent/50" onClick={() => setSelectedList({
                     type: 'reports',
-                    data: stats?.topMovies.reported.map(movie => ({
-                        ...movie,
+                    data: stats?.topMovies.reported.map((movie: MovieData) => ({
+                        id: movie.id,
+                        title: movie.title,
+                        thumbnail_url: movie.thumbnail_url,
+                        count: movie.count,
                         suffix: 'reports'
                     })) || [],
                     title: 'Most Reported Movies'
@@ -324,7 +334,7 @@ export default function Analytics() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {stats?.topMovies.reported.map((movie: MovieStats, index: number) => (
+                            {stats?.topMovies.reported.map((movie: MovieData, index: number) => (
                                 <div key={movie.id} className="flex items-center gap-4">
                                     <img
                                         src={movie.thumbnail_url}
@@ -350,8 +360,8 @@ export default function Analytics() {
                 onOpenChange={(open) => !open && setSelectedList(null)}
                 title={selectedList?.title || ''}
                 data={selectedList?.data || []}
-                renderItem={(item, index) => (
-                    <div className="flex items-center gap-4 p-4 rounded-lg bg-accent/50">
+                renderItem={(item: ListItem, index) => (
+                    <div key={item.id} className="flex items-center gap-4 p-4 rounded-lg bg-accent/50">
                         <img
                             src={item.thumbnail_url}
                             alt={item.title}
@@ -361,7 +371,7 @@ export default function Analytics() {
                             <h3 className="font-medium">{item.title}</h3>
                             <div className="flex items-center gap-4 mt-1">
                                 <span className="text-sm text-muted-foreground">
-                                    {item.count} {item.suffix}
+                                    {item.count} {item.suffix || selectedList?.type || ''}
                                 </span>
                             </div>
                         </div>
@@ -389,9 +399,9 @@ export default function Analytics() {
                                     <TableCell>
                                         <div
                                             className="bg-blue-100 h-2 rounded-full"
-                                            style={{ width: `${(country.count / totalViews) * 100}%` }}
+                                            style={{ width: `${(Number(country.count || 0) / Number(totalViews || 1)) * 100}%` }}
                                         />
-                                        {((country.count / totalViews) * 100).toFixed(1)}%
+                                        {(Number(country.count || 0) / Number(totalViews || 1) * 100).toFixed(1)}%
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -430,7 +440,7 @@ function generateDailyTrends(data: any[], dateRange: any) {
     };
 }
 
-function prepareExportData(data: any) {
+function prepareExportData(data: any, dateRange: DateRange) {
     const formatDate = (date: string) => new Date(date).toLocaleDateString();
     const formatPercent = (num: number) => `${num.toFixed(1)}%`;
 
