@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,7 +143,7 @@ const Profile = () => {
         averageRating,
         totalReports: reportsResponse.data.length,
         totalWatches: watchHistoryResponse.data.length,
-        totalWatchTime,
+        totalWatchTime: totalWatchTime / 60, // Convert seconds to minutes
         completionRate
       };
     }
