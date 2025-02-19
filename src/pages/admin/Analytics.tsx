@@ -79,7 +79,7 @@ export default function Analytics() {
                             thumbnail_url
                         )
                     `)
-                    .gte('created_at', timeAgo.toISOString()),
+                    .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01'),
 
                 // Views stats - Fetch watch_count from movies table
                 supabase
