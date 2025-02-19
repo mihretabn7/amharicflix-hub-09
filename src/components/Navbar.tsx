@@ -207,7 +207,7 @@ const Navbar = () => {
   );
 
   return (
-    <nav className="fixed top-0 z-50 w-full bg-gradient-to-b from-background to-background/0 px-4 py-4">
+    <nav className="absolute top-0 z-50 w-full px-4 py-4 bg-transparent">
       <div className="container mx-auto flex items-center justify-between">
         <button onClick={() => handleLinkClick("/")} className="flex items-center space-x-2">
           <span className="text-2xl font-bold text-netflix-red">አማርኛFlix</span>

@@ -14,6 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -64,89 +67,127 @@ const Home = () => {
     },
   });
 
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 800,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 5000,
+    pauseOnHover: true,
+    className: "center",
+    centerMode: true,
+    centerPadding: "0px",
+    arrows: false,
+    variableWidth: false,
+    fade: true,
+    responsive: [
+      {
+        breakpoint: 768,
+        settings: {
+          arrows: false,
+          centerMode: true,
+          centerPadding: "0px",
+          slidesToShow: 1
+        }
+      },
+      {
+        breakpoint: 480,
+        settings: {
+          arrows: false,
+          centerMode: true,
+          centerPadding: "0px",
+          slidesToShow: 1
+        }
+      }
+    ]
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-16">
+      <div className="min-h-screen">
         <div className="container mx-auto px-4">
           <div className="h-[70vh] w-full relative overflow-hidden rounded-xl bg-card animate-pulse">
             <div className="absolute inset-0 flex items-center justify-center">
               <Skeleton className="h-8 w-48" />
             </div>
           </div>
-          <div className="mt-12">
-            <Skeleton className="h-8 w-48 mb-6" />
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {[...Array(12)].map((_, i) => (
-                <Skeleton key={i} className="aspect-[2/3] rounded-md" />
-              ))}
-            </div>
-          </div>
         </div>
+
+        <section className="py-12 bg-gradient-to-b from-background/80 to-background">
+          <Card className="container mx-auto px-4">
+            <CardContent className="pt-6">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[...Array(12)].map((_, i) => (
+                  <Skeleton key={i} className="aspect-[2/3] rounded-md" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     );
   }
 
-  const featuredMovie = movies && movies.length > 0 ? movies[0] : null;
+  const featuredMovies = movies ? movies.slice(0, 5) : [];
 
   return (
     <div className="min-h-screen">
-      {featuredMovie && (
-        <div className="relative h-[80vh] w-full">
-          <div
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
-            style={{
-              backgroundImage: `url(${featuredMovie.thumbnail_url})`
-            }}
-          >
-            <div className="hero-gradient" />
-          </div>
+      <section className="pt-12">
+        <div className="container mx-auto px-4">
+          <Slider {...settings}>
+            {featuredMovies.map((movie) => (
+              <div key={movie.id} className="relative h-[80vh] w-full lg:w-1/2 mx-auto rounded-xl overflow-hidden">
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
+                  style={{
+                    backgroundImage: `url(${movie.thumbnail_url})`,
+                    objectFit: 'cover',
+                  }}
+                >
+                  <div className="hero-gradient" />
+                </div>
 
-          <div className="relative h-full flex items-center">
-            <div className="container mx-auto px-4 animate-fade-in">
-              <h1 className="font-display text-5xl md:text-7xl font-bold mb-4 max-w-2xl">
-                {featuredMovie.title}
-              </h1>
-              <div className="flex space-x-4">
-                <Button
-                  size="lg"
-                  className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
-                  onClick={() => navigate(`/movie/${featuredMovie.id}`)}
-                >
-                  <Play className="mr-2 h-5 w-5" /> Play Now
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
-                  onClick={() => navigate(`/movie/${featuredMovie.id}`)}
-                >
-                  <Info className="mr-2 h-5 w-5" /> More Info
-                </Button>
+                <div className="relative h-full flex items-center">
+                  <div className="container mx-auto px-4 animate-fade-in">
+                    <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+                      {movie.title}
+                    </h1>
+                    <div className="flex space-x-4">
+                      <Button
+                        size="lg"
+                        className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
+                        onClick={() => navigate(`/movie/${movie.id}`)}
+                      >
+                        <Play className="mr-2 h-5 w-5" /> Play Now
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
+                        onClick={() => navigate(`/movie/${movie.id}`)}
+                      >
+                        <Info className="mr-2 h-5 w-5" /> More Info
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            ))}
+          </Slider>
         </div>
-      )}
+      </section>
 
-      <section className="py-12 bg-gradient-to-b from-background/80 to-background">
+      <section className="py-12 bg-gradient-to-b from-background/80 to-background mt-[-120px] relative z-10">
         <Card className="container mx-auto px-4">
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
-              <Select
-                value={ratingFilter}
-                onValueChange={(value) => setRatingFilter(value)}
-              >
-                <SelectTrigger className="w-[180px] bg-card border-netflix-gray/20">
-                  <SelectValue placeholder="Filter by rating" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ratings</SelectItem>
-                  <SelectItem value="4">4+ Stars</SelectItem>
-                  <SelectItem value="3">3+ Stars</SelectItem>
-                  <SelectItem value="2">2+ Stars</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
