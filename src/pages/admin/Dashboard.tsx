@@ -84,7 +84,7 @@ const Dashboard = () => {
                             title
                         )
                     `)
-                    .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01'),
+                    .gte('created_at', timeAgo.toISOString()),
 
                 // Views stats
                 supabase
@@ -183,11 +183,11 @@ const Dashboard = () => {
                 supabase
                     .from('profiles')
                     .select('created_at')
-                    .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01'),
+                    .gte('created_at', timeAgo.toISOString()),
                 supabase
                     .from('movies')
                     .select('created_at')
-                    .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01')
+                    .gte('created_at', timeAgo.toISOString())
             ]);
 
             // Process the data
