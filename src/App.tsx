@@ -47,7 +47,10 @@ function App() {
         localStorage.removeItem('supabase.auth.expires_at');
         toast.error("Session expired. Please sign in again.");
       } else if (event === 'SIGNED_IN') {
-        toast.success("Successfully signed in!");
+        if (!localStorage.getItem('signInSuccessShown')) {
+          toast.success("Successfully signed in!");
+          localStorage.setItem('signInSuccessShown', 'true');
+        }
       } else if (event === 'TOKEN_REFRESHED') {
         console.log("Token refreshed successfully");
       }
