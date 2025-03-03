@@ -54,8 +54,8 @@ export const AnalyticsSection = () => {
       for (const data of testData) {
         for (let i = 0; i < data.count; i++) {
           if (i % 2 === 0) {
-            // Use the fetchWithAuth method to safely call RPC functions
-            const { error } = await supabase.rest.rpc.call('track_movie_view_with_country', {
+            // Call the stored procedure using the standard rpc method
+            const { error } = await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movieId,
               p_user_id: "c99e2e79-8106-4189-bf60-a9d87e6ab831",
               p_user_ip: null
@@ -66,8 +66,8 @@ export const AnalyticsSection = () => {
               throw error;
             }
           } else {
-            // Use the fetchWithAuth method to safely call RPC functions
-            const { error } = await supabase.rest.rpc.call('track_movie_view_with_country', {
+            // Call the stored procedure using the standard rpc method
+            const { error } = await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movieId,
               p_user_id: null,
               p_user_ip: "192.168.1." + i
