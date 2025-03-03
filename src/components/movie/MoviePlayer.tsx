@@ -2,6 +2,7 @@
 import { Movie } from "@/types/movie";
 import MovieRating from "@/components/MovieRating";
 import MovieReportModal from "@/components/MovieReportModal";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MoviePlayerProps {
   movie: Movie;
