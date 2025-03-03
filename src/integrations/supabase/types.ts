@@ -707,6 +707,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      track_movie_view_with_country: {
+        Args: {
+          p_movie_id: string
+          p_user_id?: string
+          p_user_ip?: string
+        }
+        Returns: undefined
+      }
       update_report_status: {
         Args: {
           report_id: string

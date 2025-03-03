@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,17 +54,29 @@ export const AnalyticsSection = () => {
       for (const data of testData) {
         for (let i = 0; i < data.count; i++) {
           if (i % 2 === 0) {
-            await supabase.rpc('track_movie_view_with_country', {
+            // Call the stored procedure using the proper syntax
+            const { error } = await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movieId,
               p_user_id: "c99e2e79-8106-4189-bf60-a9d87e6ab831",
               p_user_ip: null
             });
+            
+            if (error) {
+              console.error("Error adding registered test data:", error);
+              throw error;
+            }
           } else {
-            await supabase.rpc('track_movie_view_with_country', {
+            // Call the stored procedure using the proper syntax
+            const { error } = await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movieId,
               p_user_id: null,
               p_user_ip: "192.168.1." + i
             });
+            
+            if (error) {
+              console.error("Error adding anonymous test data:", error);
+              throw error;
+            }
           }
         }
       }
