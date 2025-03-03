@@ -32,6 +32,7 @@ export const AnalyticsSection = () => {
         return [];
       }
       
+      console.log("Country views data:", data);
       setCountriesData(data || []);
       return data || [];
     }
@@ -139,8 +140,20 @@ export const AnalyticsSection = () => {
     '#FFEEAD'
   ];
 
+  useEffect(() => {
+    console.log("Countries data in state:", countriesData);
+  }, [countriesData]);
+
   const getCountryFill = (geo: any) => {
-    const country = countriesData.find(c => c.country_code === geo.properties.ISO_A2);
+    // Debug the country code we're trying to match
+    const countryCode = geo.properties.ISO_A2 || geo.id;
+    
+    // Find the country in our data
+    const country = countriesData.find(c => 
+      c.country_code === countryCode || 
+      c.country_code.toUpperCase() === countryCode
+    );
+    
     if (!country) return "#EEE";
     
     // Compute heat based on total views
@@ -166,19 +179,23 @@ export const AnalyticsSection = () => {
                   <ZoomableGroup center={[0, 0]} zoom={1}>
                     <Geographies geography={geoUrl}>
                       {({ geographies }) =>
-                        geographies.map(geo => (
-                          <Geography
-                            key={geo.rsmKey}
-                            geography={geo}
-                            fill={getCountryFill(geo)}
-                            stroke="#FFF"
-                            style={{
-                              default: { outline: "none" },
-                              hover: { fill: "#FF8A80", outline: "none" },
-                              pressed: { outline: "none" },
-                            }}
-                          />
-                        ))
+                        geographies.map(geo => {
+                          const countryCode = geo.properties.ISO_A2;
+                          return (
+                            <Geography
+                              key={geo.rsmKey}
+                              geography={geo}
+                              fill={getCountryFill(geo)}
+                              stroke="#FFF"
+                              style={{
+                                default: { outline: "none" },
+                                hover: { fill: "#FF8A80", outline: "none" },
+                                pressed: { outline: "none" },
+                              }}
+                              data-country={countryCode}
+                            />
+                          );
+                        })
                       }
                     </Geographies>
                   </ZoomableGroup>

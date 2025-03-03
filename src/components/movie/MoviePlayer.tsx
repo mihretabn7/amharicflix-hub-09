@@ -3,6 +3,18 @@ import { Movie } from "@/types/movie";
 import MovieRating from "@/components/MovieRating";
 import MovieReportModal from "@/components/MovieReportModal";
 import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface MoviePlayerProps {
   movie: Movie;
@@ -11,6 +23,20 @@ interface MoviePlayerProps {
 }
 
 const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [authAction, setAuthAction] = useState<"rate" | "report" | "share">("rate");
+  const navigate = useNavigate();
+
+  const handleAuthRequired = (action: "rate" | "report" | "share") => {
+    setAuthAction(action);
+    setShowAuthDialog(true);
+  };
+
+  const redirectToLogin = () => {
+    setShowAuthDialog(false);
+    navigate("/login", { state: { from: `/movie/${movie.id}` } });
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-grow bg-black">
@@ -23,7 +49,8 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
           allowFullScreen
         ></iframe>
       </div>
-      {userId && (
+      
+      {userId ? (
         <div className="bg-card p-4 border-t border-border space-y-6">
           <MovieRating
             movieId={movie.id}
@@ -37,7 +64,49 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
             />
           </div>
         </div>
+      ) : (
+        <div className="bg-card p-4 border-t border-border">
+          <div className="flex flex-wrap gap-3 justify-between items-center">
+            <p className="text-muted-foreground">Sign in to rate and review this movie</p>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleAuthRequired("rate")}
+              >
+                Rate & Review
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleAuthRequired("report")}
+              >
+                Report
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* Authentication Required Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Authentication Required</DialogTitle>
+            <DialogDescription>
+              You need to sign in to {authAction === "rate" ? "rate and review" : authAction === "report" ? "report" : "share"} this movie.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAuthDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={redirectToLogin}>
+              Sign In
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

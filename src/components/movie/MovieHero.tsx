@@ -3,6 +3,16 @@ import { Play, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Movie } from "@/types/movie";
 import MovieReportModal from "@/components/MovieReportModal";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 
 interface MovieHeroProps {
   movie: Movie;
@@ -12,6 +22,28 @@ interface MovieHeroProps {
 }
 
 const MovieHero = ({ movie, onPlay, onShare, userId }: MovieHeroProps) => {
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [authAction, setAuthAction] = useState<"report" | "share">("share");
+  const navigate = useNavigate();
+
+  const handleAuthRequired = (action: "report" | "share") => {
+    setAuthAction(action);
+    setShowAuthDialog(true);
+  };
+
+  const redirectToLogin = () => {
+    setShowAuthDialog(false);
+    navigate("/login", { state: { from: `/movie/${movie.id}` } });
+  };
+
+  const handleShareClick = () => {
+    if (userId) {
+      onShare();
+    } else {
+      handleAuthRequired("share");
+    }
+  };
+
   return (
     <div className="relative h-[70vh]">
       <div
@@ -45,18 +77,46 @@ const MovieHero = ({ movie, onPlay, onShare, userId }: MovieHeroProps) => {
             >
               <Play className="mr-2 h-5 w-5" /> Play Now
             </Button>
-            <Button size="lg" variant="outline" onClick={onShare}>
+            <Button size="lg" variant="outline" onClick={handleShareClick}>
               <Share2 className="mr-2 h-5 w-5" /> Share
             </Button>
-            {userId && (
+            {userId ? (
               <MovieReportModal
                 movieId={movie.id}
                 userId={userId}
               />
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleAuthRequired("report")}
+              >
+                Report
+              </Button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Authentication Required Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Authentication Required</DialogTitle>
+            <DialogDescription>
+              You need to sign in to {authAction === "share" ? "share" : "report"} this movie.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAuthDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={redirectToLogin}>
+              Sign In
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
