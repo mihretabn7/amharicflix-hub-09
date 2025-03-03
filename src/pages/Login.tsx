@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +17,7 @@ import {
 const Login = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     identifier: "",
     password: "",
@@ -77,6 +77,7 @@ const Login = () => {
         const formattedPhone = formatPhoneNumber(formData.identifier);
         
         if (!isValidPhoneNumber(formattedPhone)) {
+          setError("Invalid phone number format. Please use format: +251912345678");
           throw new Error("Invalid phone number format. Please use format: +251912345678");
         }
         
@@ -85,6 +86,9 @@ const Login = () => {
       } else {
         console.log('Attempting login with email:', email);
       }
+
+      // Clear any previous errors
+      setError(null);
 
       // Sign in with remember me option
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -117,6 +121,7 @@ const Login = () => {
       navigate("/");
     } catch (error: any) {
       console.error('Login error:', error);
+      setError(getErrorMessage(error));
       
       toast({
         variant: "destructive",
@@ -167,6 +172,11 @@ const Login = () => {
         
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
+            {error && (
+              <div className="p-3 text-sm text-white bg-red-600 rounded-md">
+                {error}
+              </div>
+            )}
             <div>
               <Input
                 type="text"
