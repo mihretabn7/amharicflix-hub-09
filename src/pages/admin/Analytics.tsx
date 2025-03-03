@@ -9,10 +9,12 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, File, FileText } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { DetailedListModal } from "@/components/admin/DetailedListModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AnalyticsSection } from "@/components/admin/AnalyticsSection";
 
 interface MovieData {
     id: string;
@@ -47,7 +49,6 @@ export default function Analytics() {
         to: new Date()
     });
 
-    // Add state for modal
     const [selectedList, setSelectedList] = useState<{
         type: 'views' | 'ratings' | 'reviews' | 'reports';
         data: ListItem[];
@@ -67,8 +68,7 @@ export default function Analytics() {
                 }
             }
 
-            const [reports, views, ratings] = await Promise.all([
-                // Reports stats
+            const [reports, views, ratings, countryViews] = await Promise.all([
                 supabase
                     .from('movie_reports')
                     .select(`
@@ -81,7 +81,6 @@ export default function Analytics() {
                     `)
                     .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01'),
 
-                // Views stats - Fetch watch_count from movies table
                 supabase
                     .from('movies')
                     .select(`
@@ -92,7 +91,6 @@ export default function Analytics() {
                     `)
                     .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01'),
 
-                // Ratings stats
                 supabase
                     .from('movie_ratings')
                     .select(`
@@ -103,15 +101,16 @@ export default function Analytics() {
                             thumbnail_url
                         )
                     `)
-                    .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01')
+                    .gte('created_at', timeRange !== 'alltime' ? timeAgo.toISOString() : '1970-01-01'),
+                
+                supabase.rpc('get_views_by_country')
             ]);
 
-            // Process stats - Use watch_count from movies table
             const topViewedMovies = views.data?.map(movie => ({
                 id: movie.id,
                 title: movie.title,
                 thumbnail_url: movie.thumbnail_url,
-                count: movie.watch_count || 0 // Use watch_count
+                count: movie.watch_count || 0
             })).sort((a, b) => b.count - a.count).slice(0, 5) || [];
 
             const topRatedMovies = ratings.data?.reduce((acc: any, rating) => {
@@ -153,19 +152,29 @@ export default function Analytics() {
                     reported: Object.values(topReportedMovies || {})
                         .sort((a: any, b: any) => b.count - a.count)
                         .slice(0, 5)
-                }
+                },
+                countryViews: countryViews.data || []
             };
         }
     });
 
-    const handleExport = () => {
+    const handleExport = (format: 'csv' | 'pdf' | 'docx') => {
         if (!stats) return;
 
-        const csvData = prepareExportData(stats, dateRange);
-        downloadCSV(csvData, `analytics_${dateRange.from?.toISOString()}_${dateRange.to?.toISOString()}`);
+        switch (format) {
+            case 'csv':
+                const csvData = prepareExportData(stats, dateRange);
+                downloadCSV(csvData, `analytics_${dateRange.from?.toISOString()}_${dateRange.to?.toISOString()}`);
+                break;
+            case 'pdf':
+                alert("PDF export would be implemented here using libraries like jsPDF");
+                break;
+            case 'docx':
+                alert("DOCX export would be implemented here using libraries like docx");
+                break;
+        }
     };
 
-    // Add real-time updates with useEffect
     useEffect(() => {
         const channel = supabase.channel('analytics-changes')
             .on(
@@ -224,11 +233,11 @@ export default function Analytics() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h1 className="text-2xl font-bold">Analytics</h1>
-                <div className="flex items-center gap-4">
-                    <Tabs value={timeRange} onValueChange={(v: any) => setTimeRange(v)}>
-                        <TabsList>
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
+                    <Tabs value={timeRange} onValueChange={(v: any) => setTimeRange(v)} className="w-full md:w-auto">
+                        <TabsList className="w-full grid-cols-5 grid">
                             <TabsTrigger value="daily">Daily</TabsTrigger>
                             <TabsTrigger value="weekly">Weekly</TabsTrigger>
                             <TabsTrigger value="monthly">Monthly</TabsTrigger>
@@ -237,15 +246,32 @@ export default function Analytics() {
                         </TabsList>
                     </Tabs>
                     <DateRangePicker value={dateRange} onChange={setDateRange} />
-                    <Button onClick={handleExport}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export Report
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button>
+                                <Download className="mr-2 h-4 w-4" />
+                                Export Report
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => handleExport('csv')}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                CSV Format
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                                <File className="mr-2 h-4 w-4" />
+                                PDF Format
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExport('docx')}>
+                                <File className="mr-2 h-4 w-4" />
+                                Word Document
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Most Viewed Movies */}
                 <Card className="cursor-pointer hover:bg-accent/50" onClick={() => setSelectedList({
                     type: 'views',
                     data: stats?.topMovies.viewed.map((movie: MovieData) => ({
@@ -281,7 +307,6 @@ export default function Analytics() {
                     </CardContent>
                 </Card>
 
-                {/* Top Rated Movies */}
                 <Card className="cursor-pointer hover:bg-accent/50" onClick={() => setSelectedList({
                     type: 'ratings',
                     data: stats?.topMovies.rated.map((movie: MovieStats) => ({
@@ -317,7 +342,6 @@ export default function Analytics() {
                     </CardContent>
                 </Card>
 
-                {/* Most Reported Movies */}
                 <Card className="cursor-pointer hover:bg-accent/50" onClick={() => setSelectedList({
                     type: 'reports',
                     data: stats?.topMovies.reported.map((movie: MovieData) => ({
@@ -354,7 +378,6 @@ export default function Analytics() {
                 </Card>
             </div>
 
-            {/* Detailed List Modal */}
             <DetailedListModal
                 open={!!selectedList}
                 onOpenChange={(open) => !open && setSelectedList(null)}
@@ -379,41 +402,11 @@ export default function Analytics() {
                 )}
             />
 
-            {/* Views by Country */}
-            <div className="bg-card rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Views by Country</h3>
-                <div className="h-[400px] overflow-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Country</TableHead>
-                                <TableHead>Views</TableHead>
-                                <TableHead>Percentage</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {stats?.topMovies.viewed.map((country: MovieStats) => (
-                                <TableRow key={country.id}>
-                                    <TableCell>{country.title || 'Unknown'}</TableCell>
-                                    <TableCell>{country.count}</TableCell>
-                                    <TableCell>
-                                        <div
-                                            className="bg-blue-100 h-2 rounded-full"
-                                            style={{ width: `${(Number(country.count || 0) / Number(totalViews || 1)) * 100}%` }}
-                                        />
-                                        {(Number(country.count || 0) / Number(totalViews || 1) * 100).toFixed(1)}%
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
+            <AnalyticsSection />
         </div>
     );
 }
 
-// Helper functions
 function calculateGrowth(prevData: any[], currentData: any[], field: string) {
     const prevCount = prevData?.reduce((sum, item) => sum + (item[field]?.length || 0), 0) || 0;
     const currentCount = currentData?.reduce((sum, item) => sum + (item[field]?.length || 0), 0) || 0;
@@ -421,7 +414,6 @@ function calculateGrowth(prevData: any[], currentData: any[], field: string) {
 }
 
 function generateDailyTrends(data: any[], dateRange: any) {
-    // Generate daily points between date range
     const days = [];
     let currentDate = new Date(dateRange.from);
     while (currentDate <= dateRange.to) {
@@ -436,7 +428,6 @@ function generateDailyTrends(data: any[], dateRange: any) {
                 new Date(item.created_at).toISOString().split('T')[0] === date.toISOString().split('T')[0]
             ).length || 0
         }))
-        // Similar for views and ratings
     };
 }
 
@@ -488,7 +479,7 @@ function prepareExportData(data: any, dateRange: DateRange) {
                 'Views': trend.value,
                 'Ratings': generateDailyTrends(data.topMovies.rated, dateRange).movies.find((t: any) => t.date === trend.date)?.value || 0,
                 'Reports': generateDailyTrends(data.topMovies.reported, dateRange).movies.find((t: any) => t.date === trend.date)?.value || 0,
-                'New Users': 0 // Assuming no new users are added
+                'New Users': 0
             }))
         },
         countryStats: {
@@ -505,21 +496,17 @@ function convertToCSV(data: any) {
     let csv = '';
 
     Object.entries(data).forEach(([section, content]: [string, any]) => {
-        // Add section header with timestamp
         csv += `\n${section.toUpperCase()} - Generated at ${new Date().toLocaleString()}\n`;
         csv += '='.repeat(50) + '\n\n';
 
-        // Add headers
         csv += content.headers.join(',') + '\n';
 
-        // Add data rows
         content.data.forEach((row: any) => {
             csv += content.headers.map((header: string) =>
                 JSON.stringify(row[header] || '')
             ).join(',') + '\n';
         });
 
-        // Add spacing between sections
         csv += '\n\n';
     });
 
@@ -537,7 +524,6 @@ function downloadCSV(data: any, filename: string) {
     window.URL.revokeObjectURL(url);
 }
 
-// Helper function to group data by date
 function groupByDate(data: any[], dateField: string) {
     return data.reduce((acc: any, item) => {
         const date = new Date(item[dateField]).toLocaleDateString();
@@ -553,4 +539,4 @@ function calculateAvgRating(ratings: any[]) {
 
 function sumArray(arr: number[]): number {
     return arr.reduce((sum, val) => sum + val, 0);
-} 
+}

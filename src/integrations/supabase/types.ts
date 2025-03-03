@@ -9,6 +9,66 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_settings: {
+        Row: {
+          allow_movie_requests: boolean | null
+          allow_user_registration: boolean | null
+          auto_approve_movies: boolean | null
+          auto_block_reported_content: boolean | null
+          cache_duration: number | null
+          content_moderation_enabled: boolean | null
+          default_user_role: string | null
+          enable_comments: boolean | null
+          enable_ratings: boolean | null
+          id: number
+          maintenance_mode: boolean | null
+          max_daily_uploads: number | null
+          max_movies_per_page: number | null
+          max_upload_size: number | null
+          report_threshold: number | null
+          require_email_verification: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          allow_movie_requests?: boolean | null
+          allow_user_registration?: boolean | null
+          auto_approve_movies?: boolean | null
+          auto_block_reported_content?: boolean | null
+          cache_duration?: number | null
+          content_moderation_enabled?: boolean | null
+          default_user_role?: string | null
+          enable_comments?: boolean | null
+          enable_ratings?: boolean | null
+          id?: number
+          maintenance_mode?: boolean | null
+          max_daily_uploads?: number | null
+          max_movies_per_page?: number | null
+          max_upload_size?: number | null
+          report_threshold?: number | null
+          require_email_verification?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          allow_movie_requests?: boolean | null
+          allow_user_registration?: boolean | null
+          auto_approve_movies?: boolean | null
+          auto_block_reported_content?: boolean | null
+          cache_duration?: number | null
+          content_moderation_enabled?: boolean | null
+          default_user_role?: string | null
+          enable_comments?: boolean | null
+          enable_ratings?: boolean | null
+          id?: number
+          maintenance_mode?: boolean | null
+          max_daily_uploads?: number | null
+          max_movies_per_page?: number | null
+          max_upload_size?: number | null
+          report_threshold?: number | null
+          require_email_verification?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string
@@ -26,18 +86,21 @@ export type Database = {
       }
       anonymous_views: {
         Row: {
+          country_code: string | null
           id: string
           ip_address: string | null
           movie_id: string | null
           viewed_at: string | null
         }
         Insert: {
+          country_code?: string | null
           id?: string
           ip_address?: string | null
           movie_id?: string | null
           viewed_at?: string | null
         }
         Update: {
+          country_code?: string | null
           id?: string
           ip_address?: string | null
           movie_id?: string | null
@@ -336,6 +399,7 @@ export type Database = {
           last_sign_in_at: string | null
           phone_number: string
           remember_me: boolean | null
+          role: string
           subscription_plan: string | null
           updated_at: string
           username: string | null
@@ -350,6 +414,7 @@ export type Database = {
           last_sign_in_at?: string | null
           phone_number: string
           remember_me?: boolean | null
+          role?: string
           subscription_plan?: string | null
           updated_at?: string
           username?: string | null
@@ -364,6 +429,7 @@ export type Database = {
           last_sign_in_at?: string | null
           phone_number?: string
           remember_me?: boolean | null
+          role?: string
           subscription_plan?: string | null
           updated_at?: string
           username?: string | null
@@ -426,6 +492,7 @@ export type Database = {
       }
       user_movie_history: {
         Row: {
+          country_code: string | null
           created_at: string | null
           id: string
           movie_id: string | null
@@ -435,6 +502,7 @@ export type Database = {
           watched_at: string | null
         }
         Insert: {
+          country_code?: string | null
           created_at?: string | null
           id?: string
           movie_id?: string | null
@@ -444,6 +512,7 @@ export type Database = {
           watched_at?: string | null
         }
         Update: {
+          country_code?: string | null
           created_at?: string | null
           id?: string
           movie_id?: string | null
@@ -474,11 +543,130 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bytea_to_text: {
+        Args: {
+          data: string
+        }
+        Returns: string
+      }
+      get_country: {
+        Args: {
+          ip: string
+        }
+        Returns: string
+      }
       get_report_status_values: {
         Args: Record<PropertyKey, never>
         Returns: {
           status_value: string
         }[]
+      }
+      get_views_by_country: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          country_code: string
+          total_views: number
+          registered_views: number
+          anonymous_views: number
+        }[]
+      }
+      http: {
+        Args: {
+          request: Database["public"]["CompositeTypes"]["http_request"]
+        }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_delete:
+        | {
+            Args: {
+              uri: string
+            }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+          }
+        | {
+            Args: {
+              uri: string
+              content: string
+              content_type: string
+            }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+          }
+      http_get:
+        | {
+            Args: {
+              uri: string
+            }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+          }
+        | {
+            Args: {
+              uri: string
+              data: Json
+            }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+          }
+      http_head: {
+        Args: {
+          uri: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_header: {
+        Args: {
+          field: string
+          value: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["http_header"]
+      }
+      http_list_curlopt: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          curlopt: string
+          value: string
+        }[]
+      }
+      http_patch: {
+        Args: {
+          uri: string
+          content: string
+          content_type: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_post:
+        | {
+            Args: {
+              uri: string
+              content: string
+              content_type: string
+            }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+          }
+        | {
+            Args: {
+              uri: string
+              data: Json
+            }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+          }
+      http_put: {
+        Args: {
+          uri: string
+          content: string
+          content_type: string
+        }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_reset_curlopt: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      http_set_curlopt: {
+        Args: {
+          curlopt: string
+          value: string
+        }
+        Returns: boolean
       }
       increment_movie_share_count: {
         Args: {
@@ -498,6 +686,53 @@ export type Database = {
         }
         Returns: undefined
       }
+      submit_report: {
+        Args: {
+          p_movie_id: string
+          p_reporter_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      text_to_bytea: {
+        Args: {
+          data: string
+        }
+        Returns: string
+      }
+      track_movie_view: {
+        Args: {
+          movie_id: string
+          user_ip: string
+        }
+        Returns: undefined
+      }
+      update_report_status: {
+        Args: {
+          report_id: string
+          new_status: string
+        }
+        Returns: undefined
+      }
+      urlencode:
+        | {
+            Args: {
+              data: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              string: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              string: string
+            }
+            Returns: string
+          }
     }
     Enums: {
       movie_reports_status: "pending" | "resolved" | "dismissed" | "new_value"
@@ -508,7 +743,23 @@ export type Database = {
         | "security_warning"
     }
     CompositeTypes: {
-      [_ in never]: never
+      http_header: {
+        field: string | null
+        value: string | null
+      }
+      http_request: {
+        method: unknown | null
+        uri: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content_type: string | null
+        content: string | null
+      }
+      http_response: {
+        status: number | null
+        content_type: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content: string | null
+      }
     }
   }
 }

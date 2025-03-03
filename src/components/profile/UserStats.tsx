@@ -1,3 +1,4 @@
+
 import { Star, Clock, Film, Flag } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -21,6 +22,9 @@ export const UserStats = ({ stats }: UserStatsProps) => {
     return `${hours}h ${Math.round(remainingMinutes)}m`;
   };
 
+  // Ensure the completion rate is properly clamped between 0-100%
+  const safeCompletionRate = Math.min(Math.max(0, stats.completionRate), 100);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Watch Time Card */}
@@ -37,7 +41,8 @@ export const UserStats = ({ stats }: UserStatsProps) => {
             <div className="text-xs text-muted-foreground mb-1">
               {stats.totalWatches} movies watched
             </div>
-            <Progress value={stats.completionRate} className="h-1" />
+            <Progress value={safeCompletionRate} className="h-1" />
+            <div className="text-xs text-right mt-1">{safeCompletionRate.toFixed(0)}% complete</div>
           </div>
         </CardContent>
       </Card>
