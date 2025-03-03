@@ -3,7 +3,7 @@ import { Movie } from "@/types/movie";
 import MovieRating from "@/components/MovieRating";
 import MovieReportModal from "@/components/MovieReportModal";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Dialog,
@@ -26,6 +26,37 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authAction, setAuthAction] = useState<"rate" | "report" | "share">("rate");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Track the view when the component mounts
+    const trackView = async () => {
+      try {
+        if (userId) {
+          // Track for registered user
+          await supabase.rpc('track_movie_view_with_country', {
+            p_movie_id: movie.id,
+            p_user_id: userId,
+            p_user_ip: null
+          });
+        } else {
+          // Track for anonymous user
+          const response = await fetch('https://api.ipify.org?format=json');
+          const data = await response.json();
+          const ip = data.ip;
+
+          await supabase.rpc('track_movie_view_with_country', {
+            p_movie_id: movie.id,
+            p_user_id: null,
+            p_user_ip: ip
+          });
+        }
+      } catch (error) {
+        console.error("Error tracking view:", error);
+      }
+    };
+
+    trackView();
+  }, [movie.id, userId]);
 
   const handleAuthRequired = (action: "rate" | "report" | "share") => {
     setAuthAction(action);

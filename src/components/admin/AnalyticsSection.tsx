@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +6,9 @@ import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simp
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
-// GeoJSON file with world countries
 const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-countries.json";
 
 interface CountryData {
@@ -21,14 +21,14 @@ interface CountryData {
 export const AnalyticsSection = () => {
   const [countriesData, setCountriesData] = useState<CountryData[]>([]);
   
-  // Query for country views data
-  const { data: countryViews, isLoading: isLoadingCountries } = useQuery({
+  const { data: countryViews, isLoading: isLoadingCountries, refetch } = useQuery({
     queryKey: ['country-views'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_views_by_country');
       
       if (error) {
         console.error("Error fetching country views:", error);
+        toast.error("Failed to load country data");
         return [];
       }
       
@@ -38,7 +38,48 @@ export const AnalyticsSection = () => {
     }
   });
 
-  // Query for watch duration stats
+  const addTestCountryData = async () => {
+    const movieId = "c78b72c8-5c7a-4e99-b425-50c6743e2b4c";
+    const testData = [
+      { country: "US", count: 5 },
+      { country: "GB", count: 3 },
+      { country: "CA", count: 2 },
+      { country: "DE", count: 4 },
+      { country: "FR", count: 3 },
+      { country: "JP", count: 2 }
+    ];
+    
+    try {
+      for (const data of testData) {
+        for (let i = 0; i < data.count; i++) {
+          if (i % 2 === 0) {
+            await supabase.rpc('track_movie_view_with_country', {
+              p_movie_id: movieId,
+              p_user_id: "c99e2e79-8106-4189-bf60-a9d87e6ab831",
+              p_user_ip: null
+            });
+          } else {
+            await supabase.rpc('track_movie_view_with_country', {
+              p_movie_id: movieId,
+              p_user_id: null,
+              p_user_ip: "192.168.1." + i
+            });
+          }
+        }
+      }
+      
+      toast.success("Test data added successfully");
+      
+      setTimeout(() => {
+        refetch();
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Error adding test data:", error);
+      toast.error("Failed to add test data");
+    }
+  };
+
   const { data: watchStats } = useQuery({
     queryKey: ['watch-stats'],
     queryFn: async () => {
@@ -49,7 +90,6 @@ export const AnalyticsSection = () => {
 
       if (!history) return [];
 
-      // Calculate average watch duration and group by day
       const grouped = history.reduce((acc: any, curr) => {
         const date = new Date(curr.watched_at).toLocaleDateString();
         if (!acc[date]) {
@@ -62,13 +102,12 @@ export const AnalyticsSection = () => {
 
       return Object.entries(grouped).map(([date, stats]: [string, any]) => ({
         date,
-        avgDuration: Math.round(stats.total / stats.count / 60), // Convert to minutes
+        avgDuration: Math.round(stats.total / stats.count / 60),
         views: stats.count
       }));
     }
   });
 
-  // Registered vs Anonymous users views
   const registeredVsAnonymous = countriesData.reduce(
     (acc, country) => {
       acc.registered += country.registered_views;
@@ -83,7 +122,6 @@ export const AnalyticsSection = () => {
     { name: "Anonymous Users", value: registeredVsAnonymous.anonymous }
   ];
 
-  // Query for user growth
   const { data: userGrowth } = useQuery({
     queryKey: ['user-growth'],
     queryFn: async () => {
@@ -94,7 +132,6 @@ export const AnalyticsSection = () => {
 
       if (!users) return [];
 
-      // Group by week
       const grouped = users.reduce((acc: any, curr) => {
         const week = new Date(curr.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
         acc[week] = (acc[week] || 0) + 1;
@@ -108,7 +145,6 @@ export const AnalyticsSection = () => {
     }
   });
 
-  // Query for genre popularity
   const { data: genreStats } = useQuery({
     queryKey: ['genre-stats'],
     queryFn: async () => {
@@ -145,29 +181,37 @@ export const AnalyticsSection = () => {
   }, [countriesData]);
 
   const getCountryFill = (geo: any) => {
-    // Debug the country code we're trying to match
-    const countryCode = geo.properties.ISO_A2 || geo.id;
+    const countryCode = geo.properties.ISO_A2 || geo.properties.iso2 || geo.id;
     
-    // Find the country in our data
+    if (!countryCode) {
+      console.log("No country code found for:", geo);
+      return "#EEE";
+    }
+    
     const country = countriesData.find(c => 
-      c.country_code === countryCode || 
-      c.country_code.toUpperCase() === countryCode
+      c.country_code.toUpperCase() === countryCode.toUpperCase()
     );
     
     if (!country) return "#EEE";
     
-    // Compute heat based on total views
-    const maxViews = Math.max(...countriesData.map(c => c.total_views));
+    const maxViews = Math.max(...countriesData.map(c => c.total_views), 1);
     const intensity = country.total_views / maxViews;
     return `rgba(255, 107, 107, ${Math.max(0.1, intensity)})`;
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      {/* World Map Visualization of Views */}
       <Card className="lg:col-span-2 overflow-hidden hover:shadow-lg transition-all duration-200">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold">Global View Distribution</CardTitle>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={addTestCountryData}
+            className="hidden md:flex"
+          >
+            Add Test Data
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoadingCountries ? (
@@ -206,10 +250,17 @@ export const AnalyticsSection = () => {
         </CardContent>
       </Card>
 
-      {/* Country Data Table */}
       <Card className="overflow-auto max-h-[500px] hover:shadow-lg transition-all duration-200">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold">Views by Country</CardTitle>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => refetch()}
+            className="h-8 px-2"
+          >
+            Refresh
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -244,7 +295,6 @@ export const AnalyticsSection = () => {
         </CardContent>
       </Card>
 
-      {/* Registered vs Anonymous Users */}
       <Card className="hover:shadow-lg transition-all duration-200">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Registered vs Anonymous Views</CardTitle>
