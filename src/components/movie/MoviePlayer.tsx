@@ -33,7 +33,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
       try {
         if (userId) {
           // Track for registered user
-          await supabase.rpc('track_movie_view_with_country', {
+          await supabase.rest.rpc.call('track_movie_view_with_country', {
             p_movie_id: movie.id,
             p_user_id: userId,
             p_user_ip: null
@@ -44,7 +44,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
           const data = await response.json();
           const ip = data.ip;
 
-          await supabase.rpc('track_movie_view_with_country', {
+          await supabase.rest.rpc.call('track_movie_view_with_country', {
             p_movie_id: movie.id,
             p_user_id: null,
             p_user_ip: ip
