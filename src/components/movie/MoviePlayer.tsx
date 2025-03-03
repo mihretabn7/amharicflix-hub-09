@@ -1,4 +1,3 @@
-
 import { Movie } from "@/types/movie";
 import MovieRating from "@/components/MovieRating";
 import MovieReportModal from "@/components/MovieReportModal";
@@ -14,7 +13,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 interface MoviePlayerProps {
   movie: Movie;
@@ -52,6 +51,11 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
         }
       } catch (error) {
         console.error("Error tracking view:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to track view statistics",
+        });
       }
     };
 

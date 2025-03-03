@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -29,12 +30,20 @@ const Register = () => {
 
     try {
       if (formData.password !== formData.confirmPassword) {
-        toast.error("Passwords do not match");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Passwords do not match"
+        });
         return;
       }
 
       if (!formData.phoneNumber.startsWith("+")) {
-        toast.error("Phone number must start with + and country code (e.g., +251)");
+        toast({
+          variant: "destructive",
+          title: "Invalid Phone Format",
+          description: "Phone number must start with + and country code (e.g., +251)"
+        });
         return;
       }
 
@@ -51,10 +60,18 @@ const Register = () => {
 
       if (error) throw error;
 
-      toast.success("Registration successful! Please check your email for verification.");
+      toast({
+        title: "Registration successful!",
+        description: "Please check your email for verification.",
+        duration: 5000,
+      });
       navigate("/login");
     } catch (error: any) {
-      toast.error(error.message);
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message
+      });
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,7 +120,7 @@ const Login = () => {
       
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Login Failed",
         description: getErrorMessage(error),
       });
       
@@ -148,7 +149,7 @@ const Login = () => {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Reset Failed",
         description: error.message,
       });
     } finally {
