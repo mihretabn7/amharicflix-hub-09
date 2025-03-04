@@ -17,7 +17,7 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Copy, Facebook, Linkedin, Twitter, Link, WhatsApp, Mail } from "lucide-react";
+import { Copy, Facebook, Linkedin, Twitter, Link, Mail } from "lucide-react";
 
 const NETFLIX_VIEW_THRESHOLD = 120; // 2 minutes in seconds
 const WATCH_TIME_UPDATE_INTERVAL = 10; // Update watch time every 10 seconds
@@ -233,14 +233,7 @@ const MovieDetail = () => {
         console.error('Failed to get IP:', ipError);
       }
       
-      await supabase.rpc('track_movie_share', { 
-        p_movie_id: id,
-        p_user_id: session?.user?.id || null,
-        p_share_method: platform || 'dialog',
-        p_user_ip: ip,
-        p_browser_info: browserInfo,
-        p_device_info: JSON.stringify(deviceInfo)
-      });
+      await supabase.rpc('increment_movie_share_count', { movie_id: id });
       
       const shareUrl = window.location.href;
       const shareTitle = movieData?.movie.title || 'Movie';
@@ -405,7 +398,7 @@ const MovieDetail = () => {
               className="flex flex-col items-center gap-2 p-4" 
               onClick={() => handleShare('whatsapp')}
             >
-              <WhatsApp className="h-5 w-5" />
+              <Link className="h-5 w-5" />
               <span className="text-xs">WhatsApp</span>
             </Button>
             <Button 

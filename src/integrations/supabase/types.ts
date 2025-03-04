@@ -86,21 +86,27 @@ export type Database = {
       }
       anonymous_views: {
         Row: {
+          browser_info: string | null
           country_code: string | null
+          device_info: string | null
           id: string
           ip_address: string | null
           movie_id: string | null
           viewed_at: string | null
         }
         Insert: {
+          browser_info?: string | null
           country_code?: string | null
+          device_info?: string | null
           id?: string
           ip_address?: string | null
           movie_id?: string | null
           viewed_at?: string | null
         }
         Update: {
+          browser_info?: string | null
           country_code?: string | null
+          device_info?: string | null
           id?: string
           ip_address?: string | null
           movie_id?: string | null
@@ -492,8 +498,10 @@ export type Database = {
       }
       user_movie_history: {
         Row: {
+          browser_info: string | null
           country_code: string | null
           created_at: string | null
+          device_info: string | null
           id: string
           movie_id: string | null
           user_id: string | null
@@ -502,8 +510,10 @@ export type Database = {
           watched_at: string | null
         }
         Insert: {
+          browser_info?: string | null
           country_code?: string | null
           created_at?: string | null
+          device_info?: string | null
           id?: string
           movie_id?: string | null
           user_id?: string | null
@@ -512,8 +522,10 @@ export type Database = {
           watched_at?: string | null
         }
         Update: {
+          browser_info?: string | null
           country_code?: string | null
           created_at?: string | null
+          device_info?: string | null
           id?: string
           movie_id?: string | null
           user_id?: string | null
@@ -700,6 +712,17 @@ export type Database = {
         }
         Returns: string
       }
+      track_movie_share: {
+        Args: {
+          p_movie_id: string
+          p_user_id?: string
+          p_share_method?: string
+          p_user_ip?: string
+          p_browser_info?: string
+          p_device_info?: string
+        }
+        Returns: undefined
+      }
       track_movie_view: {
         Args: {
           movie_id: string
@@ -707,14 +730,25 @@ export type Database = {
         }
         Returns: undefined
       }
-      track_movie_view_with_country: {
-        Args: {
-          p_movie_id: string
-          p_user_id?: string
-          p_user_ip?: string
-        }
-        Returns: undefined
-      }
+      track_movie_view_with_country:
+        | {
+            Args: {
+              p_movie_id: string
+              p_user_id?: string
+              p_user_ip?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_movie_id: string
+              p_user_id?: string
+              p_user_ip?: string
+              p_browser_info?: string
+              p_device_info?: string
+            }
+            Returns: undefined
+          }
       update_report_status: {
         Args: {
           report_id: string
