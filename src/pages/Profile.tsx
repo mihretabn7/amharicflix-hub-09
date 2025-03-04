@@ -9,6 +9,8 @@ import { UserStats } from "@/components/profile/UserStats";
 import { WatchHistory } from "@/components/profile/WatchHistory";
 import { MovieRatings } from "@/components/profile/MovieRatings";
 import { MovieReports } from "@/components/profile/MovieReports";
+import { FeedbackDialog } from "@/components/profile/FeedbackDialog";
+import { SupportDialog } from "@/components/profile/SupportDialog";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -130,7 +132,6 @@ const Profile = () => {
         ? ratingsResponse.data.reduce((acc, curr) => acc + curr.rating, 0) / ratingsResponse.data.length
         : 0;
 
-      // Calculate total watch time and completion rate
       const totalWatchTime = watchHistoryResponse.data.reduce((acc, curr) => acc + (curr.watch_duration || 0), 0);
       const completionRate = watchHistoryResponse.data.reduce((acc, curr) => {
         const movieDuration = curr.movie?.duration_minutes || 0;
@@ -143,7 +144,7 @@ const Profile = () => {
         averageRating,
         totalReports: reportsResponse.data.length,
         totalWatches: watchHistoryResponse.data.length,
-        totalWatchTime: totalWatchTime / 60, // Convert seconds to minutes
+        totalWatchTime: totalWatchTime / 60,
         completionRate
       };
     }
@@ -190,6 +191,11 @@ const Profile = () => {
             session={session}
             onProfileUpdate={refetchProfile}
           />
+
+          <div className="flex items-center justify-end gap-3 mb-2">
+            <FeedbackDialog />
+            <SupportDialog />
+          </div>
 
           <UserStats
             stats={{

@@ -31,9 +31,22 @@ export const WatchHistory = ({ items }: WatchHistoryProps) => {
     );
   }
 
+  // Deduplicate movies by keeping only the most recent watch record for each movie
+  const uniqueMovies = items.reduce<Record<string, WatchHistoryItem>>((acc, item) => {
+    const existingItem = acc[item.movie.id];
+    
+    if (!existingItem || new Date(item.watched_at) > new Date(existingItem.watched_at)) {
+      acc[item.movie.id] = item;
+    }
+    
+    return acc;
+  }, {});
+
+  const uniqueItems = Object.values(uniqueMovies);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {items.map((item) => {
+      {uniqueItems.map((item) => {
         const progress = item.movie.duration_minutes
           ? (item.watch_duration / (item.movie.duration_minutes * 60)) * 100
           : 0;
