@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-countries.json";
 
@@ -21,6 +22,7 @@ interface CountryData {
 
 export const AnalyticsSection = () => {
   const [countriesData, setCountriesData] = useState<CountryData[]>([]);
+  const isMobile = useIsMobile();
   
   const { data: countryViews, isLoading: isLoadingCountries, refetch } = useQuery({
     queryKey: ['country-views'],
@@ -47,7 +49,10 @@ export const AnalyticsSection = () => {
       { country: "CA", count: 2 },
       { country: "DE", count: 4 },
       { country: "FR", count: 3 },
-      { country: "JP", count: 2 }
+      { country: "JP", count: 2 },
+      { country: "ET", count: 8 },
+      { country: "KE", count: 3 },
+      { country: "NG", count: 5 }
     ];
     
     try {
@@ -58,7 +63,12 @@ export const AnalyticsSection = () => {
             const { error } = await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movieId,
               p_user_id: "c99e2e79-8106-4189-bf60-a9d87e6ab831",
-              p_user_ip: null
+              p_user_ip: null,
+              p_browser_info: "Test Browser",
+              p_device_info: JSON.stringify({
+                isMobile: Math.random() > 0.5,
+                platform: Math.random() > 0.5 ? "iOS" : "Android"
+              })
             });
             
             if (error) {
@@ -70,7 +80,12 @@ export const AnalyticsSection = () => {
             const { error } = await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movieId,
               p_user_id: null,
-              p_user_ip: "192.168.1." + i
+              p_user_ip: "192.168.1." + i,
+              p_browser_info: "Test Browser",
+              p_device_info: JSON.stringify({
+                isMobile: Math.random() > 0.5,
+                platform: Math.random() > 0.5 ? "iOS" : "Android"
+              })
             });
             
             if (error) {
@@ -98,7 +113,7 @@ export const AnalyticsSection = () => {
     queryFn: async () => {
       const { data: history } = await supabase
         .from('user_movie_history')
-        .select('watch_duration, watched_at')
+        .select('watch_duration, watched_at, device_info')
         .order('watched_at', { ascending: true });
 
       if (!history) return [];
@@ -106,17 +121,31 @@ export const AnalyticsSection = () => {
       const grouped = history.reduce((acc: any, curr) => {
         const date = new Date(curr.watched_at).toLocaleDateString();
         if (!acc[date]) {
-          acc[date] = { total: 0, count: 0 };
+          acc[date] = { total: 0, count: 0, mobile: 0, desktop: 0 };
         }
         acc[date].total += curr.watch_duration || 0;
         acc[date].count += 1;
+        
+        try {
+          const deviceInfo = JSON.parse(curr.device_info || "{}");
+          if (deviceInfo.isMobile) {
+            acc[date].mobile += 1;
+          } else {
+            acc[date].desktop += 1;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+        
         return acc;
       }, {});
 
       return Object.entries(grouped).map(([date, stats]: [string, any]) => ({
         date,
         avgDuration: Math.round(stats.total / stats.count / 60),
-        views: stats.count
+        views: stats.count,
+        mobile: stats.mobile,
+        desktop: stats.desktop
       }));
     }
   });
@@ -181,23 +210,68 @@ export const AnalyticsSection = () => {
     }
   });
 
+  const { data: deviceStats } = useQuery({
+    queryKey: ['device-stats'],
+    queryFn: async () => {
+      const { data: history } = await supabase
+        .from('user_movie_history')
+        .select('device_info')
+        .not('device_info', 'is', null);
+
+      if (!history || history.length === 0) return [];
+
+      const deviceCount = { Mobile: 0, Desktop: 0, Unknown: 0 };
+      const platformCount: Record<string, number> = {};
+      
+      history.forEach(item => {
+        try {
+          const deviceInfo = JSON.parse(item.device_info || "{}");
+          
+          // Count mobile vs desktop
+          if (deviceInfo.isMobile) {
+            deviceCount.Mobile += 1;
+          } else {
+            deviceCount.Desktop += 1;
+          }
+          
+          // Count platforms
+          if (deviceInfo.platform) {
+            const platform = String(deviceInfo.platform);
+            platformCount[platform] = (platformCount[platform] || 0) + 1;
+          }
+        } catch (e) {
+          deviceCount.Unknown += 1;
+        }
+      });
+      
+      return {
+        devices: Object.entries(deviceCount)
+          .map(([name, value]) => ({ name, value }))
+          .filter(item => item.value > 0),
+        platforms: Object.entries(platformCount)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 5)
+      };
+    }
+  });
+
   const COLORS = [
     '#FF6B6B',
     '#4ECDC4',
     '#45B7D1',
     '#96CEB4',
-    '#FFEEAD'
+    '#FFEEAD',
+    '#FF8A80',
+    '#EE6352',
+    '#59CD90',
+    '#3FA7D6'
   ];
-
-  useEffect(() => {
-    console.log("Countries data in state:", countriesData);
-  }, [countriesData]);
 
   const getCountryFill = (geo: any) => {
     const countryCode = geo.properties.ISO_A2 || geo.properties.iso2 || geo.id;
     
     if (!countryCode) {
-      console.log("No country code found for:", geo);
       return "#EEE";
     }
     
@@ -209,7 +283,9 @@ export const AnalyticsSection = () => {
     
     const maxViews = Math.max(...countriesData.map(c => c.total_views), 1);
     const intensity = country.total_views / maxViews;
-    return `rgba(255, 107, 107, ${Math.max(0.1, intensity)})`;
+    
+    // Use a more vivid gradient for better visualization
+    return `rgba(255, 107, 107, ${Math.max(0.2, intensity)})`;
   };
 
   return (
@@ -217,14 +293,24 @@ export const AnalyticsSection = () => {
       <Card className="lg:col-span-2 overflow-hidden hover:shadow-lg transition-all duration-200">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold">Global View Distribution</CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={addTestCountryData}
-            className="hidden md:flex"
-          >
-            Add Test Data
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refetch()}
+              className="h-8 px-2"
+            >
+              Refresh
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={addTestCountryData}
+              className="hidden md:flex"
+            >
+              Add Test Data
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoadingCountries ? (
@@ -232,12 +318,21 @@ export const AnalyticsSection = () => {
           ) : (
             <div className="h-[400px] relative">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposableMap>
+                <ComposableMap 
+                  projectionConfig={{
+                    scale: isMobile ? 120 : 150,
+                    rotation: [-10, 0, 0],
+                  }}
+                >
                   <ZoomableGroup center={[0, 0]} zoom={1}>
                     <Geographies geography={geoUrl}>
                       {({ geographies }) =>
                         geographies.map(geo => {
                           const countryCode = geo.properties.ISO_A2;
+                          const country = countriesData.find(c => 
+                            c.country_code.toUpperCase() === (countryCode || "").toUpperCase()
+                          );
+                          
                           return (
                             <Geography
                               key={geo.rsmKey}
@@ -245,11 +340,21 @@ export const AnalyticsSection = () => {
                               fill={getCountryFill(geo)}
                               stroke="#FFF"
                               style={{
-                                default: { outline: "none" },
-                                hover: { fill: "#FF8A80", outline: "none" },
+                                default: { 
+                                  outline: "none",
+                                  transition: "all 250ms", 
+                                  cursor: country ? "pointer" : "default" 
+                                },
+                                hover: { 
+                                  fill: country ? "#FF8A80" : "#EEE", 
+                                  outline: "none",
+                                  stroke: "#FFF",
+                                  strokeWidth: 1.5
+                                },
                                 pressed: { outline: "none" },
                               }}
                               data-country={countryCode}
+                              data-views={country?.total_views || 0}
                             />
                           );
                         })
@@ -258,6 +363,22 @@ export const AnalyticsSection = () => {
                   </ZoomableGroup>
                 </ComposableMap>
               </ResponsiveContainer>
+              {/* Map Legend */}
+              <div className="absolute bottom-4 right-4 bg-white/90 p-2 rounded-md shadow-md">
+                <div className="text-xs font-semibold mb-1">Views</div>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4" style={{ background: 'rgba(255,107,107,0.2)' }}></div>
+                  <span className="text-xs">Low</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4" style={{ background: 'rgba(255,107,107,0.6)' }}></div>
+                  <span className="text-xs">Medium</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4" style={{ background: 'rgba(255,107,107,1)' }}></div>
+                  <span className="text-xs">High</span>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
@@ -310,7 +431,7 @@ export const AnalyticsSection = () => {
 
       <Card className="hover:shadow-lg transition-all duration-200">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Registered vs Anonymous Views</CardTitle>
+          <CardTitle className="text-lg font-semibold">User Type Distribution</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
@@ -332,8 +453,10 @@ export const AnalyticsSection = () => {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     border: 'none',
                     borderRadius: '8px',
-                    padding: '12px'
+                    padding: '12px',
+                    color: 'white'
                   }}
+                  formatter={(value) => [`${value} views`, '']}
                 />
                 <Legend />
               </PieChart>
@@ -359,7 +482,8 @@ export const AnalyticsSection = () => {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     border: 'none',
                     borderRadius: '8px',
-                    padding: '12px'
+                    padding: '12px',
+                    color: 'white'
                   }}
                 />
                 <Legend />
@@ -371,6 +495,7 @@ export const AnalyticsSection = () => {
                   strokeWidth={2}
                   name="Avg Duration (min)"
                   dot={false}
+                  activeDot={{ r: 6 }}
                 />
                 <Line 
                   yAxisId="right"
@@ -380,7 +505,20 @@ export const AnalyticsSection = () => {
                   strokeWidth={2}
                   name="Views"
                   dot={false}
+                  activeDot={{ r: 6 }}
                 />
+                {deviceStats && (
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="mobile" 
+                    stroke="#FFC107" 
+                    strokeWidth={2}
+                    name="Mobile Views"
+                    dot={false}
+                    activeDot={{ r: 6 }}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -389,13 +527,14 @@ export const AnalyticsSection = () => {
 
       <Card className="lg:col-span-2 hover:shadow-lg transition-all duration-200">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">Top Genres & User Growth</CardTitle>
+          <CardTitle className="text-lg font-semibold">Content & User Insights</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="genres">
             <TabsList className="mb-4">
               <TabsTrigger value="genres">Top Genres</TabsTrigger>
               <TabsTrigger value="users">User Growth</TabsTrigger>
+              <TabsTrigger value="devices">Device Usage</TabsTrigger>
             </TabsList>
             
             <TabsContent value="genres">
@@ -408,7 +547,9 @@ export const AnalyticsSection = () => {
                       outerRadius={80}
                       paddingAngle={5}
                       dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}`}
+                      label={({ name, value, percent }) => 
+                        `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                      }
                     >
                       {genreStats?.map((entry, index) => (
                         <Cell 
@@ -422,8 +563,10 @@ export const AnalyticsSection = () => {
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         border: 'none',
                         borderRadius: '8px',
-                        padding: '12px'
+                        padding: '12px',
+                        color: 'white'
                       }}
+                      formatter={(value) => [`${value} views`, '']}
                     />
                     <Legend />
                   </PieChart>
@@ -443,7 +586,8 @@ export const AnalyticsSection = () => {
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         border: 'none',
                         borderRadius: '8px',
-                        padding: '12px'
+                        padding: '12px',
+                        color: 'white'
                       }}
                     />
                     <Legend />
@@ -455,6 +599,75 @@ export const AnalyticsSection = () => {
                     />
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="devices">
+              <div className="h-[300px] grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2 text-center">Device Types</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={deviceStats?.devices}
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, value, percent }) => 
+                          `${name}: ${(percent * 100).toFixed(0)}%`
+                        }
+                      >
+                        <Cell fill="#FF6B6B" />
+                        <Cell fill="#4ECDC4" />
+                        <Cell fill="#CCC" />
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          color: 'white'
+                        }}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium mb-2 text-center">Top Platforms</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart 
+                      data={deviceStats?.platforms}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={80}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          color: 'white'
+                        }}
+                      />
+                      <Bar 
+                        dataKey="value" 
+                        fill="#45B7D1" 
+                        name="Views"
+                        radius={[0, 4, 4, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </TabsContent>
           </Tabs>

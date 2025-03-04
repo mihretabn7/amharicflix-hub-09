@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +8,7 @@ import MovieDetailsSection from "@/components/MovieDetailsSection";
 import MovieHero from "@/components/movie/MovieHero";
 import MoviePlayer from "@/components/movie/MoviePlayer";
 import MovieStats from "@/components/movie/MovieStats";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +39,7 @@ const MovieDetail = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const watchTimeInterval = useRef<NodeJS.Timeout | null>(null);
   const viewCounted = useRef(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -54,7 +57,7 @@ const MovieDetail = () => {
 
   useEffect(() => {
     const updateWatchTime = async () => {
-      if (!session?.user?.id || !id || !isPlaying) {
+      if (!id || !isPlaying) {
         console.log('Watch time update skipped:', {
           hasSession: !!session?.user?.id,
           hasId: !!id,
@@ -68,54 +71,84 @@ const MovieDetail = () => {
 
       if (currentDuration % WATCH_TIME_UPDATE_INTERVAL === 0) {
         console.log('Updating watch history:', {
-          userId: session.user.id,
+          userId: session?.user?.id,
           movieId: id,
           watchDuration: currentDuration,
           watchedAt: new Date().toISOString()
         });
 
         try {
-          const { data: existingRecord, error: fetchError } = await supabase
-            .from('user_movie_history')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .eq('movie_id', id)
-            .single();
-
-          if (fetchError && fetchError.code !== 'PGRST116') {
-            console.error('Error checking existing record:', fetchError);
-            return;
-          }
-
-          const watchData = {
-            user_id: session.user.id,
-            movie_id: id,
-            watch_duration: currentDuration,
-            watched_at: new Date().toISOString()
+          const browserInfo = navigator.userAgent;
+          const deviceInfo = {
+            screenWidth: window.screen.width,
+            screenHeight: window.screen.height,
+            platform: navigator.platform,
+            vendor: navigator.vendor,
+            isMobile: window.innerWidth < 768
           };
 
-          let result;
-          if (existingRecord) {
-            result = await supabase
-              .from('user_movie_history')
-              .update(watchData)
-              .eq('id', existingRecord.id);
-          } else {
-            result = await supabase
-              .from('user_movie_history')
-              .insert(watchData);
+          let ip = null;
+          try {
+            const ipResponse = await fetch('https://api.ipify.org?format=json');
+            const ipData = await ipResponse.json();
+            ip = ipData.ip;
+          } catch (ipError) {
+            console.error('Failed to get IP:', ipError);
           }
 
-          if (result.error) {
-            console.error('Error updating watch history:', result.error);
-            console.error('Error details:', {
-              code: result.error.code,
-              message: result.error.message,
-              details: result.error.details,
-              hint: result.error.hint
-            });
-          } else {
-            console.log('Watch history updated successfully:', result.data);
+          if (session?.user?.id) {
+            const { data: existingRecord, error: fetchError } = await supabase
+              .from('user_movie_history')
+              .select('id')
+              .eq('user_id', session.user.id)
+              .eq('movie_id', id)
+              .single();
+
+            if (fetchError && fetchError.code !== 'PGRST116') {
+              console.error('Error checking existing record:', fetchError);
+              return;
+            }
+
+            const watchData = {
+              user_id: session.user.id,
+              movie_id: id,
+              watch_duration: currentDuration,
+              watched_at: new Date().toISOString(),
+              browser_info: browserInfo,
+              device_info: JSON.stringify(deviceInfo)
+            };
+
+            let result;
+            if (existingRecord) {
+              result = await supabase
+                .from('user_movie_history')
+                .update(watchData)
+                .eq('id', existingRecord.id);
+            } else {
+              result = await supabase
+                .from('user_movie_history')
+                .insert(watchData);
+            }
+
+            if (result.error) {
+              console.error('Error updating watch history:', result.error);
+            } else {
+              console.log('Watch history updated successfully:', result.data);
+            }
+          } else if (ip) {
+            // Track anonymous view with IP
+            try {
+              await supabase.rpc('track_movie_view_with_country', {
+                p_movie_id: id,
+                p_user_id: null,
+                p_user_ip: ip,
+                p_browser_info: browserInfo,
+                p_device_info: JSON.stringify(deviceInfo)
+              });
+              console.log('Anonymous view tracked successfully');
+            } catch (error) {
+              console.error('Error tracking anonymous view:', error);
+            }
           }
         } catch (error) {
           console.error('Exception updating watch time:', error);
@@ -221,7 +254,8 @@ const MovieDetail = () => {
         screenWidth: window.screen.width,
         screenHeight: window.screen.height,
         platform: navigator.platform,
-        vendor: navigator.vendor
+        vendor: navigator.vendor,
+        isMobile: window.innerWidth < 768
       };
       
       let ip = null;
@@ -233,7 +267,21 @@ const MovieDetail = () => {
         console.error('Failed to get IP:', ipError);
       }
       
-      await supabase.rpc('increment_movie_share_count', { movie_id: id });
+      // Track share with more detailed info
+      try {
+        await supabase.rpc('track_movie_share', { 
+          p_movie_id: id,
+          p_user_id: session?.user?.id || null,
+          p_share_method: platform || 'dialog',
+          p_user_ip: ip,
+          p_browser_info: browserInfo,
+          p_device_info: JSON.stringify(deviceInfo)
+        });
+      } catch (error) {
+        console.error('Error tracking share:', error);
+        // Fallback to simple share count increment
+        await supabase.rpc('increment_movie_share_count', { movie_id: id });
+      }
       
       const shareUrl = window.location.href;
       const shareTitle = movieData?.movie.title || 'Movie';
@@ -327,8 +375,8 @@ const MovieDetail = () => {
   const shareCount = movie.share_count || 0;
 
   return (
-    <div className="min-h-screen pt-16">
-      <div className="relative h-[70vh]">
+    <div className={`min-h-screen ${isMobile ? 'pt-0' : 'pt-16'}`}>
+      <div className={`relative ${isMobile ? 'h-[60vh]' : 'h-[70vh]'}`}>
         {isPlaying ? (
           <MoviePlayer
             movie={movie}
@@ -348,11 +396,11 @@ const MovieDetail = () => {
         )}
       </div>
 
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className={`container mx-auto px-4 py-6 ${isMobile ? 'pb-20' : 'py-12'}`}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           <div className="md:col-span-2">
             {!isPlaying && session && (
-              <div className="space-y-8">
+              <div className="space-y-4 md:space-y-8">
                 <MovieStats
                   watchCount={watchCount}
                   shareCount={shareCount}
@@ -369,7 +417,7 @@ const MovieDetail = () => {
       </div>
 
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={`${isMobile ? 'w-[90%]' : 'sm:max-w-md'} rounded-xl`}>
           <DialogHeader>
             <DialogTitle>Share this movie</DialogTitle>
             <DialogDescription>
