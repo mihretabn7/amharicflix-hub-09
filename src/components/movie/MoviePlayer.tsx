@@ -1,3 +1,4 @@
+
 import { Movie } from "@/types/movie";
 import MovieRating from "@/components/MovieRating";
 import MovieReportModal from "@/components/MovieReportModal";
@@ -30,24 +31,49 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
     // Track the view when the component mounts
     const trackView = async () => {
       try {
+        // Get browser and device info
+        const browserInfo = navigator.userAgent;
+        const deviceInfo = {
+          screenWidth: window.screen.width,
+          screenHeight: window.screen.height,
+          platform: navigator.platform,
+          vendor: navigator.vendor
+        };
+        
         if (userId) {
           // Track for registered user
           await supabase.rpc('track_movie_view_with_country', {
             p_movie_id: movie.id,
             p_user_id: userId,
-            p_user_ip: null
+            p_user_ip: null,
+            p_browser_info: browserInfo,
+            p_device_info: JSON.stringify(deviceInfo)
           });
         } else {
           // Track for anonymous user
-          const response = await fetch('https://api.ipify.org?format=json');
-          const data = await response.json();
-          const ip = data.ip;
+          try {
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            const ip = data.ip;
 
-          await supabase.rpc('track_movie_view_with_country', {
-            p_movie_id: movie.id,
-            p_user_id: null,
-            p_user_ip: ip
-          });
+            await supabase.rpc('track_movie_view_with_country', {
+              p_movie_id: movie.id,
+              p_user_id: null,
+              p_user_ip: ip,
+              p_browser_info: browserInfo,
+              p_device_info: JSON.stringify(deviceInfo)
+            });
+          } catch (ipError) {
+            console.error("Error getting IP:", ipError);
+            // Still track the view even if IP detection fails
+            await supabase.rpc('track_movie_view_with_country', {
+              p_movie_id: movie.id,
+              p_user_id: null,
+              p_user_ip: null,
+              p_browser_info: browserInfo,
+              p_device_info: JSON.stringify(deviceInfo)
+            });
+          }
         }
       } catch (error) {
         console.error("Error tracking view:", error);

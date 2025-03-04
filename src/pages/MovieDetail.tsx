@@ -7,6 +7,17 @@ import MovieDetailsSection from "@/components/MovieDetailsSection";
 import MovieHero from "@/components/movie/MovieHero";
 import MoviePlayer from "@/components/movie/MoviePlayer";
 import MovieStats from "@/components/movie/MovieStats";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Copy, Facebook, Linkedin, Twitter, Link, WhatsApp, Mail } from "lucide-react";
 
 const NETFLIX_VIEW_THRESHOLD = 120; // 2 minutes in seconds
 const WATCH_TIME_UPDATE_INTERVAL = 10; // Update watch time every 10 seconds
@@ -23,6 +34,7 @@ const MovieDetail = () => {
   const [session, setSession] = useState<any>(null);
   const [viewStartTime, setViewStartTime] = useState<Date | null>(null);
   const [currentWatchDuration, setCurrentWatchDuration] = useState(0);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const watchTimeInterval = useRef<NodeJS.Timeout | null>(null);
   const viewCounted = useRef(false);
 
@@ -200,33 +212,107 @@ const MovieDetail = () => {
     },
   });
 
-  const handleShare = async () => {
+  const handleShare = async (platform?: string) => {
+    if (!id) return;
+    
     try {
-      if (id) {
-        await supabase.rpc('increment_movie_share_count', { movie_id: id });
-      }
-
-      const shareData = {
-        title: movieData?.movie.title || 'Movie',
-        text: movieData?.movie.description || 'Check out this Ethiopian movie!',
-        url: window.location.href
+      const browserInfo = navigator.userAgent;
+      const deviceInfo = {
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+        platform: navigator.platform,
+        vendor: navigator.vendor
       };
-
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-        toast.success('Shared successfully!');
+      
+      let ip = null;
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        ip = ipData.ip;
+      } catch (ipError) {
+        console.error('Failed to get IP:', ipError);
+      }
+      
+      await supabase.rpc('track_movie_share', { 
+        p_movie_id: id,
+        p_user_id: session?.user?.id || null,
+        p_share_method: platform || 'dialog',
+        p_user_ip: ip,
+        p_browser_info: browserInfo,
+        p_device_info: JSON.stringify(deviceInfo)
+      });
+      
+      const shareUrl = window.location.href;
+      const shareTitle = movieData?.movie.title || 'Movie';
+      const shareText = movieData?.movie.description || 'Check out this Ethiopian movie!';
+      
+      if (platform) {
+        let shareLink = '';
+        
+        switch (platform) {
+          case 'facebook':
+            shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+            break;
+          case 'twitter':
+            shareLink = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+            break;
+          case 'linkedin':
+            shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+            break;
+          case 'whatsapp':
+            shareLink = `https://wa.me/?text=${encodeURIComponent(`${shareTitle}: ${shareUrl}`)}`;
+            break;
+          case 'email':
+            shareLink = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+            break;
+          case 'copy':
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success('Link copied to clipboard!');
+            return;
+          default:
+            break;
+        }
+        
+        if (shareLink) {
+          window.open(shareLink, '_blank', 'noopener,noreferrer');
+          toast.success(`Shared on ${platform}!`);
+        }
       } else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copied to clipboard!');
+        if (navigator.share && navigator.canShare) {
+          try {
+            const shareData = {
+              title: shareTitle,
+              text: shareText,
+              url: shareUrl
+            };
+            
+            if (navigator.canShare(shareData)) {
+              await navigator.share(shareData);
+              toast.success('Shared successfully!');
+              setShowShareDialog(false);
+              return;
+            }
+          } catch (error) {
+            console.error('Error with navigator.share:', error);
+          }
+        }
+        
+        setShowShareDialog(true);
       }
     } catch (error) {
-      console.error('Error sharing:', error);
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Link copied to clipboard!');
-      } catch (clipboardError) {
-        toast.error('Failed to share or copy link');
-      }
+      console.error('Error during share operation:', error);
+      toast.error('Failed to share. Please try again.');
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+      setShowShareDialog(false);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      toast.error('Failed to copy link. Please try manually.');
     }
   };
 
@@ -288,6 +374,74 @@ const MovieDetail = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share this movie</DialogTitle>
+            <DialogDescription>
+              Choose how you'd like to share "{movie.title}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-4 py-4">
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center gap-2 p-4" 
+              onClick={() => handleShare('facebook')}
+            >
+              <Facebook className="h-5 w-5" />
+              <span className="text-xs">Facebook</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center gap-2 p-4" 
+              onClick={() => handleShare('twitter')}
+            >
+              <Twitter className="h-5 w-5" />
+              <span className="text-xs">Twitter</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center gap-2 p-4" 
+              onClick={() => handleShare('whatsapp')}
+            >
+              <WhatsApp className="h-5 w-5" />
+              <span className="text-xs">WhatsApp</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center gap-2 p-4" 
+              onClick={() => handleShare('linkedin')}
+            >
+              <Linkedin className="h-5 w-5" />
+              <span className="text-xs">LinkedIn</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center gap-2 p-4" 
+              onClick={() => handleShare('email')}
+            >
+              <Mail className="h-5 w-5" />
+              <span className="text-xs">Email</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="flex flex-col items-center gap-2 p-4" 
+              onClick={handleCopyLink}
+            >
+              <Copy className="h-5 w-5" />
+              <span className="text-xs">Copy Link</span>
+            </Button>
+          </div>
+          <DialogFooter className="sm:justify-end">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Close
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
