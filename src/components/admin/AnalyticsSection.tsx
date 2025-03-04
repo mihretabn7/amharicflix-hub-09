@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +17,11 @@ interface CountryData {
   total_views: number;
   registered_views: number;
   anonymous_views: number;
+}
+
+interface DeviceStats {
+  devices: { name: string; value: number }[];
+  platforms: { name: string; value: number }[];
 }
 
 export const AnalyticsSection = () => {
@@ -59,7 +63,6 @@ export const AnalyticsSection = () => {
       for (const data of testData) {
         for (let i = 0; i < data.count; i++) {
           if (i % 2 === 0) {
-            // Call the stored procedure using the standard rpc method
             const { error } = await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movieId,
               p_user_id: "c99e2e79-8106-4189-bf60-a9d87e6ab831",
@@ -76,7 +79,6 @@ export const AnalyticsSection = () => {
               throw error;
             }
           } else {
-            // Call the stored procedure using the standard rpc method
             const { error } = await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movieId,
               p_user_id: null,
@@ -210,7 +212,7 @@ export const AnalyticsSection = () => {
     }
   });
 
-  const { data: deviceStats } = useQuery({
+  const { data: deviceStats } = useQuery<DeviceStats>({
     queryKey: ['device-stats'],
     queryFn: async () => {
       const { data: history } = await supabase
@@ -218,7 +220,10 @@ export const AnalyticsSection = () => {
         .select('device_info')
         .not('device_info', 'is', null);
 
-      if (!history || history.length === 0) return [];
+      if (!history || history.length === 0) return {
+        devices: [],
+        platforms: []
+      };
 
       const deviceCount = { Mobile: 0, Desktop: 0, Unknown: 0 };
       const platformCount: Record<string, number> = {};
@@ -227,14 +232,12 @@ export const AnalyticsSection = () => {
         try {
           const deviceInfo = JSON.parse(item.device_info || "{}");
           
-          // Count mobile vs desktop
           if (deviceInfo.isMobile) {
             deviceCount.Mobile += 1;
           } else {
             deviceCount.Desktop += 1;
           }
           
-          // Count platforms
           if (deviceInfo.platform) {
             const platform = String(deviceInfo.platform);
             platformCount[platform] = (platformCount[platform] || 0) + 1;
@@ -284,7 +287,6 @@ export const AnalyticsSection = () => {
     const maxViews = Math.max(...countriesData.map(c => c.total_views), 1);
     const intensity = country.total_views / maxViews;
     
-    // Use a more vivid gradient for better visualization
     return `rgba(255, 107, 107, ${Math.max(0.2, intensity)})`;
   };
 
@@ -363,7 +365,6 @@ export const AnalyticsSection = () => {
                   </ZoomableGroup>
                 </ComposableMap>
               </ResponsiveContainer>
-              {/* Map Legend */}
               <div className="absolute bottom-4 right-4 bg-white/90 p-2 rounded-md shadow-md">
                 <div className="text-xs font-semibold mb-1">Views</div>
                 <div className="flex items-center gap-1">
@@ -609,7 +610,7 @@ export const AnalyticsSection = () => {
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
                       <Pie
-                        data={deviceStats?.devices}
+                        data={deviceStats?.devices || []}
                         innerRadius={50}
                         outerRadius={70}
                         paddingAngle={5}
@@ -639,7 +640,7 @@ export const AnalyticsSection = () => {
                   <h3 className="text-sm font-medium mb-2 text-center">Top Platforms</h3>
                   <ResponsiveContainer width="100%" height={250}>
                     <BarChart 
-                      data={deviceStats?.platforms}
+                      data={deviceStats?.platforms || []}
                       layout="vertical"
                     >
                       <CartesianGrid strokeDasharray="3 3" />
