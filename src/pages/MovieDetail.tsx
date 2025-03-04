@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,9 +88,11 @@ const MovieDetail = () => {
 
           let ip = null;
           try {
-            const ipResponse = await fetch('https://api.ipify.org?format=json');
-            const ipData = await ipResponse.json();
-            ip = ipData.ip;
+            const response = await supabase.functions.invoke('get-my-ip');
+            if (response.error) {
+              throw new Error(response.error.message);
+            }
+            ip = response.data.ip;
           } catch (ipError) {
             console.error('Failed to get IP:', ipError);
           }
@@ -136,7 +137,6 @@ const MovieDetail = () => {
               console.log('Watch history updated successfully:', result.data);
             }
           } else if (ip) {
-            // Track anonymous view with IP
             try {
               await supabase.rpc('track_movie_view_with_country', {
                 p_movie_id: id,
@@ -260,14 +260,15 @@ const MovieDetail = () => {
       
       let ip = null;
       try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        ip = ipData.ip;
+        const response = await supabase.functions.invoke('get-my-ip');
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
+        ip = response.data.ip;
       } catch (ipError) {
         console.error('Failed to get IP:', ipError);
       }
       
-      // Track share with more detailed info
       try {
         await supabase.rpc('track_movie_share', { 
           p_movie_id: id,
@@ -279,7 +280,6 @@ const MovieDetail = () => {
         });
       } catch (error) {
         console.error('Error tracking share:', error);
-        // Fallback to simple share count increment
         await supabase.rpc('increment_movie_share_count', { movie_id: id });
       }
       
@@ -375,7 +375,7 @@ const MovieDetail = () => {
   const shareCount = movie.share_count || 0;
 
   return (
-    <div className={`min-h-screen ${isMobile ? 'pt-0' : 'pt-16'}`}>
+    <div className={`min-h-screen ${isMobile ? 'pt-0 netflix-movie-detail' : 'pt-16'}`}>
       <div className={`relative ${isMobile ? 'h-[60vh]' : 'h-[70vh]'}`}>
         {isPlaying ? (
           <MoviePlayer
@@ -396,10 +396,10 @@ const MovieDetail = () => {
         )}
       </div>
 
-      <div className={`container mx-auto px-4 py-6 ${isMobile ? 'pb-20' : 'py-12'}`}>
+      <div className={`container mx-auto px-4 py-6 ${isMobile ? 'pb-20 netflix-content' : 'py-12'}`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
           <div className="md:col-span-2">
-            {!isPlaying && session && (
+            {!isPlaying && (
               <div className="space-y-4 md:space-y-8">
                 <MovieStats
                   watchCount={watchCount}
@@ -417,7 +417,7 @@ const MovieDetail = () => {
       </div>
 
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-        <DialogContent className={`${isMobile ? 'w-[90%]' : 'sm:max-w-md'} rounded-xl`}>
+        <DialogContent className={`${isMobile ? 'w-[90%] netflix-modal' : 'sm:max-w-md'} rounded-xl`}>
           <DialogHeader>
             <DialogTitle>Share this movie</DialogTitle>
             <DialogDescription>

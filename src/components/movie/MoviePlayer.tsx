@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MoviePlayerProps {
   movie: Movie;
@@ -26,6 +27,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authAction, setAuthAction] = useState<"rate" | "report" | "share">("rate");
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Track the view when the component mounts
@@ -37,7 +39,8 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
           screenWidth: window.screen.width,
           screenHeight: window.screen.height,
           platform: navigator.platform,
-          vendor: navigator.vendor
+          vendor: navigator.vendor,
+          isMobile: window.innerWidth < 768
         };
         
         if (userId) {
@@ -50,11 +53,16 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
             p_device_info: JSON.stringify(deviceInfo)
           });
         } else {
-          // Track for anonymous user
+          // Track for anonymous user using our edge function
           try {
-            const response = await fetch('https://api.ipify.org?format=json');
-            const data = await response.json();
-            const ip = data.ip;
+            const response = await supabase.functions.invoke('get-my-ip');
+            
+            if (response.error) {
+              throw new Error(response.error.message);
+            }
+            
+            const ipData = response.data;
+            const ip = ipData.ip;
 
             await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movie.id,
@@ -112,7 +120,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
       </div>
       
       {userId ? (
-        <div className="bg-card p-4 border-t border-border space-y-6">
+        <div className={`bg-card p-4 border-t border-border space-y-6 ${isMobile ? 'netflix-controls' : ''}`}>
           <MovieRating
             movieId={movie.id}
             userId={userId}
@@ -126,7 +134,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
           </div>
         </div>
       ) : (
-        <div className="bg-card p-4 border-t border-border">
+        <div className={`bg-card p-4 border-t border-border ${isMobile ? 'netflix-controls' : ''}`}>
           <div className="flex flex-wrap gap-3 justify-between items-center">
             <p className="text-muted-foreground">Sign in to rate and review this movie</p>
             <div className="flex gap-2">
@@ -151,7 +159,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
 
       {/* Authentication Required Dialog */}
       <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
-        <DialogContent>
+        <DialogContent className={`${isMobile ? 'netflix-modal w-[90%]' : 'sm:max-w-md'} rounded-xl`}>
           <DialogHeader>
             <DialogTitle>Authentication Required</DialogTitle>
             <DialogDescription>
