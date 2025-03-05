@@ -57,7 +57,8 @@ export default function FeedbackManagement() {
           created_at,
           status,
           admin_response,
-          user:user_id (
+          user_id,
+          profiles:user_id (
             username,
             email
           )
@@ -74,8 +75,8 @@ export default function FeedbackManagement() {
         status: item.status,
         admin_response: item.admin_response,
         user: {
-          username: item.user?.username || 'Unknown',
-          email: item.user?.email || 'Unknown'
+          username: item.profiles?.username || 'Unknown',
+          email: item.profiles?.email || 'Unknown'
         }
       })) || [];
       

@@ -16,6 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter 
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { formatDistanceToNow, format } from "date-fns";
@@ -62,7 +69,8 @@ export default function DonationsManagement() {
           payment_processor,
           transaction_id,
           completed_at,
-          user:user_id (
+          user_id,
+          profiles:user_id (
             username,
             email
           )
@@ -82,8 +90,8 @@ export default function DonationsManagement() {
         transaction_id: item.transaction_id,
         completed_at: item.completed_at,
         user: {
-          username: item.user?.username || 'Unknown',
-          email: item.user?.email || 'Unknown'
+          username: item.profiles?.username || 'Unknown',
+          email: item.profiles?.email || 'Unknown'
         }
       })) || [];
       
@@ -159,7 +167,7 @@ export default function DonationsManagement() {
       case 'processing':
         return <Badge variant="secondary">Processing</Badge>;
       case 'completed':
-        return <Badge variant="success">Completed</Badge>;
+        return <Badge className="bg-green-500 text-white">Completed</Badge>;
       case 'failed':
         return <Badge variant="destructive">Failed</Badge>;
       case 'refunded':
