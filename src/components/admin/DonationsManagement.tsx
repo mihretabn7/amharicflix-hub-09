@@ -57,7 +57,7 @@ export default function DonationsManagement() {
   const fetchDonations = async () => {
     setIsLoading(true);
     try {
-      // Using direct SQL query with joins instead of RPC function
+      // Using direct SQL query with joins
       const { data, error } = await supabase
         .from('user_donations')
         .select(`
@@ -70,12 +70,11 @@ export default function DonationsManagement() {
           transaction_id,
           completed_at,
           user_id,
-          profiles:user_id (
+          profiles!user_donations_user_id_fkey (
             username,
             email
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
       
       if (error) throw error;
 
@@ -123,7 +122,7 @@ export default function DonationsManagement() {
       // Calculate completed_at timestamp if status is 'completed'
       const completedAt = selectedStatus === 'completed' ? new Date().toISOString() : null;
       
-      // Using direct update instead of RPC
+      // Using direct update
       const { error } = await supabase
         .from('user_donations')
         .update({

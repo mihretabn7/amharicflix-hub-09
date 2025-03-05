@@ -48,7 +48,7 @@ export default function FeedbackManagement() {
   const fetchFeedback = async () => {
     setIsLoading(true);
     try {
-      // Using direct SQL query with joins instead of RPC function
+      // Using direct SQL query with joins
       const { data, error } = await supabase
         .from('user_feedback')
         .select(`
@@ -58,7 +58,7 @@ export default function FeedbackManagement() {
           status,
           admin_response,
           user_id,
-          profiles:user_id (
+          profiles!user_feedback_user_id_fkey (
             username,
             email
           )
@@ -105,7 +105,7 @@ export default function FeedbackManagement() {
     setIsSubmitting(true);
     
     try {
-      // Using direct update instead of RPC
+      // Using direct update
       const { error } = await supabase
         .from('user_feedback')
         .update({
