@@ -17,7 +17,7 @@ import {
   DialogFooter 
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, customRpcs } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -47,9 +47,8 @@ export default function FeedbackManagement() {
   const fetchFeedback = async () => {
     setIsLoading(true);
     try {
-      // Use the RPC function defined in the migrations
-      const { data, error } = await supabase
-        .rpc('get_all_feedback_with_users');
+      // Use our custom RPC wrapper
+      const { data, error } = await customRpcs.getAllFeedbackWithUsers();
       
       if (error) throw error;
       
@@ -76,13 +75,12 @@ export default function FeedbackManagement() {
     setIsSubmitting(true);
     
     try {
-      // Use the RPC function defined in the migrations
-      const { error } = await supabase
-        .rpc('update_feedback_response', {
-          feedback_id_param: selectedFeedback.id,
-          admin_response_param: response,
-          status_param: 'resolved'
-        });
+      // Use our custom RPC wrapper
+      const { error } = await customRpcs.updateFeedbackResponse(
+        selectedFeedback.id,
+        response,
+        'resolved'
+      );
       
       if (error) throw error;
       

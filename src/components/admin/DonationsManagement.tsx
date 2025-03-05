@@ -16,7 +16,7 @@ import {
   DialogTitle, 
   DialogFooter 
 } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, customRpcs } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -49,9 +49,8 @@ export default function DonationsManagement() {
   const fetchDonations = async () => {
     setIsLoading(true);
     try {
-      // Use the RPC function defined in the migrations
-      const { data, error } = await supabase
-        .rpc('get_all_donations_with_users');
+      // Use our custom RPC wrapper
+      const { data, error } = await customRpcs.getAllDonationsWithUsers();
       
       if (error) throw error;
       
@@ -70,13 +69,12 @@ export default function DonationsManagement() {
     setIsUpdating(true);
     
     try {
-      // Use the RPC function defined in the migrations
-      const { error } = await supabase
-        .rpc('update_donation_status', { 
-          donation_id_param: id,
-          status_param: status,
-          completed_at_param: status === 'completed' ? new Date().toISOString() : null
-        });
+      // Use our custom RPC wrapper
+      const { error } = await customRpcs.updateDonationStatus(
+        id,
+        status,
+        status === 'completed' ? new Date().toISOString() : null
+      );
       
       if (error) throw error;
       
@@ -167,7 +165,7 @@ export default function DonationsManagement() {
                   </div>
                   
                   <div className="mt-1 text-sm text-muted-foreground">
-                    From: {donation.user.username || donation.user.email || 'Anonymous'}
+                    From: {donation.user?.username || donation.user?.email || 'Anonymous'}
                   </div>
                   
                   <div className="mt-1 text-sm text-muted-foreground">
@@ -219,7 +217,7 @@ export default function DonationsManagement() {
                   </div>
                   <div className="flex justify-between">
                     <dt className="font-medium">From:</dt>
-                    <dd>{selectedDonation.user.username || selectedDonation.user.email || 'Anonymous'}</dd>
+                    <dd>{selectedDonation.user?.username || selectedDonation.user?.email || 'Anonymous'}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="font-medium">Date:</dt>
