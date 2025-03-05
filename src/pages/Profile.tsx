@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,7 +121,7 @@ const Profile = () => {
           .eq('reporter_id', session?.user?.id),
         supabase
           .from('user_movie_history')
-          .select('watch_duration, movie:movies(duration_minutes)')
+          .select('watch_duration, movie:movies(duration_minutes, id)')
           .eq('user_id', session?.user?.id)
       ]);
 
@@ -132,20 +133,42 @@ const Profile = () => {
         ? ratingsResponse.data.reduce((acc, curr) => acc + curr.rating, 0) / ratingsResponse.data.length
         : 0;
 
+      // Calculate total watch time in seconds
       const totalWatchTime = watchHistoryResponse.data.reduce((acc, curr) => acc + (curr.watch_duration || 0), 0);
-      const completionRate = watchHistoryResponse.data.reduce((acc, curr) => {
-        const movieDuration = curr.movie?.duration_minutes || 0;
-        if (movieDuration === 0) return acc;
-        return acc + ((curr.watch_duration || 0) / (movieDuration * 60)) * 100;
-      }, 0) / (watchHistoryResponse.data.length || 1);
+      
+      // Get unique movies by id
+      const uniqueMovieIds = new Set();
+      watchHistoryResponse.data.forEach(item => {
+        if (item.movie?.id) {
+          uniqueMovieIds.add(item.movie.id);
+        }
+      });
+      
+      // Calculate completion rate based on watch_duration vs movie duration
+      // Convert movie duration to seconds (duration_minutes * 60) for comparison
+      let totalCompletionPercentage = 0;
+      let validMovieCount = 0;
+      
+      watchHistoryResponse.data.forEach(item => {
+        const movieDuration = (item.movie?.duration_minutes || 0) * 60; // Convert to seconds
+        if (movieDuration > 0) {
+          const watchPercentage = Math.min(((item.watch_duration || 0) / movieDuration) * 100, 100);
+          totalCompletionPercentage += watchPercentage;
+          validMovieCount++;
+        }
+      });
+      
+      const averageCompletionRate = validMovieCount > 0 
+        ? totalCompletionPercentage / validMovieCount 
+        : 0;
 
       return {
         totalRatings: ratingsResponse.data.length,
         averageRating,
         totalReports: reportsResponse.data.length,
-        totalWatches: watchHistoryResponse.data.length,
-        totalWatchTime: totalWatchTime / 60,
-        completionRate
+        totalWatches: uniqueMovieIds.size, // Count of unique movies
+        totalWatchTime: totalWatchTime / 60, // Convert seconds to minutes
+        completionRate: averageCompletionRate
       };
     }
   });

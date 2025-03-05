@@ -23,6 +23,7 @@ export const UserStats = ({ stats }: UserStatsProps) => {
   };
 
   // Ensure the completion rate is properly clamped between 0-100%
+  // Before it could go over 100% if movie watch duration was longer than the expected length
   const safeCompletionRate = Math.min(Math.max(0, stats.completionRate), 100);
 
   return (
@@ -39,7 +40,7 @@ export const UserStats = ({ stats }: UserStatsProps) => {
           </div>
           <div className="mt-4">
             <div className="text-xs text-muted-foreground mb-1">
-              {stats.totalWatches} movies watched
+              {stats.totalWatches} unique movies watched
             </div>
             <Progress value={safeCompletionRate} className="h-1" />
             <div className="text-xs text-right mt-1">{safeCompletionRate.toFixed(0)}% complete</div>

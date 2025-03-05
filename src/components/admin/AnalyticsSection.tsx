@@ -48,52 +48,54 @@ export const AnalyticsSection = () => {
   const addTestCountryData = async () => {
     const movieId = "c78b72c8-5c7a-4e99-b425-50c6743e2b4c";
     const testData = [
-      { country: "US", count: 5 },
-      { country: "GB", count: 3 },
-      { country: "CA", count: 2 },
-      { country: "DE", count: 4 },
-      { country: "FR", count: 3 },
-      { country: "JP", count: 2 },
-      { country: "ET", count: 8 },
-      { country: "KE", count: 3 },
-      { country: "NG", count: 5 }
+      { country: "US", count: 5, anonymousCount: 8 },
+      { country: "GB", count: 3, anonymousCount: 5 },
+      { country: "CA", count: 2, anonymousCount: 4 },
+      { country: "DE", count: 4, anonymousCount: 6 },
+      { country: "FR", count: 3, anonymousCount: 7 },
+      { country: "JP", count: 2, anonymousCount: 3 },
+      { country: "ET", count: 8, anonymousCount: 10 },
+      { country: "KE", count: 3, anonymousCount: 4 },
+      { country: "NG", count: 5, anonymousCount: 6 }
     ];
     
     try {
       for (const data of testData) {
+        // Add registered user views
         for (let i = 0; i < data.count; i++) {
-          if (i % 2 === 0) {
-            const { error } = await supabase.rpc('track_movie_view_with_country', {
-              p_movie_id: movieId,
-              p_user_id: "c99e2e79-8106-4189-bf60-a9d87e6ab831",
-              p_user_ip: null,
-              p_browser_info: "Test Browser",
-              p_device_info: JSON.stringify({
-                isMobile: Math.random() > 0.5,
-                platform: Math.random() > 0.5 ? "iOS" : "Android"
-              })
-            });
-            
-            if (error) {
-              console.error("Error adding registered test data:", error);
-              throw error;
-            }
-          } else {
-            const { error } = await supabase.rpc('track_movie_view_with_country', {
-              p_movie_id: movieId,
-              p_user_id: null,
-              p_user_ip: "192.168.1." + i,
-              p_browser_info: "Test Browser",
-              p_device_info: JSON.stringify({
-                isMobile: Math.random() > 0.5,
-                platform: Math.random() > 0.5 ? "iOS" : "Android"
-              })
-            });
-            
-            if (error) {
-              console.error("Error adding anonymous test data:", error);
-              throw error;
-            }
+          const { error } = await supabase.rpc('track_movie_view_with_country', {
+            p_movie_id: movieId,
+            p_user_id: "c99e2e79-8106-4189-bf60-a9d87e6ab831",
+            p_user_ip: null,
+            p_browser_info: "Test Browser",
+            p_device_info: JSON.stringify({
+              isMobile: Math.random() > 0.5,
+              platform: Math.random() > 0.5 ? "iOS" : "Android"
+            })
+          });
+          
+          if (error) {
+            console.error("Error adding registered test data:", error);
+            throw error;
+          }
+        }
+        
+        // Add anonymous user views
+        for (let i = 0; i < data.anonymousCount; i++) {
+          const { error } = await supabase.rpc('track_movie_view_with_country', {
+            p_movie_id: movieId,
+            p_user_id: null,
+            p_user_ip: "192.168.1." + i,
+            p_browser_info: "Test Browser",
+            p_device_info: JSON.stringify({
+              isMobile: Math.random() > 0.5,
+              platform: Math.random() > 0.5 ? "iOS" : "Android"
+            })
+          });
+          
+          if (error) {
+            console.error("Error adding anonymous test data:", error);
+            throw error;
           }
         }
       }
