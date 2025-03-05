@@ -1,197 +1,223 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
-import { CheckCircle, XCircle, MessageSquare } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { formatDistanceToNow } from "date-fns";
 
 interface FeedbackItem {
   id: string;
   feedback_text: string;
   created_at: string;
   status: string;
-  admin_response?: string;
+  admin_response: string | null;
   user: {
-    id: string;
-    username?: string;
-    email?: string;
-  }
+    username: string;
+    email: string;
+  };
 }
 
-export const FeedbackManagement = () => {
-  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [responses, setResponses] = useState<Record<string, string>>({});
+export default function FeedbackManagement() {
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackItem | null>(null);
+  const [response, setResponse] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-
+  
   useEffect(() => {
     fetchFeedback();
   }, []);
-
+  
   const fetchFeedback = async () => {
+    setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('user_feedback')
-        .select(`
-          id,
-          feedback_text,
-          created_at,
-          status,
-          admin_response,
-          user:profiles(id, username, email)
-        `)
-        .order('created_at', { ascending: false });
-
+      // Using custom RPC function to get feedback with user details
+      const { data, error } = await supabase.rpc('get_all_feedback_with_users');
+      
       if (error) throw error;
       
-      setFeedbackItems(data || []);
+      setFeedback(data || []);
       
-      // Initialize responses state
-      const initialResponses: Record<string, string> = {};
-      data?.forEach(item => {
+      // Initialize responses map for feedback that has admin responses
+      data?.forEach((item: FeedbackItem) => {
         if (item.admin_response) {
-          initialResponses[item.id] = item.admin_response;
+          setResponse(item.admin_response);
         }
       });
-      setResponses(initialResponses);
       
     } catch (error: any) {
-      console.error('Error fetching feedback:', error.message);
+      console.error("Error fetching feedback:", error);
       toast({
-        title: "Error fetching feedback",
-        description: error.message,
-        variant: "destructive"
+        title: "Failed to load feedback",
+        description: error.message || "There was an error loading the feedback items",
+        variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-
-  const updateFeedbackStatus = async (id: string, status: string) => {
+  
+  const handleRespond = (item: FeedbackItem) => {
+    setSelectedFeedback(item);
+    setResponse(item.admin_response || "");
+  };
+  
+  const handleSubmitResponse = async () => {
+    if (!selectedFeedback || !response.trim()) return;
+    
+    setIsSubmitting(true);
+    
     try {
-      const { error } = await supabase
-        .from('user_feedback')
-        .update({ 
-          status,
-          admin_response: responses[id] || null
-        })
-        .eq('id', id);
-
+      // Using custom RPC to update feedback with admin response
+      const { error } = await supabase.rpc('update_feedback_response', {
+        feedback_id_param: selectedFeedback.id,
+        admin_response_param: response,
+        status_param: 'resolved'
+      });
+      
       if (error) throw error;
       
-      setFeedbackItems(prev => 
-        prev.map(item => 
-          item.id === id ? { ...item, status, admin_response: responses[id] } : item
-        )
-      );
-      
       toast({
-        title: "Feedback updated",
-        description: `Feedback has been marked as ${status}`
+        title: "Response submitted",
+        description: "Your response has been sent to the user",
+        variant: "default",
       });
+      
+      // Update local state to reflect the changes
+      setFeedback(feedback.map(item => 
+        item.id === selectedFeedback.id 
+          ? { ...item, admin_response: response, status: 'resolved' } 
+          : item
+      ));
+      
+      setSelectedFeedback(null);
       
     } catch (error: any) {
-      console.error('Error updating feedback:', error.message);
       toast({
-        title: "Error updating feedback",
-        description: error.message,
-        variant: "destructive"
+        title: "Submission failed",
+        description: error.message || "There was an error submitting your response",
+        variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const handleResponseChange = (id: string, value: string) => {
-    setResponses(prev => ({
-      ...prev,
-      [id]: value
-    }));
+  
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline">Pending</Badge>;
+      case 'resolved':
+        return <Badge>Resolved</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
-
-  if (loading) {
-    return <div className="text-center p-8">Loading feedback...</div>;
-  }
-
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          User Feedback
-        </CardTitle>
-        <CardDescription>
-          View and respond to user feedback submissions
-        </CardDescription>
+        <CardTitle>User Feedback</CardTitle>
+        <CardDescription>Manage and respond to user feedback</CardDescription>
       </CardHeader>
       <CardContent>
-        {feedbackItems.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8">Loading feedback...</div>
+        ) : feedback.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No feedback has been submitted yet.
           </div>
         ) : (
-          <div className="space-y-6">
-            {feedbackItems.map((item) => (
-              <div 
-                key={item.id} 
-                className="p-4 border rounded-lg space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    From: {item.user?.username || item.user?.email || 'Anonymous'}
+          <div className="space-y-4">
+            {feedback.map((item) => (
+              <div key={item.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-medium">{item.user?.username || item.user?.email || 'Anonymous'}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDistanceToNow(new Date(item.created_at))} ago
+                    </p>
                   </div>
-                  <Badge variant={item.status === 'resolved' ? 'success' : (item.status === 'dismissed' ? 'destructive' : 'default')}>
-                    {item.status === 'pending' ? 'Pending' : 
-                     item.status === 'resolved' ? 'Resolved' : 'Dismissed'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(item.status)}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleRespond(item)}
+                    >
+                      {item.admin_response ? "View Response" : "Respond"}
+                    </Button>
+                  </div>
                 </div>
-                
-                <div className="text-sm bg-muted p-3 rounded">
-                  {item.feedback_text}
-                </div>
-                
-                <div className="text-xs text-muted-foreground">
-                  Submitted {formatDistanceToNow(new Date(item.created_at))} ago
-                </div>
-                
-                <div className="pt-2">
-                  <Textarea
-                    placeholder="Add your response (optional)"
-                    value={responses[item.id] || ''}
-                    onChange={(e) => handleResponseChange(item.id, e.target.value)}
-                    className="text-sm mb-3"
-                    disabled={item.status !== 'pending'}
-                  />
-                  
-                  {item.status === 'pending' && (
-                    <div className="flex gap-2 justify-end">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="gap-1"
-                        onClick={() => updateFeedbackStatus(item.id, 'dismissed')}
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Dismiss
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="gap-1"
-                        onClick={() => updateFeedbackStatus(item.id, 'resolved')}
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Resolve
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <p className="mt-2 whitespace-pre-wrap">{item.feedback_text}</p>
+                {item.admin_response && (
+                  <div className="mt-4 bg-muted p-3 rounded-md">
+                    <p className="text-sm font-medium">Admin Response:</p>
+                    <p className="text-sm whitespace-pre-wrap">{item.admin_response}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
+        
+        {selectedFeedback && (
+          <Dialog open={!!selectedFeedback} onOpenChange={(open) => !open && setSelectedFeedback(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {selectedFeedback.admin_response ? "View Response" : "Respond to Feedback"}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="py-4">
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium mb-1">User Feedback:</h4>
+                  <p className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">
+                    {selectedFeedback.feedback_text}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium mb-1">Your Response:</h4>
+                  <Textarea
+                    value={response}
+                    onChange={(e) => setResponse(e.target.value)}
+                    placeholder="Type your response here..."
+                    className="min-h-[100px] mt-1"
+                    disabled={!!selectedFeedback.admin_response}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                {!selectedFeedback.admin_response && (
+                  <Button 
+                    onClick={handleSubmitResponse} 
+                    disabled={isSubmitting || !response.trim()}
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Response"}
+                  </Button>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </CardContent>
     </Card>
   );
-};
+}

@@ -10,29 +10,46 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Heart, CreditCard, Coffee } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-
-const SUPPORT_OPTIONS = [
-  { value: "coffee", label: "Buy us a coffee", amount: 5, icon: Coffee },
-  { value: "basic", label: "Basic support", amount: 10, icon: Heart },
-  { value: "premium", label: "Premium support", amount: 25, icon: CreditCard },
-  { value: "custom", label: "Custom amount", amount: null, icon: CreditCard },
-];
 
 export function SupportDialog() {
-  const [selectedOption, setSelectedOption] = useState("coffee");
-  const [customAmount, setCustomAmount] = useState("");
+  const [amount, setAmount] = useState("");
+  const [donationType, setDonationType] = useState("one-time");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleSupport = async () => {
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow numbers and decimal point
+    const value = e.target.value.replace(/[^0-9.]/g, "");
+    
+    // Ensure only valid decimal format
+    if (value === "" || /^\d+(\.\d{0,2})?$/.test(value)) {
+      setAmount(value);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid donation amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -41,56 +58,40 @@ export function SupportDialog() {
       if (!session?.session?.user?.id) {
         toast({
           title: "Authentication required",
-          description: "Please sign in to support us",
+          description: "Please sign in to make a donation",
           variant: "destructive",
         });
         return;
       }
       
-      const selectedItem = SUPPORT_OPTIONS.find(option => option.value === selectedOption);
-      const amount = selectedOption === "custom" 
-        ? parseFloat(customAmount) 
-        : (selectedItem?.amount || 0);
-      
-      if (amount <= 0) {
-        toast({
-          title: "Invalid amount",
-          description: "Please enter a valid amount",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // In a real implementation, this would connect to a payment processor
-      // For now, we'll just record the donation intent
-      const { error } = await supabase.from("user_donations").insert({
-        user_id: session.session.user.id,
-        amount: amount,
-        payment_status: "pending",
-        donation_type: selectedOption
+      // Using the stored procedure to insert donation
+      const { error } = await supabase.rpc('insert_user_donation', {
+        user_id_param: session.session.user.id,
+        amount_param: parseFloat(amount),
+        donation_type_param: donationType,
+        payment_status_param: 'pending',
+        payment_processor_param: 'stripe',
+        transaction_id_param: null
       });
       
       if (error) throw error;
       
       toast({
         title: "Thank you for your support!",
-        description: "We'll redirect you to the payment page shortly.",
+        description: "Your donation is being processed. We greatly appreciate your generosity.",
       });
       
+      setAmount("");
+      setDonationType("one-time");
       setOpen(false);
       
-      // Simulate redirect to payment page
-      setTimeout(() => {
-        toast({
-          title: "This is a demo",
-          description: "In a production app, you would be redirected to a payment processor.",
-        });
-      }, 2000);
+      // Here you would normally redirect to a payment processor
+      console.log("Would redirect to payment processor");
       
     } catch (error: any) {
       toast({
-        title: "Process failed",
-        description: error.message || "There was an error processing your support",
+        title: "Submission failed",
+        description: error.message || "There was an error processing your donation",
         variant: "destructive",
       });
     } finally {
@@ -102,7 +103,7 @@ export function SupportDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
-          <Heart className="h-4 w-4" />
+          <Heart className="h-4 w-4 text-red-500" />
           <span>Support Us</span>
         </Button>
       </DialogTrigger>
@@ -110,45 +111,44 @@ export function SupportDialog() {
         <DialogHeader>
           <DialogTitle>Support AmharicFlix</DialogTitle>
           <DialogDescription>
-            Your support helps us maintain and improve the platform for everyone.
+            Your contribution helps us maintain and improve the platform for everyone.
           </DialogDescription>
         </DialogHeader>
         
-        <RadioGroup value={selectedOption} onValueChange={setSelectedOption} className="gap-3">
-          {SUPPORT_OPTIONS.map((option) => {
-            const Icon = option.icon;
-            return (
-              <div key={option.value} className="flex items-center space-x-2">
-                <RadioGroupItem value={option.value} id={option.value} />
-                <Label htmlFor={option.value} className="flex flex-1 items-center gap-2 cursor-pointer">
-                  <Icon className="h-4 w-4" />
-                  <span>{option.label}</span>
-                  {option.amount && <span className="ml-auto">${option.amount}</span>}
-                </Label>
-              </div>
-            );
-          })}
-        </RadioGroup>
-        
-        {selectedOption === "custom" && (
-          <div className="flex items-center gap-2 mt-2">
-            <span>$</span>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="amount">Donation Amount ($)</Label>
             <Input
-              type="number"
-              min="1"
-              placeholder="Enter amount"
-              value={customAmount}
-              onChange={(e) => setCustomAmount(e.target.value)}
+              id="amount"
+              type="text"
+              value={amount}
+              onChange={handleAmountChange}
+              placeholder="10.00"
             />
           </div>
-        )}
+          
+          <div className="grid gap-2">
+            <Label htmlFor="type">Donation Type</Label>
+            <Select value={donationType} onValueChange={setDonationType}>
+              <SelectTrigger id="type">
+                <SelectValue placeholder="Select donation type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="one-time">One-time donation</SelectItem>
+                <SelectItem value="monthly">Monthly support</SelectItem>
+                <SelectItem value="yearly">Yearly support</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         
-        <DialogFooter className="mt-4">
+        <DialogFooter>
           <Button 
-            onClick={handleSupport}
-            disabled={isSubmitting || (selectedOption === "custom" && !customAmount)}
+            type="submit" 
+            onClick={handleSubmit}
+            disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
           >
-            {isSubmitting ? "Processing..." : "Continue to Payment"}
+            {isSubmitting ? "Processing..." : "Donate"}
           </Button>
         </DialogFooter>
       </DialogContent>

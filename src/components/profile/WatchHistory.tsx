@@ -101,4 +101,4 @@ export const WatchHistory = ({ items }: WatchHistoryProps) => {
       })}
     </div>
   );
-};
+}

@@ -496,6 +496,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_donations: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          donation_type: string
+          id: string
+          payment_processor: string | null
+          payment_status: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          donation_type: string
+          id?: string
+          payment_processor?: string | null
+          payment_status?: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          donation_type?: string
+          id?: string
+          payment_processor?: string | null
+          payment_status?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_feedback: {
+        Row: {
+          admin_response: string | null
+          created_at: string
+          feedback_text: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          created_at?: string
+          feedback_text: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          created_at?: string
+          feedback_text?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_movie_history: {
         Row: {
           browser_info: string | null
