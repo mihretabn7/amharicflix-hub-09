@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Card, 
@@ -17,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
 interface FeedbackItem {
@@ -27,8 +28,8 @@ interface FeedbackItem {
   status: string;
   admin_response: string | null;
   user: {
-    username: string;
-    email: string;
+    username: string | null;
+    email: string | null;
   };
 }
 
@@ -38,7 +39,6 @@ export default function FeedbackManagement() {
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackItem | null>(null);
   const [response, setResponse] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   
   useEffect(() => {
     fetchFeedback();
@@ -47,46 +47,18 @@ export default function FeedbackManagement() {
   const fetchFeedback = async () => {
     setIsLoading(true);
     try {
-      // Using direct SQL query with proper join syntax
+      // Use the RPC function defined in the migrations
       const { data, error } = await supabase
-        .from('user_feedback')
-        .select(`
-          id,
-          feedback_text,
-          created_at,
-          status,
-          admin_response,
-          user_id,
-          profiles(
-            username,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
+        .rpc('get_all_feedback_with_users');
       
       if (error) throw error;
-
-      // Convert to expected format with proper null handling
-      const formattedData = data?.map(item => ({
-        id: item.id,
-        feedback_text: item.feedback_text,
-        created_at: item.created_at,
-        status: item.status,
-        admin_response: item.admin_response,
-        user: {
-          username: item.profiles?.[0]?.username || 'Unknown',
-          email: item.profiles?.[0]?.email || 'Unknown'
-        }
-      })) || [];
       
-      setFeedback(formattedData);
+      setFeedback(data || []);
       
     } catch (error: any) {
       console.error("Error fetching feedback:", error);
-      toast({
-        title: "Failed to load feedback",
-        description: error.message || "There was an error loading the feedback items",
-        variant: "destructive",
+      toast.error("Failed to load feedback", {
+        description: error.message || "There was an error loading the feedback items"
       });
     } finally {
       setIsLoading(false);
@@ -104,21 +76,18 @@ export default function FeedbackManagement() {
     setIsSubmitting(true);
     
     try {
-      // Using direct update
+      // Use the RPC function defined in the migrations
       const { error } = await supabase
-        .from('user_feedback')
-        .update({
-          admin_response: response,
-          status: 'resolved'
-        })
-        .eq('id', selectedFeedback.id);
+        .rpc('update_feedback_response', {
+          feedback_id_param: selectedFeedback.id,
+          admin_response_param: response,
+          status_param: 'resolved'
+        });
       
       if (error) throw error;
       
-      toast({
-        title: "Response submitted",
-        description: "Your response has been sent to the user",
-        variant: "default",
+      toast.success("Response submitted", {
+        description: "Your response has been sent to the user"
       });
       
       // Update local state to reflect the changes
@@ -131,10 +100,8 @@ export default function FeedbackManagement() {
       setSelectedFeedback(null);
       
     } catch (error: any) {
-      toast({
-        title: "Submission failed",
-        description: error.message || "There was an error submitting your response",
-        variant: "destructive",
+      toast.error("Submission failed", {
+        description: error.message || "There was an error submitting your response"
       });
     } finally {
       setIsSubmitting(false);
