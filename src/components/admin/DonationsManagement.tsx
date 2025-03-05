@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Card, 
@@ -57,7 +56,7 @@ export default function DonationsManagement() {
   const fetchDonations = async () => {
     setIsLoading(true);
     try {
-      // Using direct SQL query with joins
+      // Using direct SQL query with proper join syntax
       const { data, error } = await supabase
         .from('user_donations')
         .select(`
@@ -70,15 +69,16 @@ export default function DonationsManagement() {
           transaction_id,
           completed_at,
           user_id,
-          profiles!user_donations_user_id_fkey (
+          profiles(
             username,
             email
           )
-        `);
+        `)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
 
-      // Convert to expected format
+      // Convert to expected format with proper null handling
       const formattedData = data?.map(item => ({
         id: item.id,
         amount: item.amount,
@@ -89,8 +89,8 @@ export default function DonationsManagement() {
         transaction_id: item.transaction_id,
         completed_at: item.completed_at,
         user: {
-          username: item.profiles?.username || 'Unknown',
-          email: item.profiles?.email || 'Unknown'
+          username: item.profiles?.[0]?.username || 'Unknown',
+          email: item.profiles?.[0]?.email || 'Unknown'
         }
       })) || [];
       

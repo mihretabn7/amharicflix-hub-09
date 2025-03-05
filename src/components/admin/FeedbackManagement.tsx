@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Card, 
@@ -48,7 +47,7 @@ export default function FeedbackManagement() {
   const fetchFeedback = async () => {
     setIsLoading(true);
     try {
-      // Using direct SQL query with joins
+      // Using direct SQL query with proper join syntax
       const { data, error } = await supabase
         .from('user_feedback')
         .select(`
@@ -58,7 +57,7 @@ export default function FeedbackManagement() {
           status,
           admin_response,
           user_id,
-          profiles!user_feedback_user_id_fkey (
+          profiles(
             username,
             email
           )
@@ -67,7 +66,7 @@ export default function FeedbackManagement() {
       
       if (error) throw error;
 
-      // Convert to expected format
+      // Convert to expected format with proper null handling
       const formattedData = data?.map(item => ({
         id: item.id,
         feedback_text: item.feedback_text,
@@ -75,8 +74,8 @@ export default function FeedbackManagement() {
         status: item.status,
         admin_response: item.admin_response,
         user: {
-          username: item.profiles?.username || 'Unknown',
-          email: item.profiles?.email || 'Unknown'
+          username: item.profiles?.[0]?.username || 'Unknown',
+          email: item.profiles?.[0]?.email || 'Unknown'
         }
       })) || [];
       

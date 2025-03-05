@@ -12,7 +12,9 @@ import {
     Menu,
     X,
     LogOut,
-    BarChart2
+    BarChart2,
+    MessageSquare,
+    HeartHandshake
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -36,6 +38,16 @@ const sidebarItems = [
         title: "Reports",
         icon: AlertTriangle,
         path: "/admin/reports"
+    },
+    {
+        title: "Feedback",
+        icon: MessageSquare,
+        path: "/admin/feedback"
+    },
+    {
+        title: "Donations",
+        icon: HeartHandshake,
+        path: "/admin/donations"
     },
     {
         title: "Security",
@@ -123,4 +135,4 @@ export default function DashboardLayout() {
             </main>
         </div>
     );
-} 
+}
