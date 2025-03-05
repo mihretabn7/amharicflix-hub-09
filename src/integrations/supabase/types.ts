@@ -624,6 +624,14 @@ export type Database = {
         }
         Returns: string
       }
+      get_all_donations_with_users: {
+        Args: Record<PropertyKey, never>
+        Returns: Json[]
+      }
+      get_all_feedback_with_users: {
+        Args: Record<PropertyKey, never>
+        Returns: Json[]
+      }
       get_country: {
         Args: {
           ip: string
@@ -812,6 +820,22 @@ export type Database = {
             }
             Returns: undefined
           }
+      update_donation_status: {
+        Args: {
+          donation_id_param: string
+          status_param: string
+          completed_at_param?: string
+        }
+        Returns: undefined
+      }
+      update_feedback_response: {
+        Args: {
+          feedback_id_param: string
+          admin_response_param: string
+          status_param?: string
+        }
+        Returns: undefined
+      }
       update_report_status: {
         Args: {
           report_id: string

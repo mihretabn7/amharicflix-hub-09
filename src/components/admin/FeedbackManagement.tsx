@@ -1,25 +1,23 @@
 
 import { useState, useEffect } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { supabase, customRpcs } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
+import { useToast } from "@/components/ui/use-toast";
+import { customRpcs } from "@/integrations/supabase/client";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface FeedbackItem {
   id: string;
@@ -34,176 +32,192 @@ interface FeedbackItem {
 }
 
 export default function FeedbackManagement() {
-  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackItem | null>(null);
-  const [response, setResponse] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  useEffect(() => {
-    fetchFeedback();
-  }, []);
-  
+  const [adminResponse, setAdminResponse] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+
   const fetchFeedback = async () => {
-    setIsLoading(true);
     try {
-      // Use our custom RPC wrapper
+      setIsLoading(true);
       const { data, error } = await customRpcs.getAllFeedbackWithUsers();
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
-      setFeedback(data || []);
-      
+      setFeedbackItems(data || []);
     } catch (error: any) {
-      console.error("Error fetching feedback:", error);
-      toast.error("Failed to load feedback", {
-        description: error.message || "There was an error loading the feedback items"
+      toast({
+        title: "Error fetching feedback",
+        description: error.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleRespond = (item: FeedbackItem) => {
-    setSelectedFeedback(item);
-    setResponse(item.admin_response || "");
-  };
-  
+
   const handleSubmitResponse = async () => {
-    if (!selectedFeedback || !response.trim()) return;
-    
-    setIsSubmitting(true);
+    if (!selectedFeedback || !adminResponse.trim()) return;
     
     try {
-      // Use our custom RPC wrapper
       const { error } = await customRpcs.updateFeedbackResponse(
         selectedFeedback.id,
-        response,
+        adminResponse,
         'resolved'
       );
       
       if (error) throw error;
       
-      toast.success("Response submitted", {
-        description: "Your response has been sent to the user"
+      toast({
+        title: "Response submitted",
+        description: "Your response has been submitted successfully.",
       });
       
-      // Update local state to reflect the changes
-      setFeedback(feedback.map(item => 
-        item.id === selectedFeedback.id 
-          ? { ...item, admin_response: response, status: 'resolved' } 
-          : item
-      ));
-      
-      setSelectedFeedback(null);
-      
+      fetchFeedback();
+      setDialogOpen(false);
     } catch (error: any) {
-      toast.error("Submission failed", {
-        description: error.message || "There was an error submitting your response"
+      toast({
+        title: "Error submitting response",
+        description: error.message,
+        variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
-  
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline">Pending</Badge>;
-      case 'resolved':
-        return <Badge>Resolved</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+
+  const openResponseDialog = (feedback: FeedbackItem) => {
+    setSelectedFeedback(feedback);
+    setAdminResponse(feedback.admin_response || "");
+    setDialogOpen(true);
   };
-  
+
+  useEffect(() => {
+    fetchFeedback();
+  }, []);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>User Feedback</CardTitle>
-        <CardDescription>Manage and respond to user feedback</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="text-center py-8">Loading feedback...</div>
-        ) : feedback.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No feedback has been submitted yet.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {feedback.map((item) => (
-              <div key={item.id} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <h3 className="font-medium">{item.user?.username || item.user?.email || 'Anonymous'}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(item.created_at))} ago
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(item.status)}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleRespond(item)}
-                    >
-                      {item.admin_response ? "View Response" : "Respond"}
-                    </Button>
-                  </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold tracking-tight">Feedback Management</h2>
+        <Button onClick={fetchFeedback} disabled={isLoading}>
+          {isLoading ? "Loading..." : "Refresh Data"}
+        </Button>
+      </div>
+      
+      <Separator />
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>User Feedback</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {feedbackItems.length === 0 ? (
+            <p className="text-center py-4 text-muted-foreground">No feedback found</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Feedback</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {feedbackItems.map((feedback) => (
+                    <TableRow key={feedback.id}>
+                      <TableCell>
+                        {format(new Date(feedback.created_at), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{feedback.user?.username || "Anonymous"}</div>
+                        <div className="text-sm text-muted-foreground">{feedback.user?.email || "No email"}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-md">
+                          <p className="line-clamp-2">{feedback.feedback_text}</p>
+                          {feedback.admin_response && (
+                            <div className="mt-2 border-l-2 border-gray-400 pl-2 text-sm">
+                              <span className="font-semibold">Response:</span> {feedback.admin_response}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            feedback.status === "resolved" ? "success" :
+                            feedback.status === "pending" ? "outline" :
+                            "default"
+                          }
+                        >
+                          {feedback.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openResponseDialog(feedback)}
+                        >
+                          {feedback.admin_response ? "Edit Response" : "Respond"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Respond to Feedback</DialogTitle>
+            <DialogDescription>
+              Provide a response to the user's feedback.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedFeedback && (
+            <div className="grid gap-4 py-4">
+              <div>
+                <Label className="text-sm text-muted-foreground">User Feedback:</Label>
+                <div className="mt-1 p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
+                  {selectedFeedback.feedback_text}
                 </div>
-                <p className="mt-2 whitespace-pre-wrap">{item.feedback_text}</p>
-                {item.admin_response && (
-                  <div className="mt-4 bg-muted p-3 rounded-md">
-                    <p className="text-sm font-medium">Admin Response:</p>
-                    <p className="text-sm whitespace-pre-wrap">{item.admin_response}</p>
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
-        )}
-        
-        {selectedFeedback && (
-          <Dialog open={!!selectedFeedback} onOpenChange={(open) => !open && setSelectedFeedback(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedFeedback.admin_response ? "View Response" : "Respond to Feedback"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="py-4">
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium mb-1">User Feedback:</h4>
-                  <p className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">
-                    {selectedFeedback.feedback_text}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium mb-1">Your Response:</h4>
-                  <Textarea
-                    value={response}
-                    onChange={(e) => setResponse(e.target.value)}
-                    placeholder="Type your response here..."
-                    className="min-h-[100px] mt-1"
-                    disabled={!!selectedFeedback.admin_response}
-                  />
-                </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="response">Your Response</Label>
+                <Textarea
+                  id="response"
+                  value={adminResponse}
+                  onChange={(e) => setAdminResponse(e.target.value)}
+                  placeholder="Type your response here..."
+                  rows={5}
+                />
               </div>
-              <DialogFooter>
-                {!selectedFeedback.admin_response && (
-                  <Button 
-                    onClick={handleSubmitResponse} 
-                    disabled={isSubmitting || !response.trim()}
-                  >
-                    {isSubmitting ? "Submitting..." : "Submit Response"}
-                  </Button>
-                )}
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setDialogOpen(false)} variant="outline">
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitResponse} disabled={!adminResponse.trim()}>
+              Submit Response
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
