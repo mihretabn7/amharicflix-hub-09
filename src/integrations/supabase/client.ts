@@ -43,7 +43,10 @@ interface FeedbackWithUser {
 export const customRpcs = {
   getAllDonationsWithUsers: async () => {
     const { data, error } = await supabase.rpc('get_all_donations_with_users');
-    return { data: data as DonationWithUser[] | null, error };
+    return { 
+      data: data as unknown as DonationWithUser[] | null, 
+      error 
+    };
   },
   
   updateDonationStatus: async (
@@ -60,7 +63,10 @@ export const customRpcs = {
   
   getAllFeedbackWithUsers: async () => {
     const { data, error } = await supabase.rpc('get_all_feedback_with_users');
-    return { data: data as FeedbackWithUser[] | null, error };
+    return { 
+      data: data as unknown as FeedbackWithUser[] | null, 
+      error 
+    };
   },
   
   updateFeedbackResponse: async (

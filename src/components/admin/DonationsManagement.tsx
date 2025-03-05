@@ -155,7 +155,7 @@ export default function DonationsManagement() {
                       <TableCell>
                         <Badge
                           variant={
-                            donation.payment_status === "completed" ? "success" :
+                            donation.payment_status === "completed" ? "default" :
                             donation.payment_status === "pending" ? "outline" :
                             "destructive"
                           }

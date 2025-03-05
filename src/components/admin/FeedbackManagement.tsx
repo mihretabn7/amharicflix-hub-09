@@ -151,9 +151,9 @@ export default function FeedbackManagement() {
                       <TableCell>
                         <Badge
                           variant={
-                            feedback.status === "resolved" ? "success" :
+                            feedback.status === "resolved" ? "default" :
                             feedback.status === "pending" ? "outline" :
-                            "default"
+                            "destructive"
                           }
                         >
                           {feedback.status}
