@@ -64,15 +64,17 @@ export function SupportDialog() {
         return;
       }
       
-      // Using the stored procedure to insert donation
-      const { error } = await supabase.rpc('insert_user_donation', {
-        user_id_param: session.session.user.id,
-        amount_param: parseFloat(amount),
-        donation_type_param: donationType,
-        payment_status_param: 'pending',
-        payment_processor_param: 'stripe',
-        transaction_id_param: null
-      });
+      // Using direct insert instead of RPC
+      const { error } = await supabase
+        .from('user_donations')
+        .insert({
+          user_id: session.session.user.id,
+          amount: parseFloat(amount),
+          donation_type: donationType,
+          payment_status: 'pending',
+          payment_processor: 'stripe',
+          transaction_id: null
+        });
       
       if (error) throw error;
       

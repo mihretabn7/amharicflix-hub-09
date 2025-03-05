@@ -175,7 +175,17 @@ const Profile = () => {
       }
 
       const validHistory = historyData?.filter(item => item.movie) || [];
-      return validHistory;
+      
+      const uniqueMovies = new Map();
+      
+      validHistory.forEach(item => {
+        if (!uniqueMovies.has(item.movie.id) || 
+            new Date(item.watched_at) > new Date(uniqueMovies.get(item.movie.id).watched_at)) {
+          uniqueMovies.set(item.movie.id, item);
+        }
+      });
+      
+      return Array.from(uniqueMovies.values());
     },
     enabled: !!session?.user?.id
   });

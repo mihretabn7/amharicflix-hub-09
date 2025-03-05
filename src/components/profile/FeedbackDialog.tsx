@@ -38,12 +38,14 @@ export function FeedbackDialog() {
         return;
       }
       
-      // Using raw SQL query to insert into user_feedback table
-      const { error } = await supabase.rpc('insert_user_feedback', {
-        user_id_param: session.session.user.id,
-        feedback_text_param: feedback,
-        status_param: 'pending'
-      });
+      // Using direct insert instead of RPC
+      const { error } = await supabase
+        .from('user_feedback')
+        .insert({
+          user_id: session.session.user.id,
+          feedback_text: feedback,
+          status: 'pending'
+        });
       
       if (error) throw error;
       

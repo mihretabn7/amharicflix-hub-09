@@ -8,17 +8,17 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 interface DonationItem {
   id: string;
@@ -39,7 +39,8 @@ export default function DonationsManagement() {
   const [donations, setDonations] = useState<DonationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDonation, setSelectedDonation] = useState<DonationItem | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -49,17 +50,50 @@ export default function DonationsManagement() {
   const fetchDonations = async () => {
     setIsLoading(true);
     try {
-      // Using custom RPC function to get donations with user details
-      const { data, error } = await supabase.rpc('get_all_donations_with_users');
+      // Using direct SQL query with joins instead of RPC function
+      const { data, error } = await supabase
+        .from('user_donations')
+        .select(`
+          id,
+          amount,
+          donation_type,
+          created_at,
+          payment_status,
+          payment_processor,
+          transaction_id,
+          completed_at,
+          user:user_id (
+            username,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
+
+      // Convert to expected format
+      const formattedData = data?.map(item => ({
+        id: item.id,
+        amount: item.amount,
+        donation_type: item.donation_type,
+        created_at: item.created_at,
+        payment_status: item.payment_status,
+        payment_processor: item.payment_processor,
+        transaction_id: item.transaction_id,
+        completed_at: item.completed_at,
+        user: {
+          username: item.user?.username || 'Unknown',
+          email: item.user?.email || 'Unknown'
+        }
+      })) || [];
       
-      setDonations(data || []);
+      setDonations(formattedData);
+      
     } catch (error: any) {
       console.error("Error fetching donations:", error);
       toast({
         title: "Failed to load donations",
-        description: error.message || "There was an error loading the donation data",
+        description: error.message || "There was an error loading the donation records",
         variant: "destructive",
       });
     } finally {
@@ -67,43 +101,46 @@ export default function DonationsManagement() {
     }
   };
   
-  const handleViewDetails = (donation: DonationItem) => {
+  const handleUpdateStatus = (donation: DonationItem) => {
     setSelectedDonation(donation);
+    setSelectedStatus(donation.payment_status);
   };
   
-  const handleUpdateStatus = async (newStatus: string) => {
-    if (!selectedDonation) return;
+  const handleSubmitStatusUpdate = async () => {
+    if (!selectedDonation || !selectedStatus) return;
     
-    setIsUpdating(true);
+    setIsSubmitting(true);
     
     try {
-      // Using custom RPC to update donation status
-      const { error } = await supabase.rpc('update_donation_status', {
-        donation_id_param: selectedDonation.id,
-        status_param: newStatus,
-        completed_at_param: newStatus === 'completed' ? new Date().toISOString() : null
-      });
+      // Calculate completed_at timestamp if status is 'completed'
+      const completedAt = selectedStatus === 'completed' ? new Date().toISOString() : null;
+      
+      // Using direct update instead of RPC
+      const { error } = await supabase
+        .from('user_donations')
+        .update({
+          payment_status: selectedStatus,
+          completed_at: completedAt
+        })
+        .eq('id', selectedDonation.id);
       
       if (error) throw error;
       
       toast({
         title: "Status updated",
-        description: `Donation status has been updated to ${newStatus}`,
+        description: "The donation status has been updated successfully",
         variant: "default",
       });
       
       // Update local state to reflect the changes
       setDonations(donations.map(item => 
         item.id === selectedDonation.id 
-          ? { 
-              ...item, 
-              payment_status: newStatus,
-              completed_at: newStatus === 'completed' ? new Date().toISOString() : null
-            } 
+          ? { ...item, payment_status: selectedStatus, completed_at: completedAt } 
           : item
       ));
       
       setSelectedDonation(null);
+      
     } catch (error: any) {
       toast({
         title: "Update failed",
@@ -111,7 +148,7 @@ export default function DonationsManagement() {
         variant: "destructive",
       });
     } finally {
-      setIsUpdating(false);
+      setIsSubmitting(false);
     }
   };
   
@@ -119,18 +156,20 @@ export default function DonationsManagement() {
     switch (status) {
       case 'pending':
         return <Badge variant="outline">Pending</Badge>;
+      case 'processing':
+        return <Badge variant="secondary">Processing</Badge>;
       case 'completed':
-        return <Badge className="bg-green-500">Completed</Badge>;
-      case 'cancelled':
-        return <Badge variant="destructive">Cancelled</Badge>;
+        return <Badge variant="success">Completed</Badge>;
       case 'failed':
         return <Badge variant="destructive">Failed</Badge>;
+      case 'refunded':
+        return <Badge variant="default">Refunded</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
   
-  const formatCurrency = (amount: number) => {
+  const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
@@ -140,15 +179,15 @@ export default function DonationsManagement() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Donations</CardTitle>
-        <CardDescription>Track and manage user donations</CardDescription>
+        <CardTitle>Donation Management</CardTitle>
+        <CardDescription>Review and manage user donations</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="text-center py-8">Loading donations...</div>
         ) : donations.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No donations have been made yet.
+            No donations have been received yet.
           </div>
         ) : (
           <div className="space-y-4">
@@ -166,26 +205,35 @@ export default function DonationsManagement() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => handleViewDetails(item)}
+                      onClick={() => handleUpdateStatus(item)}
                     >
-                      View Details
+                      Update Status
                     </Button>
                   </div>
                 </div>
-                <div className="mt-2">
-                  <div className="flex justify-between">
-                    <span>Amount:</span>
-                    <span className="font-semibold">{formatCurrency(item.amount)}</span>
+                
+                <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="font-medium">Amount:</span> {formatAmount(item.amount)}
                   </div>
-                  <div className="flex justify-between">
-                    <span>Type:</span>
-                    <span>
-                      {item.donation_type === 'one-time' ? 'One-time donation' : 
-                        item.donation_type === 'monthly' ? 'Monthly support' : 
-                        item.donation_type === 'yearly' ? 'Yearly support' : 
-                        item.donation_type}
-                    </span>
+                  <div>
+                    <span className="font-medium">Type:</span> {item.donation_type}
                   </div>
+                  {item.payment_processor && (
+                    <div>
+                      <span className="font-medium">Processor:</span> {item.payment_processor}
+                    </div>
+                  )}
+                  {item.transaction_id && (
+                    <div>
+                      <span className="font-medium">Transaction ID:</span> {item.transaction_id}
+                    </div>
+                  )}
+                  {item.completed_at && (
+                    <div className="col-span-2">
+                      <span className="font-medium">Completed:</span> {format(new Date(item.completed_at), 'PPP p')}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -196,78 +244,36 @@ export default function DonationsManagement() {
           <Dialog open={!!selectedDonation} onOpenChange={(open) => !open && setSelectedDonation(null)}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Donation Details</DialogTitle>
+                <DialogTitle>Update Donation Status</DialogTitle>
               </DialogHeader>
-              <div className="py-4 space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <span className="text-sm font-medium">User:</span>
-                  <span>{selectedDonation.user?.username || selectedDonation.user?.email || 'Anonymous'}</span>
-                  
-                  <span className="text-sm font-medium">Amount:</span>
-                  <span>{formatCurrency(selectedDonation.amount)}</span>
-                  
-                  <span className="text-sm font-medium">Donation Type:</span>
-                  <span>
-                    {selectedDonation.donation_type === 'one-time' ? 'One-time donation' : 
-                      selectedDonation.donation_type === 'monthly' ? 'Monthly support' : 
-                      selectedDonation.donation_type === 'yearly' ? 'Yearly support' : 
-                      selectedDonation.donation_type}
-                  </span>
-                  
-                  <span className="text-sm font-medium">Status:</span>
-                  <span>{getStatusBadge(selectedDonation.payment_status)}</span>
-                  
-                  <span className="text-sm font-medium">Date:</span>
-                  <span>{new Date(selectedDonation.created_at).toLocaleString()}</span>
-                  
-                  {selectedDonation.completed_at && (
-                    <>
-                      <span className="text-sm font-medium">Completed At:</span>
-                      <span>{new Date(selectedDonation.completed_at).toLocaleString()}</span>
-                    </>
-                  )}
-                  
-                  {selectedDonation.payment_processor && (
-                    <>
-                      <span className="text-sm font-medium">Payment Processor:</span>
-                      <span>{selectedDonation.payment_processor}</span>
-                    </>
-                  )}
-                  
-                  {selectedDonation.transaction_id && (
-                    <>
-                      <span className="text-sm font-medium">Transaction ID:</span>
-                      <span className="break-all">{selectedDonation.transaction_id}</span>
-                    </>
-                  )}
+              <div className="py-4">
+                <div className="mb-4">
+                  <p><span className="font-medium">User:</span> {selectedDonation.user?.username || selectedDonation.user?.email}</p>
+                  <p><span className="font-medium">Amount:</span> {formatAmount(selectedDonation.amount)}</p>
+                  <p><span className="font-medium">Date:</span> {format(new Date(selectedDonation.created_at), 'PPP')}</p>
                 </div>
-                
-                {selectedDonation.payment_status === 'pending' && (
-                  <div className="pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-2">Update Payment Status:</h4>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="default" 
-                        className="bg-green-500 hover:bg-green-600"
-                        onClick={() => handleUpdateStatus('completed')}
-                        disabled={isUpdating}
-                      >
-                        Mark as Completed
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        onClick={() => handleUpdateStatus('cancelled')}
-                        disabled={isUpdating}
-                      >
-                        Cancel Donation
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Status</label>
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setSelectedDonation(null)}>
-                  Close
+                <Button 
+                  onClick={handleSubmitStatusUpdate} 
+                  disabled={isSubmitting || !selectedStatus || selectedStatus === selectedDonation.payment_status}
+                >
+                  {isSubmitting ? "Updating..." : "Update Status"}
                 </Button>
               </DialogFooter>
             </DialogContent>

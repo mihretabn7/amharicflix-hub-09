@@ -48,19 +48,38 @@ export default function FeedbackManagement() {
   const fetchFeedback = async () => {
     setIsLoading(true);
     try {
-      // Using custom RPC function to get feedback with user details
-      const { data, error } = await supabase.rpc('get_all_feedback_with_users');
+      // Using direct SQL query with joins instead of RPC function
+      const { data, error } = await supabase
+        .from('user_feedback')
+        .select(`
+          id,
+          feedback_text,
+          created_at,
+          status,
+          admin_response,
+          user:user_id (
+            username,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
-      
-      setFeedback(data || []);
-      
-      // Initialize responses map for feedback that has admin responses
-      data?.forEach((item: FeedbackItem) => {
-        if (item.admin_response) {
-          setResponse(item.admin_response);
+
+      // Convert to expected format
+      const formattedData = data?.map(item => ({
+        id: item.id,
+        feedback_text: item.feedback_text,
+        created_at: item.created_at,
+        status: item.status,
+        admin_response: item.admin_response,
+        user: {
+          username: item.user?.username || 'Unknown',
+          email: item.user?.email || 'Unknown'
         }
-      });
+      })) || [];
+      
+      setFeedback(formattedData);
       
     } catch (error: any) {
       console.error("Error fetching feedback:", error);
@@ -85,12 +104,14 @@ export default function FeedbackManagement() {
     setIsSubmitting(true);
     
     try {
-      // Using custom RPC to update feedback with admin response
-      const { error } = await supabase.rpc('update_feedback_response', {
-        feedback_id_param: selectedFeedback.id,
-        admin_response_param: response,
-        status_param: 'resolved'
-      });
+      // Using direct update instead of RPC
+      const { error } = await supabase
+        .from('user_feedback')
+        .update({
+          admin_response: response,
+          status: 'resolved'
+        })
+        .eq('id', selectedFeedback.id);
       
       if (error) throw error;
       
