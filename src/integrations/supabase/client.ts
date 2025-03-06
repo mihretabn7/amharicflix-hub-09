@@ -79,5 +79,39 @@ export const customRpcs = {
       admin_response_param: response,
       status_param: status
     });
+  },
+  
+  trackMovieViewWithCountry: async (
+    movieId: string,
+    userId: string | null = null,
+    userIp: string | null = null,
+    browserInfo: string | null = null,
+    deviceInfo: string | null = null
+  ) => {
+    return await supabase.rpc('track_movie_view_with_country', {
+      p_movie_id: movieId,
+      p_user_id: userId,
+      p_user_ip: userIp,
+      p_browser_info: browserInfo,
+      p_device_info: deviceInfo
+    });
+  },
+  
+  getViewsByCountry: async () => {
+    return await supabase.rpc('get_views_by_country');
+  },
+  
+  getBrowserStats: async (startDate: string, endDate: string) => {
+    return await supabase.rpc('get_browser_stats', {
+      start_date: startDate,
+      end_date: endDate
+    });
+  },
+  
+  getDetailedDeviceStats: async (startDate: string, endDate: string) => {
+    return await supabase.rpc('get_detailed_device_stats', {
+      start_date: startDate,
+      end_date: endDate
+    });
   }
 };
