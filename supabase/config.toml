@@ -53,7 +53,6 @@ enable_signup = true
 # Port for Functions
 port = 54321
 
-# Path to functions directory
 [functions.serve]
 path = "supabase/functions"
 
