@@ -50,7 +50,7 @@ jwt_expiry = 3600
 enable_signup = true
 
 [functions]
-# The functions configuration should be structured as a table with properties
+# Port for Functions
 port = 54321
 
 # Path to functions directory
