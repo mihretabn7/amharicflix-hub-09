@@ -19,9 +19,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-const AdminStats = () => {
+interface AdminStatsProps {
+    timeRange: "daily" | "weekly" | "monthly" | "yearly";
+}
+
+const AdminStats = ({ timeRange }: AdminStatsProps) => {
     const { data: stats } = useQuery({
-        queryKey: ['admin-stats'],
+        queryKey: ['admin-stats', timeRange],
         queryFn: async () => {
             const [
                 usersResponse,
@@ -67,7 +71,7 @@ const AdminStats = () => {
     });
 
     const { data: recentActivity } = useQuery({
-        queryKey: ['admin-recent-activity'],
+        queryKey: ['admin-recent-activity', timeRange],
         queryFn: async () => {
             const [recentReports, recentRatings, recentViews] = await Promise.all([
                 supabase
@@ -284,4 +288,4 @@ const AdminStats = () => {
     );
 };
 
-export default AdminStats; 
+export default AdminStats;
