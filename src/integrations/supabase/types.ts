@@ -496,6 +496,27 @@ export type Database = {
         }
         Relationships: []
       }
+      system_errors: {
+        Row: {
+          created_at: string | null
+          error_info: Json | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_info?: Json | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_info?: Json | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_donations: {
         Row: {
           amount: number
@@ -556,6 +577,30 @@ export type Database = {
           id?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_interactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          input_method: string | null
+          interaction_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          input_method?: string | null
+          interaction_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          input_method?: string | null
+          interaction_type?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -632,11 +677,86 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json[]
       }
+      get_browser_stats: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
+        Returns: {
+          browser_name: string
+          browser_version: string
+          total_views: number
+          avg_duration: number
+        }[]
+      }
       get_country: {
         Args: {
           ip: string
         }
         Returns: string
+      }
+      get_detailed_device_stats: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
+        Returns: {
+          os_name: string
+          os_version: string
+          device_type: string
+          total_views: number
+          avg_duration: number
+        }[]
+      }
+      get_error_stats: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
+        Returns: {
+          error_type: string
+          error_count: number
+          affected_users: number
+        }[]
+      }
+      get_input_method_stats: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
+        Returns: {
+          input_type: string
+          total_uses: number
+          unique_users: number
+        }[]
+      }
+      get_movie_analytics: {
+        Args: {
+          start_date: string
+          end_date: string
+          group_by: string
+        }
+        Returns: {
+          time_period: string
+          total_views: number
+          unique_viewers: number
+          avg_watch_duration: number
+          most_watched_movie: Json
+          most_watched_genre: string
+          completion_rate: number
+        }[]
+      }
+      get_network_stats: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
+        Returns: {
+          network_type: string
+          avg_bandwidth: number
+          total_views: number
+          buffering_count: number
+        }[]
       }
       get_report_status_values: {
         Args: Record<PropertyKey, never>
