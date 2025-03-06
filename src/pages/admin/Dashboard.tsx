@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminStats } from "@/components/AdminStats";
+import AdminStats from "@/components/AdminStats";
 import { Pencil, Clock, Eye, Film, AlertCircle, Star, User, Settings, Heart } from "lucide-react";
 import { DonationsAndFeedbackSummary } from "@/components/admin/DonationsAndFeedbackSummary";
 import { CountryViewsDisplay } from "@/components/admin/CountryViewsDisplay";
