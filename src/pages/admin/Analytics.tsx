@@ -14,7 +14,7 @@ import { DateRange } from "react-day-picker";
 import { DetailedListModal } from "@/components/admin/DetailedListModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { AnalyticsSection } from "@/components/admin/AnalyticsSection";
+import AnalyticsSection from "@/components/admin/AnalyticsSection";
 
 interface MovieData {
     id: string;
