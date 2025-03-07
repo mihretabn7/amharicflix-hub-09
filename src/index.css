@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -36,11 +35,6 @@
     --ring: 0 84% 49%;
 
     --radius: 0.5rem;
-    
-    /* Netflix-specific colors */
-    --netflix-red: 357 92% 47%;
-    --netflix-gold: 45 93% 47%;
-    --netflix-gray: 0 0% 45%;
   }
 }
 
@@ -50,28 +44,6 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@layer utilities {
-  .netflix-gold {
-    color: hsl(45, 93%, 47%);
-  }
-  
-  .text-netflix-red {
-    color: hsl(357, 92%, 47%);
-  }
-  
-  .bg-netflix-red {
-    background-color: hsl(357, 92%, 47%);
-  }
-  
-  .text-netflix-gold {
-    color: hsl(45, 93%, 47%);
-  }
-  
-  .text-netflix-gray {
-    color: hsl(0, 0%, 45%);
   }
 }
 
@@ -85,37 +57,4 @@
 
 .hero-gradient {
   @apply absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent;
-}
-
-/* Animation utilities */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Enhanced transitions */
-.transition-transform {
-  transition-property: transform;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-.transition-opacity {
-  transition-property: opacity;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-.transition-all {
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
 }
