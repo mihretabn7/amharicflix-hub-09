@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Play, Info, Star, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,12 +18,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { Movie } from "@/types/movie";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Home = () => {
   const navigate = useNavigate();
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [session, setSession] = useState<any>(null);
-
+  const isMobile = useIsMobile();
+  
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -37,7 +41,7 @@ const Home = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const { data: movies, isLoading } = useQuery({
+  const { data: movies, isLoading } = useQuery<Movie[]>({
     queryKey: ['movies', ratingFilter],
     queryFn: async () => {
       let query = supabase
@@ -63,7 +67,7 @@ const Home = () => {
         averageRating: movie.movie_ratings.length > 0
           ? movie.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / movie.movie_ratings.length
           : 0
-      }));
+      })) as Movie[];
     },
   });
 
@@ -134,7 +138,47 @@ const Home = () => {
     );
   }
 
-  const featuredMovies = movies ? movies.slice(0, 5) : [];
+  // Safely get featured movies, ensuring movies is defined and has data
+  const featuredMovies = movies && movies.length > 0 ? movies.slice(0, 5) : [];
+
+  // Define movie categories for the grid sections
+  const newReleases = movies && movies.length > 0 ? movies.slice(0, 6) : [];
+  const trending = movies && movies.length > 0 ? 
+    [...movies].sort((a, b) => (b.watch_count || 0) - (a.watch_count || 0)).slice(0, 6) : [];
+  const topRated = movies && movies.length > 0 ? 
+    [...movies].sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0)).slice(0, 6) : [];
+
+  // Render the movie card consistently across the page
+  const renderMovieCard = (movie: Movie) => (
+    <Link
+      to={`/movie/${movie.id}`}
+      key={movie.id}
+      className="movie-card group animate-fade-in"
+    >
+      <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
+        <img
+          src={movie.thumbnail_url}
+          alt={movie.title}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          loading="lazy"
+        />
+        <div className="movie-card-overlay">
+          <div className="absolute bottom-0 p-4 w-full">
+            <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Star className="h-4 w-4 text-netflix-gold" />
+                <span className="text-sm">
+                  {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                </span>
+              </div>
+              <MessageSquare className="h-4 w-4 text-netflix-gray" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
 
   return (
     <div className="min-h-screen">
@@ -187,39 +231,43 @@ const Home = () => {
         <Card className="container mx-auto px-4">
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
+              <h2 className="text-2xl md:text-3xl font-display font-bold">New Releases</h2>
+              {!isMobile && (
+                <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Ratings</SelectItem>
+                    <SelectItem value="4">4+ Stars</SelectItem>
+                    <SelectItem value="3">3+ Stars</SelectItem>
+                    <SelectItem value="2">2+ Stars</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {movies?.map((movie) => (
-                <Link
-                  to={`/movie/${movie.id}`}
-                  key={movie.id}
-                  className="movie-card group animate-fade-in"
-                >
-                  <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
-                    <img
-                      src={movie.thumbnail_url}
-                      alt={movie.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                    />
-                    <div className="movie-card-overlay">
-                      <div className="absolute bottom-0 p-4 w-full">
-                        <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Star className="h-4 w-4 text-netflix-gold" />
-                            <span className="text-sm">
-                              {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                            </span>
-                          </div>
-                          <MessageSquare className="h-4 w-4 text-netflix-gray" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
+              {newReleases.map((movie) => renderMovieCard(movie))}
+              {newReleases.length === 0 && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">No movies found</div>
+              )}
+            </div>
+
+            <h2 className="text-2xl md:text-3xl font-display font-bold mb-8">Trending Now</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
+              {trending.map((movie) => renderMovieCard(movie))}
+              {trending.length === 0 && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">No trending movies</div>
+              )}
+            </div>
+
+            <h2 className="text-2xl md:text-3xl font-display font-bold mb-8">Top Rated</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {topRated.map((movie) => renderMovieCard(movie))}
+              {topRated.length === 0 && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">No top rated movies</div>
+              )}
             </div>
           </CardContent>
         </Card>
