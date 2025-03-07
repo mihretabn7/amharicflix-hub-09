@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
@@ -23,6 +22,8 @@ import Reports from "@/pages/admin/Reports";
 import Security from "@/pages/admin/Security";
 import Settings from "@/pages/admin/Settings";
 import Analytics from "@/pages/admin/Analytics";
+import FeedbackPage from '@/pages/admin/FeedbackPage';
+import DonationsPage from '@/pages/admin/DonationsPage';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
@@ -183,6 +184,8 @@ function App() {
             <Route path="security" element={<Security />} />
             <Route path="settings" element={<Settings />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="feedback" element={<FeedbackPage />} />
+            <Route path="donations" element={<DonationsPage />} />
           </Route>
           <Route path="*" element={
             <>
