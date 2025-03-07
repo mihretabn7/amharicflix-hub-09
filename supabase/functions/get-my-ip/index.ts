@@ -5,7 +5,10 @@ import { corsHeaders } from "../_shared/cors.ts";
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 204 // Proper status for OPTIONS
+    });
   }
 
   try {
@@ -18,7 +21,10 @@ serve(async (req) => {
     // Return the IP with CORS headers
     return new Response(
       JSON.stringify({ ip: clientIp }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200 // Explicit success status
+      }
     );
   } catch (error) {
     console.error("Error processing IP request:", error.message);

@@ -52,17 +52,23 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
             p_browser_info: browserInfo,
             p_device_info: JSON.stringify(deviceInfo)
           });
+          console.log("Successfully tracked view for registered user");
         } else {
           // Track for anonymous user using our edge function
           try {
-            const response = await supabase.functions.invoke('get-my-ip');
+            console.log("Attempting to get IP via edge function...");
+            const response = await supabase.functions.invoke('get-my-ip', {
+              method: 'POST', // Be explicit about the method
+              headers: { 'Content-Type': 'application/json' }
+            });
             
             if (response.error) {
               throw new Error(response.error.message);
             }
             
             const ipData = response.data;
-            const ip = ipData.ip;
+            const ip = ipData?.ip || "Unknown";
+            console.log("IP detected:", ip);
 
             await supabase.rpc('track_movie_view_with_country', {
               p_movie_id: movie.id,
@@ -71,6 +77,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
               p_browser_info: browserInfo,
               p_device_info: JSON.stringify(deviceInfo)
             });
+            console.log("Successfully tracked anonymous view with IP");
           } catch (ipError) {
             console.error("Error getting IP:", ipError);
             // Still track the view even if IP detection fails
@@ -81,15 +88,17 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
               p_browser_info: browserInfo,
               p_device_info: JSON.stringify(deviceInfo)
             });
+            console.log("Tracked view without IP due to error");
           }
         }
       } catch (error) {
         console.error("Error tracking view:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to track view statistics",
-        });
+        // Use toast but don't show error to user for background operations
+        // toast({
+        //   variant: "destructive",
+        //   title: "Error",
+        //   description: "Failed to track view statistics",
+        // });
       }
     };
 
