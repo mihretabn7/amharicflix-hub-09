@@ -1,10 +1,11 @@
 
-import { Play, Share2 } from "lucide-react";
+import { Play, Share2, Info, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Movie } from "@/types/movie";
 import MovieReportModal from "@/components/MovieReportModal";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ const MovieHero = ({ movie, onPlay, onShare, userId }: MovieHeroProps) => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authAction, setAuthAction] = useState<"report" | "share">("share");
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleAuthRequired = (action: "report" | "share") => {
     setAuthAction(action);
@@ -45,18 +47,19 @@ const MovieHero = ({ movie, onPlay, onShare, userId }: MovieHeroProps) => {
   };
 
   return (
-    <div className="relative h-[70vh]">
+    <div className={`relative ${isMobile ? 'h-[80vh]' : 'h-[70vh]'}`}>
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{
           backgroundImage: `url(${movie.thumbnail_url})`
         }}
       >
-        <div className="hero-gradient" />
+        {/* Cinematic blur effect for background */}
+        <div className={`absolute inset-0 backdrop-blur-sm ${isMobile ? 'bg-gradient-to-t from-background via-background/80 to-transparent' : 'hero-gradient'}`} />
       </div>
       <div className="relative h-full flex items-center">
-        <div className="container mx-auto px-4">
-          <h1 className="font-display text-4xl md:text-6xl font-bold mb-4">
+        <div className={`${isMobile ? 'px-4 pb-24 pt-0 absolute bottom-0 left-0 right-0' : 'container mx-auto px-4'}`}>
+          <h1 className={`font-display ${isMobile ? 'text-3xl' : 'text-4xl md:text-6xl'} font-bold mb-4 line-clamp-2 hover:line-clamp-none transition-all duration-300`}>
             {movie.title}
           </h1>
           <div className="flex items-center space-x-4 text-sm text-gray-300 mb-6">
@@ -65,19 +68,25 @@ const MovieHero = ({ movie, onPlay, onShare, userId }: MovieHeroProps) => {
             <span>{movie.language || 'Amharic'}</span>
             {movie.averageRating !== undefined && (
               <div className="flex items-center">
+                <Star className="h-4 w-4 mr-1 text-netflix-gold" />
                 <span>{movie.averageRating.toFixed(1)}</span>
               </div>
             )}
           </div>
-          <div className="flex items-center space-x-4">
+          <div className={`flex items-center ${isMobile ? 'space-x-2' : 'space-x-4'}`}>
             <Button
-              size="lg"
-              className="bg-netflix-red hover:bg-netflix-red/90"
+              size={isMobile ? "default" : "lg"}
+              className="bg-netflix-red hover:bg-netflix-red/90 transition-transform duration-300 active:scale-95"
               onClick={onPlay}
             >
               <Play className="mr-2 h-5 w-5" /> Play Now
             </Button>
-            <Button size="lg" variant="outline" onClick={handleShareClick}>
+            <Button 
+              size={isMobile ? "default" : "lg"} 
+              variant="outline" 
+              className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-transform duration-300 active:scale-95"
+              onClick={handleShareClick}
+            >
               <Share2 className="mr-2 h-5 w-5" /> Share
             </Button>
             {userId ? (
@@ -89,6 +98,7 @@ const MovieHero = ({ movie, onPlay, onShare, userId }: MovieHeroProps) => {
               <Button 
                 variant="outline" 
                 size="sm"
+                className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-transform duration-300 active:scale-95"
                 onClick={() => handleAuthRequired("report")}
               >
                 Report
@@ -100,7 +110,7 @@ const MovieHero = ({ movie, onPlay, onShare, userId }: MovieHeroProps) => {
 
       {/* Authentication Required Dialog */}
       <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
-        <DialogContent>
+        <DialogContent className={`${isMobile ? 'w-[90%] netflix-modal' : 'sm:max-w-md'} rounded-xl`}>
           <DialogHeader>
             <DialogTitle>Authentication Required</DialogTitle>
             <DialogDescription>

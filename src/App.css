@@ -161,6 +161,10 @@ body {
     text-align: left;
   }
   
+  .netflix-hero-content {
+    text-align: left;
+  }
+  
   .netflix-hero-title {
     font-size: 1.5rem;
     font-weight: 700;
@@ -378,6 +382,32 @@ body {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Enhanced hover-scale effect for smoother scaling */
+  .hover-scale {
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  .hover-scale:active {
+    transform: scale(0.95);
+  }
+  
+  /* Improved ellipsis for text truncation */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
