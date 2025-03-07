@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -34,8 +35,9 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { CountryViewsDisplay } from "./CountryViewsDisplay";
+import CountryViewsDisplay from "./CountryViewsDisplay";
 
+// A map of country codes to display names
 const countryNames: Record<string, string> = {
   US: "United States",
   ET: "Ethiopia",
@@ -45,8 +47,10 @@ const countryNames: Record<string, string> = {
   DE: "Germany",
   FR: "France",
   IN: "India",
+  // Add more as needed
 };
 
+// Colors for device breakdown pie chart
 const DEVICE_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A569BD"];
 
 export default function AnalyticsSection() {
@@ -55,9 +59,11 @@ export default function AnalyticsSection() {
     to: new Date(),
   });
 
+  // Convert the date objects to ISO string format for the API
   const startDate = dateRange.from ? dateRange.from.toISOString() : '';
   const endDate = dateRange.to ? dateRange.to.toISOString() : '';
 
+  // Fetch views by country data
   const { data: countryViewsData } = useQuery({
     queryKey: ["views-by-country", startDate, endDate],
     queryFn: async () => {
@@ -70,6 +76,7 @@ export default function AnalyticsSection() {
     },
   });
 
+  // Fetch browser statistics
   const { data: browserStatsData } = useQuery({
     queryKey: ["browser-stats", startDate, endDate],
     queryFn: async () => {
@@ -82,6 +89,7 @@ export default function AnalyticsSection() {
     },
   });
 
+  // Fetch device statistics
   const { data: deviceStatsData } = useQuery({
     queryKey: ["device-stats", startDate, endDate],
     queryFn: async () => {
@@ -94,6 +102,7 @@ export default function AnalyticsSection() {
     },
   });
 
+  // Prepare data for device breakdown pie chart
   const deviceBreakdownData = deviceStatsData
     ? deviceStatsData.reduce((acc: any[], curr: any) => {
         const existingDevice = acc.find(
@@ -111,6 +120,7 @@ export default function AnalyticsSection() {
       }, [])
     : [];
 
+  // Prepare data for country comparison chart
   const countryComparisonData = countryViewsData
     ? countryViewsData.map((country: any) => ({
         country: countryNames[country.country_code] || country.country_code,
@@ -120,6 +130,7 @@ export default function AnalyticsSection() {
       }))
     : [];
 
+  // Prepare data for browser market share
   const browserMarketShareData = browserStatsData
     ? browserStatsData.map((browser: any) => ({
         name: browser.browser_name || "Unknown",
@@ -140,8 +151,10 @@ export default function AnalyticsSection() {
         </Card>
       </div>
 
+      {/* Country Views Map */}
       <CountryViewsDisplay countryViewsData={countryViewsData} />
 
+      {/* User Type Comparison */}
       <Card>
         <CardHeader>
           <CardTitle>User Type Comparison</CardTitle>
@@ -216,6 +229,7 @@ export default function AnalyticsSection() {
         </CardContent>
       </Card>
 
+      {/* Device Usage Analytics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
