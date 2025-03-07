@@ -49,14 +49,69 @@ const countryNames: Record<string, string> = {
 
 const DEVICE_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A569BD"];
 
+const getMostViewedMovies = async (startDate: string, endDate: string) => {
+  const { data: anonymousViews } = await supabase
+    .from('anonymous_views')
+    .select('movie_id')
+    .gte('viewed_at', startDate)
+    .lte('viewed_at', endDate);
+
+  const { data: userHistory } = await supabase
+    .from('user_movie_history')
+    .select('movie_id')
+    .gte('watched_at', startDate)
+    .lte('watched_at', endDate);
+
+  const allViews = [...(anonymousViews || []), ...(userHistory || [])];
+  const viewCounts = allViews.reduce((acc, view) => {
+    acc[view.movie_id] = (acc[view.movie_id] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const { data: movies } = await supabase
+    .from('movies')
+    .select('id, title, thumbnail_url')
+    .in('id', Object.keys(viewCounts));
+
+  return movies?.map(movie => ({
+    ...movie,
+    views: viewCounts[movie.id]
+  })).sort((a, b) => b.views - a.views) || [];
+};
+
+const getTopRatedMovies = async (startDate: string, endDate: string) => {
+  const { data: movies } = await supabase
+    .from('movies')
+    .select('id, title, thumbnail_url, rating')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate)
+    .order('rating', { ascending: false });
+
+  return movies || [];
+};
+
+const getMostReportedMovies = async (startDate: string, endDate: string) => {
+  const { data: movies } = await supabase
+    .from('movies')
+    .select('id, title, thumbnail_url, verified_report_count')
+    .gte('created_at', startDate)
+    .lte('created_at', endDate)
+    .order('verified_report_count', { ascending: false });
+
+  return movies || [];
+};
+
 export default function AnalyticsSection() {
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
 
-  const startDate = dateRange.from ? dateRange.from.toISOString() : '';
-  const endDate = dateRange.to ? dateRange.to.toISOString() : '';
+  const startDate = dateRange?.from ? dateRange.from.toISOString() : new Date().toISOString();
+  const endDate = dateRange?.to ? dateRange.to.toISOString() : new Date().toISOString();
+
+  const [totalViews, setTotalViews] = useState<number>(0);
+  const [viewsOverTime, setViewsOverTime] = useState<Array<{ date: string; count: number }>>([]);
 
   const { data: countryViewsData } = useQuery({
     queryKey: ["views-by-country", startDate, endDate],
@@ -92,6 +147,70 @@ export default function AnalyticsSection() {
       }
       return data || [];
     },
+  });
+
+  const { data: viewCounts } = useQuery({
+    queryKey: ['view-counts', startDate, endDate],
+    queryFn: async () => {
+      // Fetch anonymous views
+      const { data: anonymousViews, error: errorAnonymous } = await supabase
+        .from('anonymous_views')
+        .select('movie_id, viewed_at')
+        .gte('viewed_at', startDate)
+        .lte('viewed_at', endDate);
+
+      // Fetch user movie history
+      const { data: userHistory, error: errorHistory } = await supabase
+        .from('user_movie_history')
+        .select('movie_id, created_at')
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+
+      if (errorAnonymous || errorHistory) {
+        console.error('Error fetching views:', errorAnonymous || errorHistory);
+        return [];
+      }
+
+      // Combine and process data
+      const allViews = [
+        ...(anonymousViews || []).map(v => ({ ...v, date: v.viewed_at })),
+        ...(userHistory || []).map(v => ({ ...v, date: v.created_at }))
+      ];
+
+      // Calculate total views
+      setTotalViews(allViews.length);
+
+      // Group views by date
+      const dailyCounts = allViews.reduce((acc, view) => {
+        const date = new Date(view.date).toISOString().split('T')[0];
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const formattedData = Object.entries(dailyCounts).map(([date, count]) => ({
+        date,
+        count
+      })).sort((a, b) => a.date.localeCompare(b.date));
+
+      setViewsOverTime(formattedData);
+
+      return allViews;
+    }
+  });
+
+  const { data: mostViewedMovies } = useQuery({
+    queryKey: ['most-viewed-movies', startDate, endDate],
+    queryFn: async () => getMostViewedMovies(startDate, endDate)
+  });
+
+  const { data: topRatedMovies } = useQuery({
+    queryKey: ['top-rated-movies', startDate, endDate],
+    queryFn: async () => getTopRatedMovies(startDate, endDate)
+  });
+
+  const { data: mostReportedMovies } = useQuery({
+    queryKey: ['most-reported-movies', startDate, endDate],
+    queryFn: async () => getMostReportedMovies(startDate, endDate)
   });
 
   const deviceBreakdownData = deviceStatsData
@@ -136,6 +255,38 @@ export default function AnalyticsSection() {
           </CardHeader>
           <CardContent>
             <DateRangePicker value={dateRange} onChange={setDateRange} />
+          </CardContent>
+        </Card>
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              View Statistics
+              <HoverCard>
+                <HoverCardTrigger><Info className="h-4 w-4" /></HoverCardTrigger>
+                <HoverCardContent>
+                  Includes both anonymous and registered user views
+                </HoverCardContent>
+              </HoverCard>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-2xl font-bold">{totalViews} Total Views</div>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={viewsOverTime}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#8884d8"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -380,6 +531,80 @@ export default function AnalyticsSection() {
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Most Viewed Movies</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Movie</th>
+                  <th className="text-right p-2">Views</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mostViewedMovies?.slice(0, 5).map((movie: any, i: number) => (
+                  <tr key={i} className="border-b hover:bg-muted/50">
+                    <td className="p-2">{movie.title}</td>
+                    <td className="p-2 text-right">{movie.views}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Rated Movies</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Movie</th>
+                  <th className="text-right p-2">Average Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topRatedMovies?.slice(0, 5).map((movie: any, i: number) => (
+                  <tr key={i} className="border-b hover:bg-muted/50">
+                    <td className="p-2">{movie.title}</td>
+                    <td className="p-2 text-right">{movie.rating}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Most Reported Movies</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Movie</th>
+                  <th className="text-right p-2">Reports</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mostReportedMovies?.slice(0, 5).map((movie: any, i: number) => (
+                  <tr key={i} className="border-b hover:bg-muted/50">
+                    <td className="p-2">{movie.title}</td>
+                    <td className="p-2 text-right">{movie.verified_report_count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       </div>
