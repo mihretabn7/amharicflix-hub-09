@@ -50,11 +50,10 @@ jwt_expiry = 3600
 enable_signup = true
 
 [functions]
-# Port for Functions
-port = 54321
-
-# Path to functions directory
+# The functions configuration needs to be properly nested
 [functions.serve]
+port = 54321
+# Path to functions directory
 path = "supabase/functions"
 
 [analytics]
