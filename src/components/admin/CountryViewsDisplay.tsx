@@ -43,11 +43,7 @@ const countryCodeToName = (countryCode: string) => {
   return countryNames[countryCode] || countryCode || "Unknown";
 };
 
-interface CountryViewsDisplayProps {
-  countryViewsData?: any[];
-}
-
-export function CountryViewsDisplay({ countryViewsData }: CountryViewsDisplayProps = {}) {
+export function CountryViewsDisplay() {
   const { data: countryData, isLoading } = useQuery({
     queryKey: ["country-views"],
     queryFn: async () => {
@@ -59,15 +55,11 @@ export function CountryViewsDisplay({ countryViewsData }: CountryViewsDisplayPro
       }
       
       return data || [];
-    },
-    enabled: !countryViewsData // Only run this query if countryViewsData is not provided
+    }
   });
 
-  // Use provided data or fetched data
-  const dataToUse = countryViewsData || countryData || [];
-
   // Sort by total views and take top 10
-  const sortedCountries = [...dataToUse]
+  const sortedCountries = [...(countryData || [])]
     .sort((a, b) => b.total_views - a.total_views)
     .slice(0, 10);
     
@@ -80,7 +72,7 @@ export function CountryViewsDisplay({ countryViewsData }: CountryViewsDisplayPro
         <CardTitle>Top Viewing Countries</CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading && !countryViewsData ? (
+        {isLoading ? (
           <div className="flex justify-center py-8">Loading country data...</div>
         ) : sortedCountries.length > 0 ? (
           <div className="space-y-4">
