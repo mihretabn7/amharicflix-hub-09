@@ -1,29 +1,32 @@
 
 export interface Movie {
   id: string;
+  youtube_id: string;
   title: string;
-  description?: string;
   thumbnail_url: string;
-  video_url?: string;
-  is_hidden?: boolean;
-  created_at?: string;
-  updated_at?: string;
   genre?: string;
-  duration_minutes?: number;
   language?: string;
-  release_year?: number;
-  director?: string;
+  created_at: string;
+  description?: string;
+  duration_minutes?: number;
   watch_count?: number;
-  series_id?: string;
-  episode_number?: number;
-  featured?: boolean;
-  averageRating?: number;
-  movie_ratings?: any[];
-  youtube_id?: string;
   share_count?: number;
+  series_id?: string | null;
+  episode_number?: number | null;
+  averageRating?: number;
+  is_hidden?: boolean;
+  verified_report_count?: number;
+  movie_ratings?: MovieRating[];
+}
+
+export interface MovieRating {
+  rating: number;
+  created_at: string;
 }
 
 export interface SeriesWithEpisodes extends Movie {
   episodes: Movie[];
   episodeCount: number;
+  averageRating: number;
+  movie_ratings: MovieRating[];
 }
