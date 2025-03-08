@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +14,7 @@ import { DateRange } from "react-day-picker";
 import { DetailedListModal } from "@/components/admin/DetailedListModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AnalyticsSection from "@/components/admin/AnalyticsSection";
+import { toast } from "sonner";
 
 interface MovieData {
     id: string;
@@ -603,10 +603,4 @@ function downloadCSV(data: any, filename: string) {
     a.download = `${filename}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-}
-
-function toast({ 
-    info: (message: string) => console.log('[Info]', message)
-}) {
-    return { info: (message: string) => console.log('[Info]', message) };
 }
