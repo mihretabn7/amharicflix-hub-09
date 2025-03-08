@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
@@ -26,13 +27,16 @@ import FeedbackPage from '@/pages/admin/FeedbackPage';
 import DonationsPage from '@/pages/admin/DonationsPage';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Share } from "lucide-react";
+import MobileNavigation from "@/components/MobileNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // PWA installation detection and prompt
 function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIos, setIsIos] = useState(false);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Check if on iOS
@@ -74,52 +78,164 @@ function PwaInstallPrompt() {
     });
   };
 
+  const generateAppDownloadLink = () => {
+    const isAndroid = /android/i.test(navigator.userAgent);
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    
+    // These would be your app store links in a real app
+    const androidAppLink = "https://play.google.com/store/apps/details?id=app.lovable.amharicflix";
+    const iosAppLink = "https://apps.apple.com/us/app/amharicflix/id1234567890";
+    
+    // Return download link based on platform
+    if (isAndroid) return androidAppLink;
+    if (isIOS) return iosAppLink;
+    
+    // Default to website
+    return window.location.origin;
+  };
+
   if (!showInstallButton) return null;
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button 
-          variant="outline" 
-          className="fixed bottom-4 right-4 z-50 bg-primary text-primary-foreground shadow-md"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Install App
-        </Button>
-      </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Install AmharicFlix</SheetTitle>
-          <SheetDescription>
-            {isIos ? (
-              <div className="space-y-4">
-                <p>To install AmharicFlix on your iOS device:</p>
-                <ol className="list-decimal list-inside space-y-2">
-                  <li>Tap the share button <span className="inline-block w-5 h-5 text-center rounded-md bg-gray-200">⬆️</span> at the bottom of the screen</li>
-                  <li>Scroll down and tap "Add to Home Screen"</li>
-                  <li>Tap "Add" in the top right corner</li>
-                </ol>
-                <p className="mt-4">You'll now have AmharicFlix as an app on your home screen!</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <p>Install AmharicFlix to access it quickly and easily, even when offline.</p>
-                <div className="flex justify-center mt-4">
-                  <Button onClick={handleInstallClick} className="w-full">
-                    <Download className="h-4 w-4 mr-2" />
-                    Install Now
-                  </Button>
-                </div>
-              </div>
-            )}
-          </SheetDescription>
-        </SheetHeader>
-      </SheetContent>
-    </Sheet>
+    <>
+      {isMobile ? (
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="download-app-btn"
+              size="icon"
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Install AmharicFlix</SheetTitle>
+              <SheetDescription>
+                {isIos ? (
+                  <div className="space-y-4">
+                    <p>To install AmharicFlix on your iOS device:</p>
+                    <ol className="list-decimal list-inside space-y-2">
+                      <li>Tap the share button <span className="inline-block w-5 h-5 text-center rounded-md bg-gray-200">⬆️</span> at the bottom of the screen</li>
+                      <li>Scroll down and tap "Add to Home Screen"</li>
+                      <li>Tap "Add" in the top right corner</li>
+                    </ol>
+                    <p className="mt-4">You'll now have AmharicFlix as an app on your home screen!</p>
+                    
+                    <div className="mt-6">
+                      <a 
+                        href={generateAppDownloadLink()} 
+                        className="app-download-btn w-full flex justify-center items-center"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download from App Store
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p>Install AmharicFlix to access it quickly and easily, even when offline.</p>
+                    <div className="flex justify-center mt-4">
+                      <Button onClick={handleInstallClick} className="w-full">
+                        <Download className="h-4 w-4 mr-2" />
+                        Install Now
+                      </Button>
+                    </div>
+                    
+                    <div className="mt-6 pt-4 border-t">
+                      <p className="mb-4 text-sm text-center">Or download our native app</p>
+                      <a 
+                        href={generateAppDownloadLink()} 
+                        className="app-download-btn w-full flex justify-center items-center"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download from Play Store
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </SheetDescription>
+            </SheetHeader>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="fixed bottom-4 right-4 z-50 bg-primary text-primary-foreground shadow-md"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Install App
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Install AmharicFlix</SheetTitle>
+              <SheetDescription>
+                {isIos ? (
+                  <div className="space-y-4">
+                    <p>To install AmharicFlix on your iOS device:</p>
+                    <ol className="list-decimal list-inside space-y-2">
+                      <li>Tap the share button <span className="inline-block w-5 h-5 text-center rounded-md bg-gray-200">⬆️</span> at the bottom of the screen</li>
+                      <li>Scroll down and tap "Add to Home Screen"</li>
+                      <li>Tap "Add" in the top right corner</li>
+                    </ol>
+                    <p className="mt-4">You'll now have AmharicFlix as an app on your home screen!</p>
+                    
+                    <div className="mt-6">
+                      <a 
+                        href={generateAppDownloadLink()} 
+                        className="app-download-btn w-full flex justify-center items-center"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download from App Store
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p>Install AmharicFlix to access it quickly and easily, even when offline.</p>
+                    <div className="flex justify-center mt-4">
+                      <Button onClick={handleInstallClick} className="w-full">
+                        <Download className="h-4 w-4 mr-2" />
+                        Install Now
+                      </Button>
+                    </div>
+                    
+                    <div className="mt-6 pt-4 border-t">
+                      <p className="mb-4 text-sm text-center">Or download our native app</p>
+                      <a 
+                        href={generateAppDownloadLink()} 
+                        className="app-download-btn w-full flex justify-center items-center"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download from Play Store
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </SheetDescription>
+            </SheetHeader>
+          </SheetContent>
+        </Sheet>
+      )}
+    </>
   );
 }
 
 function App() {
+  const isMobile = useIsMobile();
+  
   useEffect(() => {
     // Initialize auth state first
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -202,6 +318,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
               </Routes>
+              {isMobile && <MobileNavigation />}
             </>
           } />
         </Routes>
