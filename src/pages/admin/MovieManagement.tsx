@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import MovieUploadForm from "@/components/MovieUploadForm";
+import CsvMovieUpload from "@/components/CsvMovieUpload";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Trash2, Eye, EyeOff, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
@@ -43,11 +44,9 @@ export default function MovieManagement() {
         }
     });
 
-    // Get unique genres and languages for filters
     const genres = [...new Set(movies?.map(movie => movie.genre).filter(Boolean))];
     const languages = [...new Set(movies?.map(movie => movie.language).filter(Boolean))];
 
-    // Filter movies based on search and filters
     const filteredMovies = movies?.filter(movie => {
         const matchesSearch =
             movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -63,9 +62,7 @@ export default function MovieManagement() {
         return matchesSearch && matchesGenre && matchesLanguage && matchesVisibility;
     });
 
-    // Remove the notification subscription
     useEffect(() => {
-        // Any other effects you need...
     }, []);
 
     const columns: ColumnDef<any>[] = [
@@ -164,7 +161,6 @@ export default function MovieManagement() {
         }
     ];
 
-    // Add this to check what's being passed to DataTable
     console.log('DataTable props:', {
         data: movies || [],
         columns
@@ -247,6 +243,10 @@ export default function MovieManagement() {
                             <DialogTitle>Add New Movie</DialogTitle>
                         </DialogHeader>
                         <MovieUploadForm onSuccess={refetch} />
+                        <div className="mt-4 border-t pt-4">
+                            <h3 className="text-lg font-medium mb-2">Bulk Upload</h3>
+                            <CsvMovieUpload />
+                        </div>
                     </DialogContent>
                 </Dialog>
             </div>
@@ -306,7 +306,6 @@ export default function MovieManagement() {
                 columns={columns}
             />
 
-            {/* Edit Movie Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
