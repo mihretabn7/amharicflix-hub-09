@@ -50,10 +50,12 @@ jwt_expiry = 3600
 enable_signup = true
 
 [functions]
-# Port for Functions
+# Function settings
 port = 54321
 
+# Serve directory
 [functions.serve]
+port = 54321
 path = "supabase/functions"
 
 [analytics]
