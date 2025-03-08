@@ -1,6 +1,7 @@
+
 import { DataTable } from '@/components/ui/data-table';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, customRpcs } from '@/integrations/supabase/client';
 import { ColumnDef } from '@tanstack/react-table';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -12,9 +13,13 @@ interface Feedback {
   id: string;
   user_id: string;
   feedback_text: string;
-  admin_response: string;
-  status: 'new' | 'in_progress' | 'resolved';
+  admin_response: string | null;
+  status: string; // Changed from union type to string to match database
   created_at: string;
+  user?: {
+    username: string | null;
+    email: string | null;
+  };
 }
 
 export default function FeedbackPage() {
@@ -22,13 +27,11 @@ export default function FeedbackPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const { data: feedback, isLoading, isError } = useQuery({
-    queryKey: ['feedback'],
+    queryKey: ['feedback-with-users'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_feedback')
-        .select('id, user_id, feedback_text, admin_response, status, created_at')
-        .order('created_at', { ascending: false });
-
+      // Use the custom RPC function to get feedback with user details
+      const { data, error } = await customRpcs.getAllFeedbackWithUsers();
+      
       if (error) throw error;
       return data;
     }
@@ -36,8 +39,12 @@ export default function FeedbackPage() {
 
   const columns: ColumnDef<Feedback>[] = [
     {
-      accessorKey: 'user_id',
-      header: 'User ID'
+      accessorKey: 'user',
+      header: 'User',
+      cell: ({ row }) => {
+        const user = row.original.user;
+        return user ? (user.username || user.email || 'Anonymous') : row.original.user_id;
+      }
     },
     {
       accessorKey: 'feedback_text',
@@ -56,6 +63,21 @@ export default function FeedbackPage() {
       cell: ({ row }) => new Date(row.original.created_at).toLocaleString()
     }
   ];
+
+  // Filter the feedback based on search query and status filter
+  const filteredFeedback = feedback?.filter(item => {
+    const matchesSearch = 
+      searchQuery === '' || 
+      item.feedback_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.user?.username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.user?.email || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = 
+      filterStatus === 'all' || 
+      item.status === filterStatus;
+    
+    return matchesSearch && matchesStatus;
+  }) || [];
 
   if (isLoading) return <div>Loading...</div>;
   if (isError) return <div>Error loading data</div>;
@@ -85,7 +107,7 @@ export default function FeedbackPage() {
           Filters
         </Button>
       </div>
-      <DataTable columns={columns} data={feedback || []} />
+      <DataTable columns={columns} data={filteredFeedback} />
     </div>
   );
 }
