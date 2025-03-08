@@ -1,3 +1,4 @@
+
 import { DataTable } from '@/components/ui/data-table';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,12 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Search, Filter } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
+
 interface Feedback {
   id: string;
   user_id: string;
   feedback_text: string;
   admin_response: string;
-  status: 'new' | 'in_progress' | 'resolved';
+  status: FeedbackStatus;
   created_at: string;
 }
 
@@ -30,7 +33,7 @@ export default function FeedbackPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as Feedback[];
     }
   });
 

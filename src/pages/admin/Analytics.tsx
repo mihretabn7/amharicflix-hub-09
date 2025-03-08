@@ -36,6 +36,9 @@ interface ListItem {
 interface CountryView {
     country_code: string;
     view_count: number;
+    registered_views?: number;
+    anonymous_views?: number;
+    total_views?: number;
 }
 
 export default function Analytics() {
@@ -102,7 +105,6 @@ export default function Analytics() {
                 supabase.rpc('get_views_by_country')
             ]);
 
-            // Process and deduplicate data
             const topViewedMovies = views.data
                 ? [...new Map(views.data
                     .filter(movie => movie && movie.id && movie.title)
@@ -117,7 +119,6 @@ export default function Analytics() {
                     .slice(0, 5)
                 : [];
 
-            // Process ratings
             const ratingsByMovie = new Map();
             ratings.data?.forEach(rating => {
                 if (!rating.movie_id || !rating.movie?.title) return;
@@ -146,7 +147,6 @@ export default function Analytics() {
                 .sort((a, b) => b.rating - a.rating)
                 .slice(0, 5);
 
-            // Process reports
             const reportsByMovie = new Map();
             reports.data?.forEach(report => {
                 if (!report.movie_id || !report.movie?.title) return;
@@ -169,8 +169,13 @@ export default function Analytics() {
                 .sort((a, b) => b.count - a.count)
                 .slice(0, 5);
 
-            // Process country views
-            const countryViews: CountryView[] = countryViewsResponse.data || [];
+            const countryViews: CountryView[] = (countryViewsResponse.data || []).map(view => ({
+                country_code: view.country_code,
+                view_count: view.total_views || 0,
+                registered_views: view.registered_views,
+                anonymous_views: view.anonymous_views,
+                total_views: view.total_views
+            }));
 
             return {
                 topMovies: {
@@ -183,7 +188,6 @@ export default function Analytics() {
         }
     });
 
-    // Create daily trend data based on date range
     const dailyTrendData = useMemo(() => {
         if (!stats) return [];
         
@@ -279,7 +283,6 @@ export default function Analytics() {
         };
     }, [refetch]);
 
-    // Render charts
     const renderDailyTrendChart = () => (
         <Card className="col-span-1 md:col-span-3 lg:col-span-2">
             <CardHeader>
@@ -389,7 +392,6 @@ export default function Analytics() {
                 </div>
             </div>
 
-            {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="cursor-pointer hover:bg-accent/50" onClick={() => setSelectedList({
                     type: 'views',
@@ -497,7 +499,6 @@ export default function Analytics() {
                 </Card>
             </div>
             
-            {/* Charts */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {renderDailyTrendChart()}
                 {renderCategoryDistributionChart()}
@@ -527,13 +528,10 @@ export default function Analytics() {
                 )}
             />
 
-            {/* Additional analytics from the AnalyticsSection component */}
             <AnalyticsSection />
         </div>
     );
 }
-
-// Helper functions for exporting data
 
 function prepareExportData(data: any, dateRange: DateRange) {
     const formatDate = (date: string) => new Date(date).toLocaleDateString();

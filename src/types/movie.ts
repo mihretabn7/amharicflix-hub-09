@@ -19,4 +19,11 @@ export interface Movie {
   featured?: boolean;
   averageRating?: number;
   movie_ratings?: any[];
+  youtube_id?: string;
+  share_count?: number;
+}
+
+export interface SeriesWithEpisodes extends Movie {
+  episodes: Movie[];
+  episodeCount: number;
 }
