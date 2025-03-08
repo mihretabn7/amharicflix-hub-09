@@ -9,14 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Search, Filter } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+// Update the interface to match the structure returned by getAllFeedbackWithUsers
 interface Feedback {
   id: string;
-  user_id: string;
   feedback_text: string;
   admin_response: string | null;
-  status: string; // Changed from union type to string to match database
+  status: string;
   created_at: string;
-  user?: {
+  user: {
     username: string | null;
     email: string | null;
   };
@@ -43,7 +43,7 @@ export default function FeedbackPage() {
       header: 'User',
       cell: ({ row }) => {
         const user = row.original.user;
-        return user ? (user.username || user.email || 'Anonymous') : row.original.user_id;
+        return user ? (user.username || user.email || 'Anonymous') : 'Unknown';
       }
     },
     {
