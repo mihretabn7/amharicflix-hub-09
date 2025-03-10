@@ -53,11 +53,6 @@ enable_signup = true
 # Function settings
 port = 54321
 
-# Serve directory
-[functions.serve]
-port = 54321
-path = "supabase/functions"
-
 [analytics]
 # The default behavior for analytics collection from frontend libraries.
 enabled = false
