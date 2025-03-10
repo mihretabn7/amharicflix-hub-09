@@ -77,9 +77,10 @@ export function SupportDialog() {
         return;
       }
       
+      // Call the payment processing API
       // In a real implementation, we would:
-      // 1. Call a Supabase edge function to create a Stripe payment intent
-      // 2. Redirect to the Stripe checkout or show a Stripe Elements form
+      // 1. Call a Supabase edge function to create a payment intent
+      // 2. Redirect to the payment provider checkout or show a payment form
       // 3. Handle the payment confirmation callback
       
       // For now, we'll simulate a successful payment
@@ -90,7 +91,7 @@ export function SupportDialog() {
           amount: parseFloat(amount),
           donation_type: donationType,
           payment_status: 'completed', // In a real implementation, this would initially be 'pending'
-          payment_processor: 'stripe',
+          payment_processor: 'simulated',
           transaction_id: `sim_${Math.random().toString(36).substring(2, 15)}`,
           completed_at: new Date().toISOString() // In a real implementation, this would be updated after payment confirmation
         });
@@ -202,7 +203,7 @@ export function SupportDialog() {
                   <h3 className="font-medium">Payment Method</h3>
                 </div>
                 
-                {/* In a real implementation, we would render a Stripe Elements card form here */}
+                {/* Simple payment form with no specific payment provider */}
                 <div className="grid gap-4">
                   <div>
                     <Label htmlFor="cardNumber">Card Number</Label>

@@ -15,14 +15,14 @@ serve(async (req) => {
     const { amount, donationType, userId } = await req.json();
 
     // In a real implementation, you would:
-    // 1. Initialize Stripe with your secret key
+    // 1. Initialize your payment provider with your secret key
     // 2. Create a payment intent or checkout session
     // 3. Return the client secret or checkout URL
     
     console.log(`Processing payment request: $${amount} (${donationType}) for user ${userId}`);
 
     // This is a placeholder response
-    // In production, you would include Stripe client secret or session ID
+    // In production, you would include a payment client secret or session ID
     return new Response(
       JSON.stringify({
         success: true,
