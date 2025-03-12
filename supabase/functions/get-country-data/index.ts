@@ -31,7 +31,10 @@ serve(async (req) => {
     
     if (!ip) {
       return new Response(
-        JSON.stringify({ error: "Could not determine client IP address" }),
+        JSON.stringify({ 
+          error: "Could not determine client IP address",
+          country: "Unknown"
+        }),
         {
           status: 400,
           headers: {
@@ -80,7 +83,10 @@ serve(async (req) => {
     console.error("Error processing request:", error.message);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        country: "Unknown" 
+      }),
       {
         status: 500,
         headers: {

@@ -89,14 +89,16 @@ export const customRpcs = {
     deviceInfo: string | null = null
   ) => {
     // First get country data from the edge function
+    let countryData = { country: 'Unknown' };
     if (userIp) {
       try {
-        const { data: countryData } = await supabase.functions.invoke('get-country-data', {
+        const { data } = await supabase.functions.invoke('get-country-data', {
           body: { ip: userIp }
         });
         
-        if (countryData && countryData.country) {
-          console.log(`Detected country: ${countryData.country} for IP: ${userIp}`);
+        if (data && data.country) {
+          countryData = data;
+          console.log(`Detected country: ${data.country} for IP: ${userIp}`);
         }
       } catch (error) {
         console.error("Error getting country data:", error);
@@ -109,12 +111,16 @@ export const customRpcs = {
       p_user_id: userId,
       p_user_ip: userIp,
       p_browser_info: browserInfo,
-      p_device_info: deviceInfo
+      p_device_info: deviceInfo,
+      p_country_code: countryData.country
     });
   },
   
-  getViewsByCountry: async () => {
-    return await supabase.rpc('get_views_by_country');
+  getViewsByCountry: async (startDate?: string, endDate?: string) => {
+    return await supabase.rpc('get_views_by_country', {
+      start_date: startDate,
+      end_date: endDate
+    });
   },
   
   getBrowserStats: async (startDate: string, endDate: string) => {
@@ -126,6 +132,13 @@ export const customRpcs = {
   
   getDetailedDeviceStats: async (startDate: string, endDate: string) => {
     return await supabase.rpc('get_detailed_device_stats', {
+      start_date: startDate,
+      end_date: endDate
+    });
+  },
+  
+  getUserActivityStats: async (startDate: string, endDate: string) => {
+    return await supabase.rpc('get_user_activity_stats', {
       start_date: startDate,
       end_date: endDate
     });
