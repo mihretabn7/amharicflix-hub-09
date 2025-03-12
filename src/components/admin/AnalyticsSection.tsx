@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -5,14 +6,7 @@ import { customRpcs, supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { DateRange } from "react-day-picker";
 import { subDays } from "date-fns";
-import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  ZoomableGroup,
-} from "react-simple-maps";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import {
   BarChart,
   Bar,
@@ -35,17 +29,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { CountryViewsDisplay } from "./CountryViewsDisplay";
-
-const countryNames: Record<string, string> = {
-  US: "United States",
-  ET: "Ethiopia",
-  CA: "Canada",
-  GB: "United Kingdom",
-  AU: "Australia",
-  DE: "Germany",
-  FR: "France",
-  IN: "India",
-};
+import UserActivityStats from "./UserActivityStats";
 
 const DEVICE_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A569BD"];
 
@@ -80,25 +64,74 @@ const getMostViewedMovies = async (startDate: string, endDate: string) => {
 };
 
 const getTopRatedMovies = async (startDate: string, endDate: string) => {
-  const { data: movies } = await supabase
-    .from('movies')
-    .select('id, title, thumbnail_url, rating')
+  const { data: ratings } = await supabase
+    .from('movie_ratings')
+    .select(`
+      rating,
+      movie:movies(
+        id, 
+        title, 
+        thumbnail_url
+      )
+    `)
     .gte('created_at', startDate)
-    .lte('created_at', endDate)
-    .order('rating', { ascending: false });
+    .lte('created_at', endDate);
 
-  return movies || [];
+  // Group by movie and calculate average rating
+  const movieRatings = ratings?.reduce((acc: Record<string, any>, rating) => {
+    if (!rating.movie || !rating.rating) return acc;
+    
+    const movieId = rating.movie.id;
+    if (!acc[movieId]) {
+      acc[movieId] = {
+        ...rating.movie,
+        ratings: [],
+        avgRating: 0
+      };
+    }
+    
+    acc[movieId].ratings.push(rating.rating);
+    acc[movieId].avgRating = acc[movieId].ratings.reduce((sum: number, r: number) => sum + r, 0) / acc[movieId].ratings.length;
+    
+    return acc;
+  }, {});
+
+  return Object.values(movieRatings || {})
+    .sort((a: any, b: any) => b.avgRating - a.avgRating) || [];
 };
 
 const getMostReportedMovies = async (startDate: string, endDate: string) => {
-  const { data: movies } = await supabase
-    .from('movies')
-    .select('id, title, thumbnail_url, verified_report_count')
+  const { data: reports } = await supabase
+    .from('movie_reports')
+    .select(`
+      created_at,
+      movie:movies(
+        id, 
+        title, 
+        thumbnail_url
+      )
+    `)
     .gte('created_at', startDate)
-    .lte('created_at', endDate)
-    .order('verified_report_count', { ascending: false });
+    .lte('created_at', endDate);
 
-  return movies || [];
+  // Group by movie and count reports
+  const movieReports = reports?.reduce((acc: Record<string, any>, report) => {
+    if (!report.movie) return acc;
+    
+    const movieId = report.movie.id;
+    if (!acc[movieId]) {
+      acc[movieId] = {
+        ...report.movie,
+        count: 0
+      };
+    }
+    
+    acc[movieId].count++;
+    return acc;
+  }, {});
+
+  return Object.values(movieReports || {})
+    .sort((a: any, b: any) => b.count - a.count) || [];
 };
 
 export default function AnalyticsSection() {
@@ -110,13 +143,11 @@ export default function AnalyticsSection() {
   const startDate = dateRange?.from ? dateRange.from.toISOString() : new Date().toISOString();
   const endDate = dateRange?.to ? dateRange.to.toISOString() : new Date().toISOString();
 
-  const [totalViews, setTotalViews] = useState<number>(0);
-  const [viewsOverTime, setViewsOverTime] = useState<Array<{ date: string; count: number }>>([]);
-
+  // Fetch country views with date range
   const { data: countryViewsData } = useQuery({
     queryKey: ["views-by-country", startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await customRpcs.getViewsByCountry();
+      const { data, error } = await customRpcs.getViewsByCountry(startDate, endDate);
       if (error) {
         console.error("Error fetching country views:", error);
         return [];
@@ -125,6 +156,7 @@ export default function AnalyticsSection() {
     },
   });
 
+  // Fetch browser stats with date range
   const { data: browserStatsData } = useQuery({
     queryKey: ["browser-stats", startDate, endDate],
     queryFn: async () => {
@@ -137,6 +169,7 @@ export default function AnalyticsSection() {
     },
   });
 
+  // Fetch device stats with date range
   const { data: deviceStatsData } = useQuery({
     queryKey: ["device-stats", startDate, endDate],
     queryFn: async () => {
@@ -149,65 +182,19 @@ export default function AnalyticsSection() {
     },
   });
 
-  const { data: viewCounts } = useQuery({
-    queryKey: ['view-counts', startDate, endDate],
-    queryFn: async () => {
-      // Fetch anonymous views
-      const { data: anonymousViews, error: errorAnonymous } = await supabase
-        .from('anonymous_views')
-        .select('movie_id, viewed_at')
-        .gte('viewed_at', startDate)
-        .lte('viewed_at', endDate);
-
-      // Fetch user movie history
-      const { data: userHistory, error: errorHistory } = await supabase
-        .from('user_movie_history')
-        .select('movie_id, created_at')
-        .gte('created_at', startDate)
-        .lte('created_at', endDate);
-
-      if (errorAnonymous || errorHistory) {
-        console.error('Error fetching views:', errorAnonymous || errorHistory);
-        return [];
-      }
-
-      // Combine and process data
-      const allViews = [
-        ...(anonymousViews || []).map(v => ({ ...v, date: v.viewed_at })),
-        ...(userHistory || []).map(v => ({ ...v, date: v.created_at }))
-      ];
-
-      // Calculate total views
-      setTotalViews(allViews.length);
-
-      // Group views by date
-      const dailyCounts = allViews.reduce((acc, view) => {
-        const date = new Date(view.date).toISOString().split('T')[0];
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const formattedData = Object.entries(dailyCounts).map(([date, count]) => ({
-        date,
-        count
-      })).sort((a, b) => a.date.localeCompare(b.date));
-
-      setViewsOverTime(formattedData);
-
-      return allViews;
-    }
-  });
-
+  // Fetch most viewed movies
   const { data: mostViewedMovies } = useQuery({
     queryKey: ['most-viewed-movies', startDate, endDate],
     queryFn: async () => getMostViewedMovies(startDate, endDate)
   });
 
+  // Fetch top rated movies
   const { data: topRatedMovies } = useQuery({
     queryKey: ['top-rated-movies', startDate, endDate],
     queryFn: async () => getTopRatedMovies(startDate, endDate)
   });
 
+  // Fetch most reported movies
   const { data: mostReportedMovies } = useQuery({
     queryKey: ['most-reported-movies', startDate, endDate],
     queryFn: async () => getMostReportedMovies(startDate, endDate)
@@ -230,15 +217,6 @@ export default function AnalyticsSection() {
       }, [])
     : [];
 
-  const countryComparisonData = countryViewsData
-    ? countryViewsData.map((country: any) => ({
-        country: countryNames[country.country_code] || country.country_code,
-        registered: country.registered_views || 0,
-        anonymous: country.anonymous_views || 0,
-        total: country.total_views || 0,
-      }))
-    : [];
-
   const browserMarketShareData = browserStatsData
     ? browserStatsData.map((browser: any) => ({
         name: browser.browser_name || "Unknown",
@@ -257,115 +235,13 @@ export default function AnalyticsSection() {
             <DateRangePicker value={dateRange} onChange={setDateRange} />
           </CardContent>
         </Card>
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              View Statistics
-              <HoverCard>
-                <HoverCardTrigger><Info className="h-4 w-4" /></HoverCardTrigger>
-                <HoverCardContent>
-                  Includes both anonymous and registered user views
-                </HoverCardContent>
-              </HoverCard>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-2xl font-bold">{totalViews} Total Views</div>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={viewsOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#8884d8"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
-      <CountryViewsDisplay countryViewsData={countryViewsData} />
+      {/* User Activity Stats - New component */}
+      <UserActivityStats dateRange={dateRange} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>User Type Comparison</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="chart">
-            <TabsList className="mb-4">
-              <TabsTrigger value="chart">Chart</TabsTrigger>
-              <TabsTrigger value="table">Table</TabsTrigger>
-            </TabsList>
-            <TabsContent value="chart">
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={countryComparisonData.slice(0, 10)}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="country"
-                      angle={-45}
-                      textAnchor="end"
-                      tick={{ fontSize: 12 }}
-                      height={70}
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="registered" fill="#8884d8" name="Registered" />
-                    <Bar dataKey="anonymous" fill="#82ca9d" name="Anonymous" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </TabsContent>
-            <TabsContent value="table">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="p-2 text-left">Country</th>
-                      <th className="p-2 text-right">Registered Views</th>
-                      <th className="p-2 text-right">Anonymous Views</th>
-                      <th className="p-2 text-right">Total Views</th>
-                      <th className="p-2 text-right">% Registered</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {countryComparisonData.map((country: any, i: number) => (
-                      <tr
-                        key={i}
-                        className="border-b hover:bg-muted/50 transition-colors"
-                      >
-                        <td className="p-2">{country.country}</td>
-                        <td className="p-2 text-right">{country.registered}</td>
-                        <td className="p-2 text-right">{country.anonymous}</td>
-                        <td className="p-2 text-right">{country.total}</td>
-                        <td className="p-2 text-right">
-                          {country.total > 0
-                            ? Math.round(
-                                (country.registered / country.total) * 100
-                              )
-                            : 0}
-                          %
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+      {/* Country Views Display */}
+      <CountryViewsDisplay countryViewsData={countryViewsData} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -576,7 +452,7 @@ export default function AnalyticsSection() {
                 {topRatedMovies?.slice(0, 5).map((movie: any, i: number) => (
                   <tr key={i} className="border-b hover:bg-muted/50">
                     <td className="p-2">{movie.title}</td>
-                    <td className="p-2 text-right">{movie.rating}</td>
+                    <td className="p-2 text-right">{movie.avgRating.toFixed(1)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -600,7 +476,7 @@ export default function AnalyticsSection() {
                 {mostReportedMovies?.slice(0, 5).map((movie: any, i: number) => (
                   <tr key={i} className="border-b hover:bg-muted/50">
                     <td className="p-2">{movie.title}</td>
-                    <td className="p-2 text-right">{movie.verified_report_count}</td>
+                    <td className="p-2 text-right">{movie.count}</td>
                   </tr>
                 ))}
               </tbody>

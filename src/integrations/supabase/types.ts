@@ -764,15 +764,41 @@ export type Database = {
           status_value: string
         }[]
       }
-      get_views_by_country: {
-        Args: Record<PropertyKey, never>
+      get_user_activity_stats: {
+        Args: {
+          start_date: string
+          end_date: string
+        }
         Returns: {
-          country_code: string
-          total_views: number
-          registered_views: number
-          anonymous_views: number
+          date_period: string
+          views_count: number
+          ratings_count: number
+          reports_count: number
+          unique_users: number
         }[]
       }
+      get_views_by_country:
+        | {
+            Args: Record<PropertyKey, never>
+            Returns: {
+              country_code: string
+              total_views: number
+              registered_views: number
+              anonymous_views: number
+            }[]
+          }
+        | {
+            Args: {
+              start_date?: string
+              end_date?: string
+            }
+            Returns: {
+              country_code: string
+              total_views: number
+              registered_views: number
+              anonymous_views: number
+            }[]
+          }
       http: {
         Args: {
           request: Database["public"]["CompositeTypes"]["http_request"]
@@ -937,6 +963,17 @@ export type Database = {
               p_user_ip?: string
               p_browser_info?: string
               p_device_info?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_movie_id: string
+              p_user_id?: string
+              p_user_ip?: string
+              p_browser_info?: string
+              p_device_info?: string
+              p_country_code?: string
             }
             Returns: undefined
           }
