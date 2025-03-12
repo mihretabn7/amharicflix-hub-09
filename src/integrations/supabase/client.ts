@@ -88,6 +88,22 @@ export const customRpcs = {
     browserInfo: string | null = null,
     deviceInfo: string | null = null
   ) => {
+    // First get country data from the edge function
+    if (userIp) {
+      try {
+        const { data: countryData } = await supabase.functions.invoke('get-country-data', {
+          body: { ip: userIp }
+        });
+        
+        if (countryData && countryData.country) {
+          console.log(`Detected country: ${countryData.country} for IP: ${userIp}`);
+        }
+      } catch (error) {
+        console.error("Error getting country data:", error);
+      }
+    }
+    
+    // Call the RPC function to track the view
     return await supabase.rpc('track_movie_view_with_country', {
       p_movie_id: movieId,
       p_user_id: userId,

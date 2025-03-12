@@ -51,14 +51,50 @@ export function CountryViewsDisplay({ countryViewsData }: CountryViewsDisplayPro
   const { data: countryData, isLoading } = useQuery({
     queryKey: ["country-views"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_views_by_country');
+      // First get client IP
+      const ipResponse = await fetch("/api/get-my-ip", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!ipResponse.ok) {
+        console.error("Error fetching IP:", await ipResponse.text());
+        throw new Error("Error fetching IP address");
+      }
+      
+      const { ip } = await ipResponse.json();
+      console.log("Client IP:", ip);
+      
+      // Then fetch country data using the country data edge function
+      const { data, error } = await supabase.functions.invoke("get-country-data", {
+        body: { ip },
+      });
       
       if (error) {
-        console.error("Error fetching country views:", error);
+        console.error("Error fetching country data:", error);
         return [];
       }
       
-      return data || [];
+      console.log("Country data:", data);
+      
+      // Fall back to RPC if we couldn't get data from the function
+      if (!data || !data.country) {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_views_by_country');
+        
+        if (rpcError) {
+          console.error("Error fetching country views:", rpcError);
+          return [];
+        }
+        
+        return rpcData || [];
+      }
+      
+      // Also fetch the full country views data from RPC
+      const { data: rpcData } = await supabase.rpc('get_views_by_country');
+      
+      return rpcData || [];
     },
     enabled: !countryViewsData // Only run this query if countryViewsData is not provided
   });
