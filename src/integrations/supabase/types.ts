@@ -612,6 +612,11 @@ export type Database = {
           device_info: string | null
           id: string
           movie_id: string | null
+          rating: number | null
+          rating_timestamp: string | null
+          report: boolean | null
+          report_reason: string | null
+          report_timestamp: string | null
           user_id: string | null
           watch_duration: number | null
           watch_position: number | null
@@ -624,6 +629,11 @@ export type Database = {
           device_info?: string | null
           id?: string
           movie_id?: string | null
+          rating?: number | null
+          rating_timestamp?: string | null
+          report?: boolean | null
+          report_reason?: string | null
+          report_timestamp?: string | null
           user_id?: string | null
           watch_duration?: number | null
           watch_position?: number | null
@@ -636,6 +646,11 @@ export type Database = {
           device_info?: string | null
           id?: string
           movie_id?: string | null
+          rating?: number | null
+          rating_timestamp?: string | null
+          report?: boolean | null
+          report_reason?: string | null
+          report_timestamp?: string | null
           user_id?: string | null
           watch_duration?: number | null
           watch_position?: number | null

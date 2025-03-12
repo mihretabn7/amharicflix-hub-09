@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { customRpcs } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 
 const countryCodeToFlag = (countryCode: string) => {
   // Convert country code to flag emoji
@@ -49,21 +51,32 @@ interface CountryViewsDisplayProps {
 }
 
 export function CountryViewsDisplay({ countryViewsData, dateRange }: CountryViewsDisplayProps = {}) {
+  const { toast } = useToast();
   const startDate = dateRange?.from ? dateRange.from.toISOString() : undefined;
   const endDate = dateRange?.to ? dateRange.to.toISOString() : undefined;
 
-  const { data: countryData, isLoading } = useQuery({
+  const { data: countryData, isLoading, isError } = useQuery({
     queryKey: ["country-views", startDate, endDate],
     queryFn: async () => {
-      const { data, error } = await customRpcs.getViewsByCountry(startDate, endDate);
-      
-      if (error) {
-        console.error("Error fetching country views:", error);
+      try {
+        const { data, error } = await customRpcs.getViewsByCountry(startDate, endDate);
+        
+        if (error) {
+          console.error("Error fetching country views:", error);
+          toast({
+            title: "Error fetching country data",
+            description: error.message,
+            variant: "destructive"
+          });
+          return [];
+        }
+        
+        console.log("Country views data:", data);
+        return data || [];
+      } catch (err) {
+        console.error("Error in country views query:", err);
         return [];
       }
-      
-      console.log("Country views data:", data);
-      return data || [];
     },
     enabled: !countryViewsData // Only run this query if countryViewsData is not provided
   });
@@ -79,6 +92,21 @@ export function CountryViewsDisplay({ countryViewsData, dateRange }: CountryView
   // Calculate max views for progress bar scaling
   const maxViews = sortedCountries.length > 0 ? sortedCountries[0].total_views : 0;
 
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Viewing Countries</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8 text-muted-foreground">
+            Error loading country data. Please try again.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -86,7 +114,21 @@ export function CountryViewsDisplay({ countryViewsData, dateRange }: CountryView
       </CardHeader>
       <CardContent>
         {isLoading && !countryViewsData ? (
-          <div className="flex justify-center py-8">Loading country data...</div>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+                <Skeleton className="h-2 w-full" />
+                <div className="flex justify-between">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : sortedCountries.length > 0 ? (
           <div className="space-y-4">
             {sortedCountries.map((country) => (
