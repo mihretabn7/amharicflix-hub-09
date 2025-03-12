@@ -2,8 +2,11 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { customRpcs } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DateRange } from 'react-day-picker';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Download, FileText, FileSpreadsheet, FilePdf } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -53,10 +56,86 @@ export default function UserActivityStats({ dateRange }: UserActivityStatsProps)
     users: item.unique_users,
   })) || [];
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    if (!formattedData.length) return;
+
+    switch (format) {
+      case 'csv':
+        // Convert data to CSV
+        const headers = ['Date', 'Views', 'Ratings', 'Reports', 'Unique Users'];
+        const csvData = [
+          headers.join(','),
+          ...formattedData.map(item => 
+            [item.date, item.views, item.ratings, item.reports, item.users].join(',')
+          )
+        ].join('\n');
+        
+        // Create and download file
+        downloadFile(csvData, 'user-activity-stats.csv', 'text/csv');
+        break;
+        
+      case 'excel':
+        // For Excel, we'll create a simplified CSV that Excel can open
+        const excelData = [
+          headers.join('\t'),
+          ...formattedData.map(item => 
+            [item.date, item.views, item.ratings, item.reports, item.users].join('\t')
+          )
+        ].join('\n');
+        
+        downloadFile(excelData, 'user-activity-stats.xls', 'application/vnd.ms-excel');
+        break;
+        
+      case 'pdf':
+        // Alert for PDF (would normally use a library like jsPDF)
+        alert('PDF export would be implemented with a PDF generation library');
+        break;
+    }
+  };
+
+  const downloadFile = (content: string, fileName: string, contentType: string) => {
+    const blob = new Blob([content], { type: contentType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>User Activity Over Time</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>User Activity Over Time</CardTitle>
+          <CardDescription>
+            Views, ratings, reports, and unique users over the selected period
+          </CardDescription>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => handleExport('csv')}>
+              <FileText className="mr-2 h-4 w-4" />
+              Export as CSV
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('excel')}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Export as Excel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('pdf')}>
+              <FilePdf className="mr-2 h-4 w-4" />
+              Export as PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent>
         {isLoading ? (

@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { customRpcs } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
@@ -45,56 +45,25 @@ const countryCodeToName = (countryCode: string) => {
 
 interface CountryViewsDisplayProps {
   countryViewsData?: any[];
+  dateRange?: { from?: Date; to?: Date };
 }
 
-export function CountryViewsDisplay({ countryViewsData }: CountryViewsDisplayProps = {}) {
+export function CountryViewsDisplay({ countryViewsData, dateRange }: CountryViewsDisplayProps = {}) {
+  const startDate = dateRange?.from ? dateRange.from.toISOString() : undefined;
+  const endDate = dateRange?.to ? dateRange.to.toISOString() : undefined;
+
   const { data: countryData, isLoading } = useQuery({
-    queryKey: ["country-views"],
+    queryKey: ["country-views", startDate, endDate],
     queryFn: async () => {
-      // First get client IP
-      const ipResponse = await fetch("/api/get-my-ip", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      
-      if (!ipResponse.ok) {
-        console.error("Error fetching IP:", await ipResponse.text());
-        throw new Error("Error fetching IP address");
-      }
-      
-      const { ip } = await ipResponse.json();
-      console.log("Client IP:", ip);
-      
-      // Then fetch country data using the country data edge function
-      const { data, error } = await supabase.functions.invoke("get-country-data", {
-        body: { ip },
-      });
+      const { data, error } = await customRpcs.getViewsByCountry(startDate, endDate);
       
       if (error) {
-        console.error("Error fetching country data:", error);
+        console.error("Error fetching country views:", error);
         return [];
       }
       
-      console.log("Country data:", data);
-      
-      // Fall back to RPC if we couldn't get data from the function
-      if (!data || !data.country) {
-        const { data: rpcData, error: rpcError } = await supabase.rpc('get_views_by_country');
-        
-        if (rpcError) {
-          console.error("Error fetching country views:", rpcError);
-          return [];
-        }
-        
-        return rpcData || [];
-      }
-      
-      // Also fetch the full country views data from RPC
-      const { data: rpcData } = await supabase.rpc('get_views_by_country');
-      
-      return rpcData || [];
+      console.log("Country views data:", data);
+      return data || [];
     },
     enabled: !countryViewsData // Only run this query if countryViewsData is not provided
   });
