@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
@@ -26,6 +26,15 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
+
+  useEffect(() => {
+    const logUserLocation = async () => {
+      const locationData = await fetchUserLocation();
+      console.log("User location on login page:", locationData);
+    };
+
+    logUserLocation();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -161,6 +170,32 @@ const Login = () => {
       setResetLoading(false);
     }
   };
+  const fetchUserLocation = async () => {
+    try {
+      // ✅ First, Get the User's Public IP
+      const ipResponse = await fetch("https://api64.ipify.org?format=json");
+      const { ip } = await ipResponse.json();
+  
+      console.log("🛰️ User's IP:", ip);
+  
+      // ✅ Then, Use an IP Geolocation API
+      const geoResponse = await fetch(`https://ipinfo.io/${ip}/json?token=88049e7d9b2938`);
+      const locationData = await geoResponse.json();
+  
+      console.log("🌍 User's Location Data:", locationData);
+  
+      return {
+        ip: ip,
+        country: locationData.country,
+        city: locationData.city,
+        region: locationData.region,
+        coordinates: locationData.loc, // "lat,long"
+      };
+    } catch (error) {
+      console.error("⚠️ Error fetching user location:", error);
+      return null;
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -242,6 +277,8 @@ const Login = () => {
           </p>
         </div>
       </div>
+
+      
 
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
         <DialogContent>
