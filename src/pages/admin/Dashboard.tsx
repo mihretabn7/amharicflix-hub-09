@@ -8,7 +8,7 @@ import { subDays } from "date-fns";
 import AdminStats from "@/components/AdminStats";
 import { Pencil, Clock, Eye, Film, AlertCircle, Star, User, Settings, Heart } from "lucide-react";
 import { DonationsAndFeedbackSummary } from "@/components/admin/DonationsAndFeedbackSummary";
-import { CountryViewsDisplay } from "@/components/admin/CountryViewsDisplay";
+
 import UserActivityStats from "@/components/admin/UserActivityStats";
 
 export default function Dashboard() {
@@ -45,7 +45,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DonationsAndFeedbackSummary />
-        <CountryViewsDisplay dateRange={dateRange} />
+        
       </div>
     </div>
   );
