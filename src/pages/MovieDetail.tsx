@@ -88,12 +88,11 @@ const MovieDetail = () => {
 
           let ip = null;
           try {
-            const response = await fetch('/api/ipinfo');
-            if (!response.ok) {
-              throw new Error('Failed to fetch IP info');
+            const response = await supabase.functions.invoke('get-my-ip');
+            if (response.error) {
+              throw new Error(response.error.message);
             }
-            const data = await response.json();
-            ip = data.ip;
+            ip = response.data.ip;
           } catch (ipError) {
             console.error('Failed to get IP:', ipError);
           }
@@ -261,12 +260,11 @@ const MovieDetail = () => {
       
       let ip = null;
       try {
-        const response = await fetch('/api/ipinfo');
-        if (!response.ok) {
-          throw new Error('Failed to fetch IP info');
+        const response = await supabase.functions.invoke('get-my-ip');
+        if (response.error) {
+          throw new Error(response.error.message);
         }
-        const data = await response.json();
-        ip = data.ip;
+        ip = response.data.ip;
       } catch (ipError) {
         console.error('Failed to get IP:', ipError);
       }
