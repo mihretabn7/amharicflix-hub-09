@@ -13,6 +13,25 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { userInfo } from "os";
+
+const getUserDeviceInfo = () => {
+  const userAgent = navigator.userAgent;
+  let device = "Unknown";
+
+  if (/mobile/i.test(userAgent)) {
+    device = "Mobile";
+  } else if (/tablet/i.test(userAgent)) {
+    device = "Tablet";
+  } else {
+    device = "Desktop";
+  }
+
+  return {
+    device,
+    browser: navigator.userAgent,
+  };
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -32,9 +51,11 @@ const Login = () => {
       const locationData = await fetchUserLocation();
       console.log("User location on login page:", locationData);
     };
-
+  
     logUserLocation();
+    
   }, []);
+ 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -170,6 +191,23 @@ const Login = () => {
       setResetLoading(false);
     }
   };
+  const getUserDeviceInfo = async()=>{
+    const userAgent = navigator.userAgent;
+    let device = "Unknown";
+  
+    if (/mobile/i.test(userAgent)) {
+      device = "Mobile";
+    } else if (/tablet/i.test(userAgent)) {
+      device = "Tablet";
+    } else {
+      device = "Desktop";
+    }
+  
+    return {
+      device,
+      browser: navigator.userAgent,
+    };
+  }
   const fetchUserLocation = async () => {
     try {
       // ✅ First, Get the User's Public IP
@@ -181,7 +219,7 @@ const Login = () => {
       // ✅ Then, Use an IP Geolocation API
       const geoResponse = await fetch(`https://ipinfo.io/${ip}/json?token=88049e7d9b2938`);
       const locationData = await geoResponse.json();
-  
+      const browserData= await getUserDeviceInfo();
       console.log("🌍 User's Location Data:", locationData);
   
       return {
@@ -190,12 +228,17 @@ const Login = () => {
         city: locationData.city,
         region: locationData.region,
         coordinates: locationData.loc, // "lat,long"
+        device: browserData.device,
+        browser: browserData.browser,
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       console.error("⚠️ Error fetching user location:", error);
       return null;
     }
   };
+;
+
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
