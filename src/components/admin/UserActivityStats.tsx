@@ -1,12 +1,11 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { customRpcs } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DateRange } from 'react-day-picker';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Download, FileText, FileSpreadsheet, FilePdf } from 'lucide-react';
+import { Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import {
   LineChart,
@@ -30,6 +29,37 @@ export default function UserActivityStats({ dateRange }: UserActivityStatsProps)
   const startDate = dateRange?.from ? dateRange.from.toISOString() : undefined;
   const endDate = dateRange?.to ? dateRange.to.toISOString() : undefined;
 
+  const [userLocations, setUserLocations] = useState<{ [key: string]: string }>({});
+
+  useEffect(() => {
+    const fetchUserLocations = async () => {
+      try {
+        const response = await fetch('/api/getUserIPs'); // Ensure this endpoint is correct
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const userIPs = await response.json();
+        const locations: { [key: string]: string } = {};
+
+        for (const ip of userIPs) {
+          const data = await fetch(`https://ipapi.co/${ip}/json/`).then(res => {
+            if (!res.ok) {
+              throw new Error('Failed to fetch location data');
+            }
+            return res.json();
+          });
+          locations[ip] = data.city;
+        }
+
+        setUserLocations(locations);
+      } catch (error) {
+        console.error('Error fetching user locations:', error);
+      }
+    };
+
+    fetchUserLocations();
+  }, []);
+
   const { data: activityStats, isLoading, isError } = useQuery({
     queryKey: ['user-activity-stats', startDate, endDate],
     queryFn: async () => {
@@ -51,6 +81,11 @@ export default function UserActivityStats({ dateRange }: UserActivityStatsProps)
         return data || [];
       } catch (err) {
         console.error("Error in activity stats query:", err);
+        toast({
+          title: "Error fetching activity data",
+          description: err.message,
+          variant: "destructive"
+        });
         return [];
       }
     },
@@ -69,6 +104,7 @@ export default function UserActivityStats({ dateRange }: UserActivityStatsProps)
     ratings: item.ratings_count,
     reports: item.reports_count,
     users: item.unique_users,
+    location: userLocations[item.user_ip] || 'Unknown'
   })) || [];
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -84,11 +120,11 @@ export default function UserActivityStats({ dateRange }: UserActivityStatsProps)
     switch (format) {
       case 'csv':
         // Convert data to CSV
-        const headers = ['Date', 'Views', 'Ratings', 'Reports', 'Unique Users'];
+        const headers = ['Date', 'Views', 'Ratings', 'Reports', 'Unique Users', 'Location'];
         const csvData = [
           headers.join(','),
           ...formattedData.map(item => 
-            [item.date, item.views, item.ratings, item.reports, item.users].join(',')
+            [item.date, item.views, item.ratings, item.reports, item.users, item.location].join(',')
           )
         ].join('\n');
         
@@ -102,7 +138,7 @@ export default function UserActivityStats({ dateRange }: UserActivityStatsProps)
         const excelData = [
           headers.join('\t'),
           ...formattedData.map(item => 
-            [item.date, item.views, item.ratings, item.reports, item.users].join('\t')
+            [item.date, item.views, item.ratings, item.reports, item.users, item.location].join('\t')
           )
         ].join('\n');
         
@@ -174,14 +210,15 @@ export default function UserActivityStats({ dateRange }: UserActivityStatsProps)
       item.views,
       item.ratings,
       item.reports,
-      item.users
+      item.users,
+      item.location
     ]);
     
     // @ts-ignore
     doc.autoTable({
       // @ts-ignore
       startY: doc.autoTable.previous.finalY + 15,
-      head: [['Date', 'Views', 'Ratings', 'Reports', 'Users']],
+      head: [['Date', 'Views', 'Ratings', 'Reports', 'Users', 'Location']],
       body: tableData,
       theme: 'striped',
       headStyles: { fillColor: [75, 75, 250] }
@@ -228,7 +265,7 @@ export default function UserActivityStats({ dateRange }: UserActivityStatsProps)
               Export as Excel
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleExport('pdf')}>
-              <FilePdf className="mr-2 h-4 w-4" />
+              <FileText className="mr-2 h-4 w-4" />
               Export as PDF
             </DropdownMenuItem>
           </DropdownMenuContent>
