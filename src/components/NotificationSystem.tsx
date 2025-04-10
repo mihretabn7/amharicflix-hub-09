@@ -11,7 +11,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Notification } from '@/types/notification';
+
+interface Notification {
+    id: string;
+    title: string;
+    message: string;
+    created_at: string;
+    read: boolean;
+    type: 'report' | 'new_movie';
+    link?: string;
+}
 
 const NotificationSystem = () => {
     const [unreadCount, setUnreadCount] = useState(0);
@@ -51,50 +60,9 @@ const NotificationSystem = () => {
         enabled: !!userRole
     });
 
-    const { data: userEmail } = useQuery({
-        queryKey: ['user-email'],
-        queryFn: async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return null;
-
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('email')
-                .eq('id', user.id)
-                .single();
-
-            if (error) throw error;
-            return data?.email;
-        },
-        enabled: !!userRole
-    });
-
     useEffect(() => {
         setUnreadCount(notifications?.filter(n => !n.read).length || 0);
     }, [notifications]);
-
-    const sendEmailNotification = async (notification: Notification) => {
-        if (!userEmail) return;
-        
-        try {
-            await fetch(`${window.location.origin}/functions/v1/send-notification-email`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.VITE_SUPABASE_ANON_KEY}`,
-                },
-                body: JSON.stringify({
-                    to: userEmail,
-                    subject: notification.title,
-                    body: notification.message,
-                    notificationId: notification.id,
-                    userId: notification.user_id,
-                }),
-            });
-        } catch (error) {
-            console.error('Error sending email notification:', error);
-        }
-    };
 
     useEffect(() => {
         const reportsChannel = userRole === 'admin'
@@ -120,20 +88,15 @@ const NotificationSystem = () => {
                         if (report) {
                             const { data: { user } } = await supabase.auth.getUser();
                             if (user) {
-                                const { data: notification } = await supabase.from('notifications').insert({
+                                await supabase.from('notifications').insert({
                                     user_id: user.id,
                                     title: 'New Report',
                                     message: `New report for "${report.movie.title}"`,
                                     type: 'report',
                                     read: false,
                                     link: '/admin/dashboard'
-                                }).select().single();
-                                
+                                });
                                 refetchNotifications();
-                                
-                                if (notification) {
-                                    sendEmailNotification(notification);
-                                }
                             }
 
                             toast.warning(
@@ -170,20 +133,15 @@ const NotificationSystem = () => {
                     if (movie && !movie.is_hidden) {
                         const { data: { user } } = await supabase.auth.getUser();
                         if (user) {
-                            const { data: notification } = await supabase.from('notifications').insert({
+                            await supabase.from('notifications').insert({
                                 user_id: user.id,
                                 title: 'New Movie',
                                 message: `New movie added: ${movie.title}`,
                                 type: 'new_movie',
                                 read: false,
                                 link: `/movie/${movie.id}`
-                            }).select().single();
-                            
+                            });
                             refetchNotifications();
-                            
-                            if (notification) {
-                                sendEmailNotification(notification);
-                            }
                         }
 
                         toast.info(
@@ -201,79 +159,11 @@ const NotificationSystem = () => {
             )
             .subscribe();
 
-        // Listen for anonymous views - admin only
-        const anonymousViewsChannel = userRole === 'admin'
-            ? supabase.channel('anonymous-views')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'anonymous_views'
-                    },
-                    async (payload) => {
-                        // Get movie information
-                        const { data: movie } = await supabase
-                            .from('movies')
-                            .select('title')
-                            .eq('id', payload.new.movie_id)
-                            .single();
-                        
-                        if (movie) {
-                            toast.info(
-                                'New Anonymous View',
-                                {
-                                    description: `${movie.title} viewed from ${payload.new.country_code || 'Unknown'}`,
-                                }
-                            );
-                        }
-                    }
-                )
-                .subscribe()
-            : null;
-
-        // Listen for registered user views - admin only
-        const userViewsChannel = userRole === 'admin'
-            ? supabase.channel('user-views')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'user_movie_history'
-                    },
-                    async (payload) => {
-                        // Get movie and user information
-                        const { data: viewInfo } = await supabase
-                            .from('user_movie_history')
-                            .select(`
-                                movie:movies(title),
-                                user:profiles(email, phone_number),
-                                country_code
-                            `)
-                            .eq('id', payload.new.id)
-                            .single();
-                        
-                        if (viewInfo) {
-                            toast.info(
-                                'New User View',
-                                {
-                                    description: `${viewInfo.movie.title} viewed by ${viewInfo.user.email || viewInfo.user.phone_number} from ${viewInfo.country_code || 'Unknown'}`,
-                                }
-                            );
-                        }
-                    }
-                )
-                .subscribe()
-            : null;
-
         return () => {
             if (reportsChannel) reportsChannel.unsubscribe();
-            if (moviesChannel) moviesChannel.unsubscribe();
-            if (anonymousViewsChannel) anonymousViewsChannel.unsubscribe();
-            if (userViewsChannel) userViewsChannel.unsubscribe();
+            moviesChannel.unsubscribe();
         };
-    }, [userRole, refetchNotifications, userEmail]);
+    }, [userRole, refetchNotifications]);
 
     const handleNotificationClick = async (notification: Notification) => {
         if (!notification.read) {
