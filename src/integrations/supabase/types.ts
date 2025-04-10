@@ -528,6 +528,7 @@ export type Database = {
           ip: string
           region: string | null
           timestamp: string
+          user_status: string | null
         }
         Insert: {
           browser?: string | null
@@ -539,6 +540,7 @@ export type Database = {
           ip: string
           region?: string | null
           timestamp?: string
+          user_status?: string | null
         }
         Update: {
           browser?: string | null
@@ -550,6 +552,7 @@ export type Database = {
           ip?: string
           region?: string | null
           timestamp?: string
+          user_status?: string | null
         }
         Relationships: []
       }
