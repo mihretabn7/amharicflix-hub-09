@@ -1,23 +1,42 @@
 
-import React from "react"
+import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768
+const MOBILE_BREAKPOINT = 768;
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     // Prevent running on server side
     if (typeof window === 'undefined') return;
     
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Set up event listener
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    
+    // Use the appropriate event listener method
+    if (mql.addEventListener) {
+      mql.addEventListener("change", checkMobile);
+    } else {
+      // Fallback for older browsers
+      window.addEventListener("resize", checkMobile);
     }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+    
+    // Cleanup
+    return () => {
+      if (mql.removeEventListener) {
+        mql.removeEventListener("change", checkMobile);
+      } else {
+        window.removeEventListener("resize", checkMobile);
+      }
+    };
+  }, []);
 
-  return !!isMobile
+  return isMobile;
 }

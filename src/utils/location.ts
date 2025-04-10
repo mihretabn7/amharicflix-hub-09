@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const getUserDeviceInfo = () => {
@@ -44,15 +45,17 @@ export const fetchUserLocation = async () => {
     };
 
     // Write the data to the user_analytics table
+    const { error } = await supabase
+      .from('user_analytics')
+      .insert([analyticsData]);
 
+    if (error) {
+      console.error("⚠️ Error writing user analytics data:", error);
+    }
 
-    // if (error) {
-    //   console.error("⚠️ Error writing user analytics data:", error);
-    // }
-
-//     return analyticsData;
+    return analyticsData;
   } catch (error) {
-//     console.error("⚠️ Error fetching user location:", error);
-//     return null;
- }
+    console.error("⚠️ Error fetching user location:", error);
+    return null;
+  }
 };
