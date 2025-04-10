@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminStats from "@/components/AdminStats";
 import CountryAnalytics from "@/components/admin/CountryAnalytics";
 import { Printer, Download } from "lucide-react";
+import { toast } from "sonner";
 import { 
   Select,
   SelectContent,
@@ -23,7 +25,7 @@ export default function Analytics() {
 
   const handleExport = () => {
     // This is a placeholder for export functionality
-    toast.success(`Exported analytics data as ${exportFormat.toUpperCase()}`);
+    toast(`Exported analytics data as ${exportFormat.toUpperCase()}`);
   };
 
   return (
@@ -119,9 +121,3 @@ export default function Analytics() {
     </div>
   );
 }
-
-// Temporary toast implementation until proper import is added
-const toast = {
-  success: (message: string) => console.log(message),
-  error: (message: string) => console.error(message)
-};

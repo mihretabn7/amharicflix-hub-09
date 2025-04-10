@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const getUserDeviceInfo = () => {
@@ -43,16 +44,49 @@ export const fetchUserLocation = async () => {
       timestamp: new Date().toISOString(),
     };
 
-    // Write the data to the user_analytics table
+    // Instead of inserting directly to user_analytics table
+    // Use the customRpcs that are already defined or call an edge function
+    // For now, we'll log it and not insert to avoid errors
+    console.log("📊 User Analytics Data:", analyticsData);
 
-
-    // if (error) {
-    //   console.error("⚠️ Error writing user analytics data:", error);
-    // }
-
-//     return analyticsData;
+    return analyticsData;
   } catch (error) {
-//     console.error("⚠️ Error fetching user location:", error);
-//     return null;
- }
+    console.error("⚠️ Error fetching user location:", error);
+    return null;
+  }
+};
+
+// Track anonymous view with country information
+export const trackAnonymousView = async (movieId: string) => {
+  try {
+    // Get IP and location data
+    const ipResponse = await fetch("https://api64.ipify.org?format=json");
+    const { ip } = await ipResponse.json();
+    
+    const geoResponse = await fetch(`https://ipinfo.io/${ip}/json?token=88049e7d9b2938`);
+    const locationData = await geoResponse.json();
+    const browserData = getUserDeviceInfo();
+
+    // Insert anonymous view
+    const { error } = await supabase.from('anonymous_views').insert({
+      movie_id: movieId,
+      ip_address: ip,
+      country_code: locationData.country,
+      browser_info: JSON.stringify({
+        name: browserData.browser.split(' ')[0],
+        version: browserData.browser.split(' ')[1],
+        userAgent: browserData.browser
+      }),
+      device_info: JSON.stringify({
+        type: browserData.device,
+        os: navigator.platform
+      })
+    });
+
+    if (error) {
+      console.error("Error tracking anonymous view:", error);
+    }
+  } catch (error) {
+    console.error("Error in trackAnonymousView:", error);
+  }
 };
