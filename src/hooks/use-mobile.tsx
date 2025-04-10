@@ -4,6 +4,8 @@ const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return; // Ensure this runs only on the client side
+
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768); // Adjust breakpoint as needed
     };
