@@ -1,42 +1,26 @@
+import { useState, useEffect } from "react";
 
-import * as React from "react";
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
 
-const MOBILE_BREAKPOINT = 768;
-
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean>(false);
-
-  React.useEffect(() => {
-    // Prevent running on server side
-    if (typeof window === 'undefined') return;
-    
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768); // Adjust breakpoint as needed
     };
-    
+
     // Initial check
-    checkMobile();
-    
-    // Set up event listener
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    
-    // Use the appropriate event listener method
-    if (mql.addEventListener) {
-      mql.addEventListener("change", checkMobile);
-    } else {
-      // Fallback for older browsers
-      window.addEventListener("resize", checkMobile);
-    }
-    
-    // Cleanup
+    checkIfMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkIfMobile);
+
+    // Cleanup event listener on unmount
     return () => {
-      if (mql.removeEventListener) {
-        mql.removeEventListener("change", checkMobile);
-      } else {
-        window.removeEventListener("resize", checkMobile);
-      }
+      window.removeEventListener("resize", checkIfMobile);
     };
   }, []);
 
   return isMobile;
-}
+};
+
+export default useIsMobile;
