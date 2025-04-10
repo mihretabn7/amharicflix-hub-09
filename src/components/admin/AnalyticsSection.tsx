@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -28,7 +27,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-// Removed the incorrect import for CountryViewsDisplay
+import { CountryViewsDisplay } from "./CountryViewsDisplay";
 import UserActivityStats from "./UserActivityStats";
 
 const DEVICE_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#A569BD"];

@@ -8,5 +8,4 @@ export interface Notification {
   is_sent: boolean;
   type: string;
   user_id: string | null;
-  link?: string; // Added the missing link property
 }
