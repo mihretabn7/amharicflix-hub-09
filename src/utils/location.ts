@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const getUserDeviceInfo = () => {
@@ -34,7 +33,7 @@ export const fetchUserLocation = async () => {
     console.log("🌍 User's Location Data:", locationData);
 
     const analyticsData = {
-      ip,
+      ip: ip,
       country: locationData.country,
       city: locationData.city,
       region: locationData.region,
@@ -42,39 +41,18 @@ export const fetchUserLocation = async () => {
       device: browserData.device,
       browser: browserData.browser,
       timestamp: new Date().toISOString(),
-      user_status: 'anonymous'  // Default to anonymous
     };
 
     // Write the data to the user_analytics table
-    const { error } = await supabase
-      .from('user_analytics')
-      .insert([analyticsData]);
 
-    if (error) {
-      console.error("⚠️ Error writing user analytics data:", error);
-    }
 
-    return analyticsData;
+    // if (error) {
+    //   console.error("⚠️ Error writing user analytics data:", error);
+    // }
+
+//     return analyticsData;
   } catch (error) {
-    console.error("⚠️ Error fetching user location:", error);
-    return null;
-  }
-};
-
-// Function to update user status from anonymous to registered
-export const updateUserStatus = async (ip: string) => {
-  try {
-    const { error } = await supabase
-      .from('user_analytics')
-      .update({ user_status: 'registered' })
-      .eq('ip', ip)
-      .order('timestamp', { ascending: false })
-      .limit(1);
-    
-    if (error) {
-      console.error("⚠️ Error updating user status:", error);
-    }
-  } catch (error) {
-    console.error("⚠️ Error in updateUserStatus:", error);
-  }
+//     console.error("⚠️ Error fetching user location:", error);
+//     return null;
+ }
 };
