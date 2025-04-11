@@ -621,6 +621,7 @@ export type Database = {
       }
       user_interactions: {
         Row: {
+          analyticsdata: Json | null
           created_at: string | null
           id: string
           input_method: string | null
@@ -628,6 +629,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          analyticsdata?: Json | null
           created_at?: string | null
           id?: string
           input_method?: string | null
@@ -635,6 +637,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          analyticsdata?: Json | null
           created_at?: string | null
           id?: string
           input_method?: string | null

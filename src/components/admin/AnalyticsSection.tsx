@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import CountryViewsDisplay from "@/components/admin/CountryViewsDisplay";
+import { CountryViewsDisplay } from "@/components/admin/CountryViewsDisplay";
 
 const AnalyticsSection = () => {
   const [countryData, setCountryData] = useState<any[]>([]);
