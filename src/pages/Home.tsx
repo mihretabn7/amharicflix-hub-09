@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Play, Info, Star, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase, fetchUserLocation } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -35,15 +35,6 @@ const Home = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const logUserLocation = async () => {
-      const locationData = await fetchUserLocation();
-      console.log("User location on home page:", locationData);
-    };
-
-    logUserLocation();
   }, []);
 
   const { data: movies, isLoading } = useQuery({

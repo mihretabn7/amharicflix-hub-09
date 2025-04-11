@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
@@ -13,7 +13,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { fetchUserLocation } from "@/utils/location";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,15 +26,6 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
-
-  useEffect(() => {
-    const logUserLocation = async () => {
-      const locationData = await fetchUserLocation();
-      console.log("User location on login page:", locationData);
-    };
-
-    logUserLocation();
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
