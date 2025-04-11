@@ -15,11 +15,13 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
+import useIsMobile from '@/hooks/use-mobile';
 
 const Layout = () => {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const navigate = useNavigate();
+    const isMobile = useIsMobile();
 
     const { data: searchResults } = useQuery({
         queryKey: ['global-search', showSearch],
@@ -69,13 +71,19 @@ const Layout = () => {
         navigate(path);
     };
 
+    const closeMobileMenu = () => {
+        if (isMobile) {
+            setShowMobileMenu(false);
+        }
+    };
+
     return (
         <>
             <NotificationSystem />
 
             <CommandDialog open={showSearch} onOpenChange={setShowSearch}>
                 <CommandInput placeholder="Search movies and series..." />
-                <CommandList>
+                <CommandList className="max-h-[60vh] overflow-y-auto">
                     <CommandEmpty>No results found.</CommandEmpty>
                     {searchResults?.movies?.length > 0 && (
                         <CommandGroup heading="Movies">
@@ -183,28 +191,28 @@ const Layout = () => {
             )}
 
             {/* Mobile sidebar */}
-            <div className={`fixed top-14 bottom-0 z-50 w-3/4 bg-background md:hidden transform transition-transform duration-300 ease-in-out ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}>
-                <nav className="space-y-2 p-4">
+            <div className={`fixed top-14 bottom-0 z-50 w-3/4 max-w-[280px] bg-background shadow-lg md:hidden transform transition-transform duration-300 ease-in-out ${showMobileMenu ? 'translate-x-0' : '-translate-x-full'}`}>
+                <nav className="space-y-4 p-4">
                     <a
-                        className="flex items-center gap-2 text-sm font-medium hover:text-primary cursor-pointer"
+                        className="flex items-center gap-2 text-sm font-medium hover:text-primary cursor-pointer p-2 rounded-md hover:bg-secondary/10"
                         onClick={() => handleLinkClick('/')}
                     >
                         Home
                     </a>
                     <a
-                        className="flex items-center gap-2 text-sm font-medium hover:text-primary cursor-pointer"
+                        className="flex items-center gap-2 text-sm font-medium hover:text-primary cursor-pointer p-2 rounded-md hover:bg-secondary/10"
                         onClick={() => handleLinkClick('/movies')}
                     >
                         Movies
                     </a>
                     <a
-                        className="flex items-center gap-2 text-sm font-medium hover:text-primary cursor-pointer"
+                        className="flex items-center gap-2 text-sm font-medium hover:text-primary cursor-pointer p-2 rounded-md hover:bg-secondary/10"
                         onClick={() => handleLinkClick('/series')}
                     >
                         Series
                     </a>
                     <a
-                        className="flex items-center gap-2 text-sm font-medium hover:text-primary cursor-pointer"
+                        className="flex items-center gap-2 text-sm font-medium hover:text-primary cursor-pointer p-2 rounded-md hover:bg-secondary/10"
                         onClick={() => handleLinkClick('/profile')}
                     >
                         Profile
@@ -213,7 +221,7 @@ const Layout = () => {
             </div>
 
             {/* Main content */}
-            <main>
+            <main onClick={closeMobileMenu}>
                 <Outlet />
             </main>
         </>

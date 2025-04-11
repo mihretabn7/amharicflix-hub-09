@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -45,6 +46,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Add responsive padding to account for the fixed header */
+  main {
+    @apply pt-14;
+  }
 }
 
 .movie-card {
@@ -57,4 +62,20 @@
 
 .hero-gradient {
   @apply absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .slick-dots {
+    bottom: 5px !important;
+  }
+  
+  .slick-dots li button:before {
+    font-size: 8px !important;
+  }
+  
+  /* Make dropdowns full width on mobile */
+  .mobile-full-width {
+    width: 100% !important;
+  }
 }

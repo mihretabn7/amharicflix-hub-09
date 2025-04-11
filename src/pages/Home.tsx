@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Play, Info, Star, MessageSquare, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import useIsMobile from "@/hooks/use-mobile";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -35,12 +35,12 @@ const Home = () => {
   const [sortBy, setSortBy] = useState<"latest" | "rating">("latest");
   const [session, setSession] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       
-      // Check if user is logged in and update status if needed
       if (session?.user) {
         fetchUserLocation().then(locationData => {
           if (locationData && locationData.ip) {
@@ -48,7 +48,6 @@ const Home = () => {
           }
         });
       } else {
-        // If not logged in, just track as anonymous
         fetchUserLocation();
       }
     });
@@ -58,7 +57,6 @@ const Home = () => {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       
-      // Update status when auth state changes
       if (session?.user) {
         fetchUserLocation().then(locationData => {
           if (locationData && locationData.ip) {
@@ -93,7 +91,6 @@ const Home = () => {
 
       if (error) throw error;
 
-      // Process and calculate average ratings
       const processedMovies = data?.map(movie => ({
         ...movie,
         averageRating: movie.movie_ratings.length > 0
@@ -101,14 +98,12 @@ const Home = () => {
           : 0
       })) || [];
 
-      // Apply rating filter
       let filteredMovies = processedMovies;
       if (ratingFilter !== "all") {
         const minRating = parseInt(ratingFilter);
         filteredMovies = filteredMovies.filter(m => m.averageRating >= minRating);
       }
 
-      // Apply sorting
       if (sortBy === "rating") {
         filteredMovies.sort((a, b) => b.averageRating - a.averageRating);
       } else {
@@ -151,7 +146,7 @@ const Home = () => {
     className: "center",
     centerMode: true,
     centerPadding: "0px",
-    arrows: false,
+    arrows: !isMobile,
     variableWidth: false,
     fade: true,
     responsive: [
@@ -184,23 +179,23 @@ const Home = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
-        <div className="container mx-auto px-4">
-          <div className="h-[70vh] w-full relative overflow-hidden rounded-xl bg-card animate-pulse">
+      <div className="min-h-screen pt-14">
+        <div className="container mx-auto px-4 py-4">
+          <div className="h-[50vh] md:h-[70vh] w-full relative overflow-hidden rounded-xl bg-card animate-pulse">
             <div className="absolute inset-0 flex items-center justify-center">
               <Skeleton className="h-8 w-48" />
             </div>
           </div>
         </div>
 
-        <section className="py-12 bg-gradient-to-b from-background/80 to-background">
+        <section className="py-8 md:py-12 bg-gradient-to-b from-background/80 to-background">
           <Card className="container mx-auto px-4">
             <CardContent className="pt-6">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
+                <h2 className="text-xl md:text-3xl font-display font-bold">Featured Movies</h2>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
                 {[...Array(12)].map((_, i) => (
                   <Skeleton key={i} className="aspect-[2/3] rounded-md" />
                 ))}
@@ -215,18 +210,18 @@ const Home = () => {
   const featuredMovies = filteredMovies.slice(0, 5);
 
   return (
-    <div className="min-h-screen">
-      <section className="pt-12">
+    <div className="min-h-screen pt-14">
+      <section className="py-4 md:py-12">
         <div className="container mx-auto px-4">
           <div className="mb-6">
             <div className="flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative flex-1 max-w-md">
+              <div className="relative flex-1 w-full max-w-full md:max-w-md">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search movies..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 w-full"
                 />
               </div>
               <DropdownMenu>
@@ -235,12 +230,12 @@ const Home = () => {
                     <Filter className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[200px]">
-                  <div className="p-2 space-y-2">
+                <DropdownMenuContent align="end" className="w-[230px] md:w-[250px]">
+                  <div className="p-2 space-y-3">
                     <div>
                       <label className="text-sm font-medium">Genre</label>
                       <Select value={filterGenre} onValueChange={setFilterGenre}>
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1">
                           <SelectValue placeholder="All Genres" />
                         </SelectTrigger>
                         <SelectContent>
@@ -256,7 +251,7 @@ const Home = () => {
                     <div>
                       <label className="text-sm font-medium">Language</label>
                       <Select value={filterLanguage} onValueChange={setFilterLanguage}>
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1">
                           <SelectValue placeholder="All Languages" />
                         </SelectTrigger>
                         <SelectContent>
@@ -272,7 +267,7 @@ const Home = () => {
                     <div>
                       <label className="text-sm font-medium">Rating</label>
                       <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1">
                           <SelectValue placeholder="All Ratings" />
                         </SelectTrigger>
                         <SelectContent>
@@ -286,7 +281,7 @@ const Home = () => {
                     <div>
                       <label className="text-sm font-medium">Sort By</label>
                       <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Sort By" />
                         </SelectTrigger>
                         <SelectContent>
@@ -304,7 +299,7 @@ const Home = () => {
           {filteredMovies.length > 0 ? (
             <Slider {...settings}>
               {featuredMovies.map((movie) => (
-                <div key={movie.id} className="relative h-[80vh] w-full lg:w-1/2 mx-auto rounded-xl overflow-hidden">
+                <div key={movie.id} className="relative h-[50vh] md:h-[80vh] w-full lg:w-1/2 mx-auto rounded-xl overflow-hidden">
                   <div
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
                     style={{
@@ -317,24 +312,24 @@ const Home = () => {
 
                   <div className="relative h-full flex items-center">
                     <div className="container mx-auto px-4 animate-fade-in">
-                      <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+                      <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-4">
                         {movie.title}
                       </h1>
-                      <div className="flex space-x-4">
+                      <div className="flex flex-wrap space-x-2 space-y-2 md:space-y-0 md:space-x-4">
                         <Button
-                          size="lg"
+                          size={isMobile ? "default" : "lg"}
                           className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
                           onClick={() => navigate(`/movie/${movie.id}`)}
                         >
-                          <Play className="mr-2 h-5 w-5" /> Play Now
+                          <Play className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Play
                         </Button>
                         <Button
-                          size="lg"
+                          size={isMobile ? "default" : "lg"}
                           variant="outline"
                           className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
                           onClick={() => navigate(`/movie/${movie.id}`)}
                         >
-                          <Info className="mr-2 h-5 w-5" /> More Info
+                          <Info className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Info
                         </Button>
                       </div>
                     </div>
@@ -350,15 +345,15 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="py-12 bg-gradient-to-b from-background/80 to-background mt-[-120px] relative z-10">
+      <section className="py-8 md:py-12 bg-gradient-to-b from-background/80 to-background mt-[-60px] md:mt-[-120px] relative z-10">
         <Card className="container mx-auto px-4">
           <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
               <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
-              <div className="flex items-center space-x-2">
-                <label className="text-sm text-muted-foreground mr-2">Filter by rating:</label>
-                <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="w-[140px]">
+              <div className="flex items-center w-full md:w-auto">
+                <label className="text-sm text-muted-foreground mr-2 whitespace-nowrap">Filter:</label>
+                <Select value={ratingFilter} onValueChange={setRatingFilter} className="w-full md:w-[140px]">
+                  <SelectTrigger>
                     <SelectValue placeholder="All Ratings" />
                   </SelectTrigger>
                   <SelectContent>
@@ -376,7 +371,7 @@ const Home = () => {
                 <p className="text-xl text-muted-foreground">No movies found matching your search criteria.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
                 {filteredMovies.map((movie) => (
                   <Link
                     to={`/movie/${movie.id}`}
@@ -390,16 +385,16 @@ const Home = () => {
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
                       <div className="movie-card-overlay">
-                        <div className="absolute bottom-0 p-4 w-full">
-                          <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
+                        <div className="absolute bottom-0 p-2 md:p-4 w-full">
+                          <h3 className="text-xs md:text-sm font-medium mb-1 md:mb-2 line-clamp-1 md:line-clamp-2">{movie.title}</h3>
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <Star className="h-4 w-4 text-netflix-gold" />
-                              <span className="text-sm">
+                            <div className="flex items-center space-x-1 md:space-x-2">
+                              <Star className="h-3 w-3 md:h-4 md:w-4 text-netflix-gold" />
+                              <span className="text-xs md:text-sm">
                                 {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
                               </span>
                             </div>
-                            <MessageSquare className="h-4 w-4 text-netflix-gray" />
+                            <MessageSquare className="h-3 w-3 md:h-4 md:w-4 text-netflix-gray" />
                           </div>
                         </div>
                       </div>

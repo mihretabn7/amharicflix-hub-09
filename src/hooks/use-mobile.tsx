@@ -1,10 +1,10 @@
 
-import * as React from "react";
+import { useState, useEffect } from "react";
 
 export const useIsMobile = (): boolean => {
-  const [isMobile, setIsMobile] = React.useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof window === "undefined") return; // Ensure this runs only on the client side
 
     const checkIfMobile = () => {
