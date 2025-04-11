@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
+import { fetchUserLocation, updateUserStatus } from "@/utils/location";
 
 const Navbar = () => {
   const [session, setSession] = useState<any>(null);
@@ -37,6 +38,13 @@ const Navbar = () => {
       if (session?.user) {
         checkIsAdmin(session.user.id).then(setIsAdmin);
         fetchNotifications(session.user.id);
+        
+        // Update user status to registered if they're logged in
+        fetchUserLocation().then(locationData => {
+          if (locationData && locationData.ip) {
+            updateUserStatus(locationData.ip);
+          }
+        });
       }
     });
 
@@ -45,6 +53,13 @@ const Navbar = () => {
       if (session?.user) {
         checkIsAdmin(session.user.id).then(setIsAdmin);
         fetchNotifications(session.user.id);
+        
+        // Update user status to registered on auth state change
+        fetchUserLocation().then(locationData => {
+          if (locationData && locationData.ip) {
+            updateUserStatus(locationData.ip);
+          }
+        });
       } else {
         setIsAdmin(false);
       }

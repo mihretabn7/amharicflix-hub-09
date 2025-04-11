@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Play, Info, Star, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase, fetchUserLocation } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { fetchUserLocation, updateUserStatus } from "@/utils/location";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -26,24 +27,36 @@ const Home = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      
+      // Check if user is logged in and update status if needed
+      if (session?.user) {
+        fetchUserLocation().then(locationData => {
+          if (locationData && locationData.ip) {
+            updateUserStatus(locationData.ip);
+          }
+        });
+      } else {
+        // If not logged in, just track as anonymous
+        fetchUserLocation();
+      }
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      
+      // Update status when auth state changes
+      if (session?.user) {
+        fetchUserLocation().then(locationData => {
+          if (locationData && locationData.ip) {
+            updateUserStatus(locationData.ip);
+          }
+        });
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const logUserLocation = async () => {
-      const locationData = await fetchUserLocation();
-      console.log("User location on home page:", locationData);
-    };
-
-    logUserLocation();
   }, []);
 
   const { data: movies, isLoading } = useQuery({
