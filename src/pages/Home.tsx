@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from "react";
-import { Play, Info, Star, MessageSquare, Search } from "lucide-react";
+import { Play, Info, Star, MessageSquare, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,10 +20,19 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { fetchUserLocation, updateUserStatus } from "@/utils/location";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Home = () => {
   const navigate = useNavigate();
   const [ratingFilter, setRatingFilter] = useState<string>("all");
+  const [filterGenre, setFilterGenre] = useState<string>("all");
+  const [filterLanguage, setFilterLanguage] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"latest" | "rating">("latest");
   const [session, setSession] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -62,7 +72,7 @@ const Home = () => {
   }, []);
 
   const { data: movies, isLoading } = useQuery({
-    queryKey: ['movies', ratingFilter],
+    queryKey: ['movies', ratingFilter, filterGenre, filterLanguage, sortBy],
     queryFn: async () => {
       let query = supabase
         .from('movies')
@@ -70,25 +80,63 @@ const Home = () => {
           *,
           movie_ratings(rating)
         `)
-        .eq('is_hidden', false)
-        .order('created_at', { ascending: false });
+        .eq('is_hidden', false);
 
-      if (ratingFilter !== 'all') {
-        const minRating = parseInt(ratingFilter);
-        query = query.gte('movie_ratings.rating', minRating);
+      if (filterGenre !== "all") {
+        query = query.eq('genre', filterGenre);
+      }
+      if (filterLanguage !== "all") {
+        query = query.eq('language', filterLanguage);
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      return data?.map(movie => ({
+      // Process and calculate average ratings
+      const processedMovies = data?.map(movie => ({
         ...movie,
         averageRating: movie.movie_ratings.length > 0
           ? movie.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / movie.movie_ratings.length
           : 0
-      }));
+      })) || [];
+
+      // Apply rating filter
+      let filteredMovies = processedMovies;
+      if (ratingFilter !== "all") {
+        const minRating = parseInt(ratingFilter);
+        filteredMovies = filteredMovies.filter(m => m.averageRating >= minRating);
+      }
+
+      // Apply sorting
+      if (sortBy === "rating") {
+        filteredMovies.sort((a, b) => b.averageRating - a.averageRating);
+      } else {
+        filteredMovies.sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      }
+
+      return filteredMovies;
     },
+  });
+
+  const { data: filters } = useQuery({
+    queryKey: ['movie-filters'],
+    queryFn: async () => {
+      const [genresResponse, languagesResponse] = await Promise.all([
+        supabase.from('movies').select('genre').not('genre', 'is', null),
+        supabase.from('movies').select('language').not('language', 'is', null)
+      ]);
+
+      const uniqueGenres = [...new Set(genresResponse.data?.map(m => m.genre))];
+      const uniqueLanguages = [...new Set(languagesResponse.data?.map(m => m.language))];
+
+      return {
+        genres: uniqueGenres,
+        languages: uniqueLanguages
+      };
+    }
   });
 
   const settings = {
@@ -171,14 +219,85 @@ const Home = () => {
       <section className="pt-12">
         <div className="container mx-auto px-4">
           <div className="mb-6">
-            <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search movies..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search movies..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[200px]">
+                  <div className="p-2 space-y-2">
+                    <div>
+                      <label className="text-sm font-medium">Genre</label>
+                      <Select value={filterGenre} onValueChange={setFilterGenre}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Genres" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Genres</SelectItem>
+                          {filters?.genres.map((genre) => (
+                            <SelectItem key={genre} value={genre}>
+                              {genre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Language</label>
+                      <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Languages" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Languages</SelectItem>
+                          {filters?.languages.map((language) => (
+                            <SelectItem key={language} value={language}>
+                              {language}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Rating</label>
+                      <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Ratings" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Ratings</SelectItem>
+                          <SelectItem value="4">4+ Stars</SelectItem>
+                          <SelectItem value="3">3+ Stars</SelectItem>
+                          <SelectItem value="2">2+ Stars</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Sort By</label>
+                      <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sort By" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="latest">Latest</SelectItem>
+                          <SelectItem value="rating">Rating</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           
