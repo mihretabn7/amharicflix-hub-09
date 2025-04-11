@@ -1,3 +1,4 @@
+
 import { Movie } from "@/types/movie";
 import MovieRating from "@/components/MovieRating";
 import MovieReportModal from "@/components/MovieReportModal";
@@ -76,7 +77,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-grow bg-black">
+      <div className={`flex-grow bg-black ${isMobile ? 'netflix-player-container' : ''}`}>
         <iframe
           width="100%"
           height="100%"
@@ -88,7 +89,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
       </div>
       
       {userId ? (
-        <div className={`bg-card p-4 border-t border-border space-y-6 ${isMobile ? 'netflix-controls' : ''}`}>
+        <div className={`bg-card p-4 border-t border-border space-y-4 ${isMobile ? 'netflix-controls' : ''}`}>
           <MovieRating
             movieId={movie.id}
             userId={userId}
@@ -104,7 +105,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
       ) : (
         <div className={`bg-card p-4 border-t border-border ${isMobile ? 'netflix-controls' : ''}`}>
           <div className="flex flex-wrap gap-3 justify-between items-center">
-            <p className="text-muted-foreground">Sign in to rate and review this movie</p>
+            <p className="text-muted-foreground text-sm">Sign in to rate and review this movie</p>
             <div className="flex gap-2">
               <Button 
                 variant="outline" 

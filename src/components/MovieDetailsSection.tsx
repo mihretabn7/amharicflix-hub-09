@@ -1,7 +1,9 @@
+
 import { Movie } from "@/types/movie";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import MovieReviews from "./MovieReviews";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MovieDetailsSectionProps {
   movie: Movie;
@@ -13,15 +15,17 @@ const MovieDetailsSection = ({ movie, userId }: MovieDetailsSectionProps) => {
   const description = movie.description || 'No description available.';
   const shortDescription = description.slice(0, 150);
   const needsReadMore = description.length > 150;
+  const isMobile = useIsMobile();
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Movie Details</h2>
+    <div className={isMobile ? "netflix-details pb-16" : ""}>
+      <h2 className={`${isMobile ? "text-xl" : "text-2xl"} font-bold mb-4`}>Movie Details</h2>
       <div className="space-y-4">
         <div>
           <h3 className="font-medium">Description</h3>
           <p className="text-gray-300">
             {isExpanded ? description : shortDescription}
+            {needsReadMore && !isExpanded && '...'}
             {needsReadMore && (
               <Button
                 variant="link"
