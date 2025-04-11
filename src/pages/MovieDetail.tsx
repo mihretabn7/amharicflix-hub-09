@@ -86,17 +86,6 @@ const MovieDetail = () => {
             isMobile: window.innerWidth < 768
           };
 
-          let ip = null;
-          try {
-            const response = await supabase.functions.invoke('get-my-ip');
-            if (response.error) {
-              throw new Error(response.error.message);
-            }
-            ip = response.data.ip;
-          } catch (ipError) {
-            console.error('Failed to get IP:', ipError);
-          }
-
           if (session?.user?.id) {
             const { data: existingRecord, error: fetchError } = await supabase
               .from('user_movie_history')
@@ -135,19 +124,6 @@ const MovieDetail = () => {
               console.error('Error updating watch history:', result.error);
             } else {
               console.log('Watch history updated successfully:', result.data);
-            }
-          } else if (ip) {
-            try {
-              await supabase.rpc('track_movie_view_with_country', {
-                p_movie_id: id,
-                p_user_id: null,
-                p_user_ip: ip,
-                p_browser_info: browserInfo,
-                p_device_info: JSON.stringify(deviceInfo)
-              });
-              console.log('Anonymous view tracked successfully');
-            } catch (error) {
-              console.error('Error tracking anonymous view:', error);
             }
           }
         } catch (error) {
@@ -258,29 +234,10 @@ const MovieDetail = () => {
         isMobile: window.innerWidth < 768
       };
       
-      let ip = null;
       try {
-        const response = await supabase.functions.invoke('get-my-ip');
-        if (response.error) {
-          throw new Error(response.error.message);
-        }
-        ip = response.data.ip;
-      } catch (ipError) {
-        console.error('Failed to get IP:', ipError);
-      }
-      
-      try {
-        await supabase.rpc('track_movie_share', { 
-          p_movie_id: id,
-          p_user_id: session?.user?.id || null,
-          p_share_method: platform || 'dialog',
-          p_user_ip: ip,
-          p_browser_info: browserInfo,
-          p_device_info: JSON.stringify(deviceInfo)
-        });
+        await supabase.rpc('increment_movie_share_count', { movie_id: id });
       } catch (error) {
         console.error('Error tracking share:', error);
-        await supabase.rpc('increment_movie_share_count', { movie_id: id });
       }
       
       const shareUrl = window.location.href;

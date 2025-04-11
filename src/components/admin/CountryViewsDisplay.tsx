@@ -1,168 +1,109 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { customRpcs } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/components/ui/use-toast";
-
-const countryCodeToFlag = (countryCode: string) => {
-  // Convert country code to flag emoji
-  if (!countryCode || countryCode === "Unknown") return "🏳️";
-  
-  // Country codes are two-letter ISO codes
-  // Convert them to regional indicator symbols which create flag emojis
-  const codePoints = countryCode
-    .toUpperCase()
-    .split('')
-    .map(char => 127397 + char.charCodeAt(0));
-  
-  return String.fromCodePoint(...codePoints);
-};
-
-const countryCodeToName = (countryCode: string) => {
-  // Map country codes to their full names
-  const countryNames: Record<string, string> = {
-    US: "United States",
-    CA: "Canada",
-    GB: "United Kingdom",
-    AU: "Australia",
-    DE: "Germany",
-    FR: "France",
-    JP: "Japan",
-    BR: "Brazil",
-    IN: "India",
-    CN: "China",
-    RU: "Russia",
-    ZA: "South Africa",
-    NG: "Nigeria",
-    KE: "Kenya",
-    ET: "Ethiopia",
-    EG: "Egypt",
-    // Add more countries as needed
-  };
-  
-  return countryNames[countryCode] || countryCode || "Unknown";
-};
+import {
+  PieChart,
+  Pie,
+  ResponsiveContainer,
+  Cell,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 interface CountryViewsDisplayProps {
-  countryViewsData?: any[];
-  dateRange?: { from?: Date; to?: Date };
+  data: any[];
+  loading: boolean;
 }
 
-export function CountryViewsDisplay({ countryViewsData, dateRange }: CountryViewsDisplayProps = {}) {
-  const { toast } = useToast();
-  const startDate = dateRange?.from ? dateRange.from.toISOString() : undefined;
-  const endDate = dateRange?.to ? dateRange.to.toISOString() : undefined;
+const COLORS = [
+  "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF", 
+  "#FF9F40", "#8CD47E", "#EA526F", "#23B5D3", "#279AF1"
+];
 
-  const { data: countryData, isLoading, isError } = useQuery({
-    queryKey: ["country-views", startDate, endDate],
-    queryFn: async () => {
-      try {
-        const { data, error } = await customRpcs.getViewsByCountry(startDate, endDate);
-        
-        if (error) {
-          console.error("Error fetching country views:", error);
-          toast({
-            title: "Error fetching country data",
-            description: error.message,
-            variant: "destructive"
-          });
-          return [];
-        }
-        
-        console.log("Country views data:", data);
-        return data || [];
-      } catch (err) {
-        console.error("Error in country views query:", err);
-        return [];
-      }
-    },
-    enabled: !countryViewsData // Only run this query if countryViewsData is not provided
-  });
+const CountryViewsDisplay = ({ data, loading }: CountryViewsDisplayProps) => {
+  if (loading) {
+    return (
+      <div className="flex flex-col space-y-4">
+        <Skeleton className="h-[300px] w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
 
-  // Use provided data or fetched data
-  const dataToUse = countryViewsData || countryData || [];
-
-  // Sort by total views and take top 10
-  const sortedCountries = [...dataToUse]
-    .sort((a, b) => b.total_views - a.total_views)
-    .slice(0, 10);
-    
-  // Calculate max views for progress bar scaling
-  const maxViews = sortedCountries.length > 0 ? sortedCountries[0].total_views : 0;
-
-  if (isError) {
+  if (!data || data.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Top Viewing Countries</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            Error loading country data. Please try again.
-          </div>
+        <CardContent className="pt-6 pb-6 flex justify-center items-center h-[300px]">
+          <p className="text-muted-foreground">No data available</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Top Viewing Countries</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading && !countryViewsData ? (
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-5 w-28" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-                <Skeleton className="h-2 w-full" />
-                <div className="flex justify-between">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-3 w-20" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : sortedCountries.length > 0 ? (
-          <div className="space-y-4">
-            {sortedCountries.map((country) => (
-              <div key={country.country_code} className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg" aria-hidden="true">
-                      {countryCodeToFlag(country.country_code)}
-                    </span>
-                    <span className="font-medium">
-                      {countryCodeToName(country.country_code)}
-                    </span>
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {country.total_views.toLocaleString()} views
-                  </span>
-                </div>
-                <Progress 
-                  value={(country.total_views / maxViews) * 100} 
-                  className="h-2"
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Chart */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="view_count"
+                  nameKey="country"
+                  label={({ country, percent }) => 
+                    `${country || 'Unknown'}: ${(percent * 100).toFixed(0)}%`
+                  }
+                >
+                  {data.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={COLORS[index % COLORS.length]} 
+                    />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => [`${value} views`, 'Views']}
                 />
-                <div className="flex justify-between text-xs text-muted-foreground pt-1">
-                  <span>Registered: {country.registered_views.toLocaleString()}</span>
-                  <span>Anonymous: {country.anonymous_views.toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            No country data available
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card>
+        <CardContent className="pt-6">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-2 px-4">Country</th>
+                <th className="text-left py-2 px-4">Views</th>
+                <th className="text-left py-2 px-4">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item, index) => (
+                <tr key={index} className="border-b hover:bg-muted/50">
+                  <td className="py-2 px-4">{item.country || 'Unknown'}</td>
+                  <td className="py-2 px-4">{item.view_count}</td>
+                  <td className="py-2 px-4">{item.percentage.toFixed(2)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
   );
-}
+};
+
+export { CountryViewsDisplay };

@@ -517,6 +517,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_analytics: {
+        Row: {
+          browser: string | null
+          city: string | null
+          coordinates: string | null
+          country: string | null
+          device: string | null
+          id: number
+          ip: string
+          region: string | null
+          timestamp: string
+          user_status: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          coordinates?: string | null
+          country?: string | null
+          device?: string | null
+          id?: number
+          ip: string
+          region?: string | null
+          timestamp?: string
+          user_status?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          coordinates?: string | null
+          country?: string | null
+          device?: string | null
+          id?: number
+          ip?: string
+          region?: string | null
+          timestamp?: string
+          user_status?: string | null
+        }
+        Relationships: []
+      }
       user_donations: {
         Row: {
           amount: number
@@ -582,6 +621,7 @@ export type Database = {
       }
       user_interactions: {
         Row: {
+          analyticsdata: Json | null
           created_at: string | null
           id: string
           input_method: string | null
@@ -589,6 +629,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          analyticsdata?: Json | null
           created_at?: string | null
           id?: string
           input_method?: string | null
@@ -596,6 +637,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          analyticsdata?: Json | null
           created_at?: string | null
           id?: string
           input_method?: string | null
@@ -679,9 +721,7 @@ export type Database = {
     }
     Functions: {
       bytea_to_text: {
-        Args: {
-          data: string
-        }
+        Args: { data: string }
         Returns: string
       }
       get_all_donations_with_users: {
@@ -692,11 +732,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json[]
       }
+      get_anonymous_views_by_period: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          period: string
+          views: number
+        }[]
+      }
       get_browser_stats: {
-        Args: {
-          start_date: string
-          end_date: string
-        }
+        Args: { start_date: string; end_date: string }
         Returns: {
           browser_name: string
           browser_version: string
@@ -705,16 +749,18 @@ export type Database = {
         }[]
       }
       get_country: {
-        Args: {
-          ip: string
-        }
+        Args: { ip: string }
         Returns: string
       }
+      get_country_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          country: string
+          country_count: number
+        }[]
+      }
       get_detailed_device_stats: {
-        Args: {
-          start_date: string
-          end_date: string
-        }
+        Args: { start_date: string; end_date: string }
         Returns: {
           os_name: string
           os_version: string
@@ -724,10 +770,7 @@ export type Database = {
         }[]
       }
       get_error_stats: {
-        Args: {
-          start_date: string
-          end_date: string
-        }
+        Args: { start_date: string; end_date: string }
         Returns: {
           error_type: string
           error_count: number
@@ -735,10 +778,7 @@ export type Database = {
         }[]
       }
       get_input_method_stats: {
-        Args: {
-          start_date: string
-          end_date: string
-        }
+        Args: { start_date: string; end_date: string }
         Returns: {
           input_type: string
           total_uses: number
@@ -746,11 +786,7 @@ export type Database = {
         }[]
       }
       get_movie_analytics: {
-        Args: {
-          start_date: string
-          end_date: string
-          group_by: string
-        }
+        Args: { start_date: string; end_date: string; group_by: string }
         Returns: {
           time_period: string
           total_views: number
@@ -762,10 +798,7 @@ export type Database = {
         }[]
       }
       get_network_stats: {
-        Args: {
-          start_date: string
-          end_date: string
-        }
+        Args: { start_date: string; end_date: string }
         Returns: {
           network_type: string
           avg_bandwidth: number
@@ -780,10 +813,7 @@ export type Database = {
         }[]
       }
       get_user_activity_stats: {
-        Args: {
-          start_date: string
-          end_date: string
-        }
+        Args: { start_date: string; end_date: string }
         Returns: {
           date_period: string
           views_count: number
@@ -792,74 +822,48 @@ export type Database = {
           unique_users: number
         }[]
       }
-      get_views_by_country:
-        | {
-            Args: Record<PropertyKey, never>
-            Returns: {
-              country_code: string
-              total_views: number
-              registered_views: number
-              anonymous_views: number
-            }[]
-          }
-        | {
-            Args: {
-              start_date?: string
-              end_date?: string
-            }
-            Returns: {
-              country_code: string
-              total_views: number
-              registered_views: number
-              anonymous_views: number
-            }[]
-          }
+      get_views_by_country: {
+        Args:
+          | Record<PropertyKey, never>
+          | { start_date?: string; end_date?: string }
+        Returns: {
+          country_code: string
+          total_views: number
+          registered_views: number
+          anonymous_views: number
+        }[]
+      }
+      getuseractivitystats: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          date_period: string
+          views_count: number
+          ratings_count: number
+          reports_count: number
+          unique_users: number
+          user_ip: string
+        }[]
+      }
       http: {
-        Args: {
-          request: Database["public"]["CompositeTypes"]["http_request"]
-        }
+        Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
-      http_delete:
-        | {
-            Args: {
-              uri: string
-            }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-          }
-        | {
-            Args: {
-              uri: string
-              content: string
-              content_type: string
-            }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-          }
-      http_get:
-        | {
-            Args: {
-              uri: string
-            }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-          }
-        | {
-            Args: {
-              uri: string
-              data: Json
-            }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-          }
+      http_delete: {
+        Args:
+          | { uri: string }
+          | { uri: string; content: string; content_type: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_get: {
+        Args: { uri: string } | { uri: string; data: Json }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
       http_head: {
-        Args: {
-          uri: string
-        }
+        Args: { uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_header: {
-        Args: {
-          field: string
-          value: string
-        }
+        Args: { field: string; value: string }
         Returns: Database["public"]["CompositeTypes"]["http_header"]
       }
       http_list_curlopt: {
@@ -870,35 +874,17 @@ export type Database = {
         }[]
       }
       http_patch: {
-        Args: {
-          uri: string
-          content: string
-          content_type: string
-        }
+        Args: { uri: string; content: string; content_type: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
-      http_post:
-        | {
-            Args: {
-              uri: string
-              content: string
-              content_type: string
-            }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-          }
-        | {
-            Args: {
-              uri: string
-              data: Json
-            }
-            Returns: Database["public"]["CompositeTypes"]["http_response"]
-          }
+      http_post: {
+        Args:
+          | { uri: string; content: string; content_type: string }
+          | { uri: string; data: Json }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
       http_put: {
-        Args: {
-          uri: string
-          content: string
-          content_type: string
-        }
+        Args: { uri: string; content: string; content_type: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_reset_curlopt: {
@@ -906,42 +892,27 @@ export type Database = {
         Returns: boolean
       }
       http_set_curlopt: {
-        Args: {
-          curlopt: string
-          value: string
-        }
+        Args: { curlopt: string; value: string }
         Returns: boolean
       }
       increment_movie_share_count: {
-        Args: {
-          movie_id: string
-        }
+        Args: { movie_id: string }
         Returns: undefined
       }
       increment_movie_watch_count: {
-        Args: {
-          movie_id: string
-        }
+        Args: { movie_id: string }
         Returns: undefined
       }
       increment_verified_report_count: {
-        Args: {
-          movie_id: string
-        }
+        Args: { movie_id: string }
         Returns: undefined
       }
       submit_report: {
-        Args: {
-          p_movie_id: string
-          p_reporter_id: string
-          p_reason: string
-        }
+        Args: { p_movie_id: string; p_reporter_id: string; p_reason: string }
         Returns: undefined
       }
       text_to_bytea: {
-        Args: {
-          data: string
-        }
+        Args: { data: string }
         Returns: string
       }
       track_movie_share: {
@@ -956,33 +927,20 @@ export type Database = {
         Returns: undefined
       }
       track_movie_view: {
-        Args: {
-          movie_id: string
-          user_ip: string
-        }
+        Args: { movie_id: string; user_ip: string }
         Returns: undefined
       }
-      track_movie_view_with_country:
-        | {
-            Args: {
-              p_movie_id: string
-              p_user_id?: string
-              p_user_ip?: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
+      track_movie_view_with_country: {
+        Args:
+          | {
               p_movie_id: string
               p_user_id?: string
               p_user_ip?: string
               p_browser_info?: string
               p_device_info?: string
             }
-            Returns: undefined
-          }
-        | {
-            Args: {
+          | { p_movie_id: string; p_user_id?: string; p_user_ip?: string }
+          | {
               p_movie_id: string
               p_user_id?: string
               p_user_ip?: string
@@ -990,8 +948,8 @@ export type Database = {
               p_device_info?: string
               p_country_code?: string
             }
-            Returns: undefined
-          }
+        Returns: undefined
+      }
       update_donation_status: {
         Args: {
           donation_id_param: string
@@ -1009,31 +967,13 @@ export type Database = {
         Returns: undefined
       }
       update_report_status: {
-        Args: {
-          report_id: string
-          new_status: string
-        }
+        Args: { report_id: string; new_status: string }
         Returns: undefined
       }
-      urlencode:
-        | {
-            Args: {
-              data: Json
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              string: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              string: string
-            }
-            Returns: string
-          }
+      urlencode: {
+        Args: { data: Json } | { string: string } | { string: string }
+        Returns: string
+      }
     }
     Enums: {
       movie_reports_status: "pending" | "resolved" | "dismissed" | "new_value"
@@ -1065,27 +1005,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1093,20 +1035,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1114,20 +1058,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1135,21 +1081,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -1158,6 +1106,20 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      movie_reports_status: ["pending", "resolved", "dismissed", "new_value"],
+      notification_type: [
+        "report",
+        "new_movie",
+        "system_alert",
+        "security_warning",
+      ],
+    },
+  },
+} as const
