@@ -176,25 +176,30 @@ export const fetchUserLocation = async () => {
     const browserData = getUserDeviceInfo();
     console.log("🌍 User's Location Data:", locationData);
 
-    const analyticsData = {
-      ip: ip,
-      country: locationData.country,
-      city: locationData.city,
-      region: locationData.region,
-      coordinates: locationData.loc, // "lat,long"
-      device: browserData.device,
-      browser: browserData.browser,
-      timestamp: new Date().toISOString(),
+    // Create a properly formatted record that matches the user_interactions table schema
+    const interactionData = {
+      interaction_type: 'page_visit',
+      input_method: browserData.device,
+      user_id: null
     };
 
-    // Write the data to the user_analytics table
-    const { error } = await supabase.from('user_interactions').insert({analyticsData});
+    // Write the data to the user_interactions table
+    const { error } = await supabase.from('user_interactions').insert(interactionData);
 
     if (error) {
       console.error("⚠️ Error writing user analytics data:", error);
     }
 
-    return analyticsData;
+    return {
+      ip,
+      country: locationData.country,
+      city: locationData.city,
+      region: locationData.region,
+      coordinates: locationData.loc,
+      device: browserData.device,
+      browser: browserData.browser,
+      timestamp: new Date().toISOString(),
+    };
   } catch (error) {
     console.error("⚠️ Error fetching user location:", error);
     return null;
