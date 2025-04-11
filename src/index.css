@@ -121,6 +121,38 @@
     max-height: 85vh !important;
     overflow-y: auto !important;
   }
+  
+  /* Mobile profile page improvements */
+  .netflix-profile-header {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+  
+  .netflix-profile-tabs {
+    width: 100% !important;
+  }
+  
+  /* Hide scrollbars but allow scrolling */
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Profile page stats more compact on mobile */
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Compact tabs in mobile view */
+  .profile-tabs {
+    padding: 0.25rem !important;
+  }
 }
 
 /* Netflix-style Mobile UI */

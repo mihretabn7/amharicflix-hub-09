@@ -18,7 +18,7 @@ const MovieDetailsSection = ({ movie, userId }: MovieDetailsSectionProps) => {
   const isMobile = useIsMobile();
 
   return (
-    <div className={isMobile ? "netflix-details pb-16" : ""}>
+    <div className={isMobile ? "netflix-details pb-16 px-4" : ""}>
       <h2 className={`${isMobile ? "text-xl" : "text-2xl"} font-bold mb-4`}>Movie Details</h2>
       <div className="space-y-4">
         <div>
@@ -37,13 +37,15 @@ const MovieDetailsSection = ({ movie, userId }: MovieDetailsSectionProps) => {
             )}
           </p>
         </div>
-        <div>
-          <h3 className="font-medium">Language</h3>
-          <p className="text-gray-300">{movie.language}</p>
-        </div>
-        <div>
-          <h3 className="font-medium">Added on</h3>
-          <p className="text-gray-300">{new Date(movie.created_at).toLocaleDateString()}</p>
+        <div className={isMobile ? "grid grid-cols-2 gap-4" : ""}>
+          <div>
+            <h3 className="font-medium">Language</h3>
+            <p className="text-gray-300">{movie.language}</p>
+          </div>
+          <div>
+            <h3 className="font-medium">Added on</h3>
+            <p className="text-gray-300">{new Date(movie.created_at).toLocaleDateString()}</p>
+          </div>
         </div>
         <MovieReviews movieId={movie.id} currentUserId={userId} />
       </div>

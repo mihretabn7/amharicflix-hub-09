@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,10 +11,12 @@ import { MovieRatings } from "@/components/profile/MovieRatings";
 import { MovieReports } from "@/components/profile/MovieReports";
 import { FeedbackDialog } from "@/components/profile/FeedbackDialog";
 import { SupportDialog } from "@/components/profile/SupportDialog";
+import useIsMobile from "@/hooks/use-mobile";
 
 const Profile = () => {
   const navigate = useNavigate();
   const [session, setSession] = useState<any>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -133,10 +134,8 @@ const Profile = () => {
         ? ratingsResponse.data.reduce((acc, curr) => acc + curr.rating, 0) / ratingsResponse.data.length
         : 0;
 
-      // Calculate total watch time in seconds
       const totalWatchTime = watchHistoryResponse.data.reduce((acc, curr) => acc + (curr.watch_duration || 0), 0);
       
-      // Get unique movies by id
       const uniqueMovieIds = new Set();
       watchHistoryResponse.data.forEach(item => {
         if (item.movie?.id) {
@@ -144,13 +143,11 @@ const Profile = () => {
         }
       });
       
-      // Calculate completion rate based on watch_duration vs movie duration
-      // Convert movie duration to seconds (duration_minutes * 60) for comparison
       let totalCompletionPercentage = 0;
       let validMovieCount = 0;
       
       watchHistoryResponse.data.forEach(item => {
-        const movieDuration = (item.movie?.duration_minutes || 0) * 60; // Convert to seconds
+        const movieDuration = (item.movie?.duration_minutes || 0) * 60;
         if (movieDuration > 0) {
           const watchPercentage = Math.min(((item.watch_duration || 0) / movieDuration) * 100, 100);
           totalCompletionPercentage += watchPercentage;
@@ -166,8 +163,8 @@ const Profile = () => {
         totalRatings: ratingsResponse.data.length,
         averageRating,
         totalReports: reportsResponse.data.length,
-        totalWatches: uniqueMovieIds.size, // Count of unique movies
-        totalWatchTime: totalWatchTime / 60, // Convert seconds to minutes
+        totalWatches: uniqueMovieIds.size,
+        totalWatchTime: totalWatchTime / 60,
         completionRate: averageCompletionRate
       };
     }
@@ -216,16 +213,16 @@ const Profile = () => {
   if (!session) return null;
 
   return (
-    <div className="min-h-screen pt-24">
+    <div className={`min-h-screen ${isMobile ? 'pt-16 pb-8' : 'pt-24'}`}>
       <div className="container mx-auto px-4">
-        <div className="grid gap-8">
+        <div className="grid gap-6">
           <ProfileHeader
             profile={profile}
             session={session}
             onProfileUpdate={refetchProfile}
           />
 
-          <div className="flex items-center justify-end gap-3 mb-2">
+          <div className={`flex items-center ${isMobile ? 'justify-center' : 'justify-end'} gap-3 mb-2`}>
             <FeedbackDialog />
             <SupportDialog />
           </div>
@@ -242,12 +239,12 @@ const Profile = () => {
           />
 
           <Card>
-            <CardContent className="pt-6">
-              <Tabs defaultValue="history">
-                <TabsList>
-                  <TabsTrigger value="history">Watch History</TabsTrigger>
-                  <TabsTrigger value="ratings">Movie Ratings</TabsTrigger>
-                  <TabsTrigger value="reports">Movie Reports</TabsTrigger>
+            <CardContent className={`pt-6 ${isMobile ? 'px-2' : 'px-6'}`}>
+              <Tabs defaultValue="history" className="w-full">
+                <TabsList className={`${isMobile ? 'w-full grid grid-cols-3' : ''}`}>
+                  <TabsTrigger value="history" className={isMobile ? 'text-xs py-1.5' : ''}>Watch History</TabsTrigger>
+                  <TabsTrigger value="ratings" className={isMobile ? 'text-xs py-1.5' : ''}>Movie Ratings</TabsTrigger>
+                  <TabsTrigger value="reports" className={isMobile ? 'text-xs py-1.5' : ''}>Movie Reports</TabsTrigger>
                 </TabsList>
                 <TabsContent value="history">
                   <WatchHistory items={watchHistory || []} />

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Play, Info, Star, MessageSquare, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -213,89 +214,6 @@ const Home = () => {
     <div className="min-h-screen pt-14">
       <section className="py-4 md:py-12">
         <div className="container mx-auto px-4">
-          <div className="mb-6">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative flex-1 w-full max-w-full md:max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search movies..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-full"
-                />
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[230px] md:w-[250px]">
-                  <div className="p-2 space-y-3">
-                    <div>
-                      <label className="text-sm font-medium">Genre</label>
-                      <Select value={filterGenre} onValueChange={setFilterGenre}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="All Genres" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Genres</SelectItem>
-                          {filters?.genres.map((genre) => (
-                            <SelectItem key={genre} value={genre}>
-                              {genre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Language</label>
-                      <Select value={filterLanguage} onValueChange={setFilterLanguage}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="All Languages" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Languages</SelectItem>
-                          {filters?.languages.map((language) => (
-                            <SelectItem key={language} value={language}>
-                              {language}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Rating</label>
-                      <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="All Ratings" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Ratings</SelectItem>
-                          <SelectItem value="4">4+ Stars</SelectItem>
-                          <SelectItem value="3">3+ Stars</SelectItem>
-                          <SelectItem value="2">2+ Stars</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Sort By</label>
-                      <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Sort By" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="latest">Latest</SelectItem>
-                          <SelectItem value="rating">Rating</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-          
           {filteredMovies.length > 0 ? (
             <Slider {...settings}>
               {featuredMovies.map((movie) => (
@@ -342,6 +260,130 @@ const Home = () => {
               <p className="text-xl text-muted-foreground">No movies found matching your search.</p>
             </div>
           )}
+          
+          {/* Search and filter moved below the carousel */}
+          <div className={`mt-6 mb-4 ${isMobile ? 'sticky top-[3.5rem] z-10 bg-background/95 backdrop-blur-sm py-3 -mx-4 px-4' : ''}`}>
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-3 items-center w-full">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search movies..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-full"
+                  />
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[230px] md:w-[250px]">
+                    <div className="p-2 space-y-3">
+                      <div>
+                        <label className="text-sm font-medium">Genre</label>
+                        <Select value={filterGenre} onValueChange={setFilterGenre}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="All Genres" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Genres</SelectItem>
+                            {filters?.genres.map((genre) => (
+                              <SelectItem key={genre} value={genre}>
+                                {genre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Language</label>
+                        <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="All Languages" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Languages</SelectItem>
+                            {filters?.languages.map((language) => (
+                              <SelectItem key={language} value={language}>
+                                {language}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Rating</label>
+                        <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="All Ratings" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Ratings</SelectItem>
+                            <SelectItem value="4">4+ Stars</SelectItem>
+                            <SelectItem value="3">3+ Stars</SelectItem>
+                            <SelectItem value="2">2+ Stars</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Sort By</label>
+                        <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="Sort By" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="latest">Latest</SelectItem>
+                            <SelectItem value="rating">Rating</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              {/* Mobile quick filters */}
+              {isMobile && (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
+                  <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
+                      <SelectValue placeholder="Rating" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Ratings</SelectItem>
+                      <SelectItem value="4">4+ Stars</SelectItem>
+                      <SelectItem value="3">3+ Stars</SelectItem>
+                      <SelectItem value="2">2+ Stars</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterGenre} onValueChange={setFilterGenre}>
+                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
+                      <SelectValue placeholder="Genre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Genres</SelectItem>
+                      {filters?.genres.map((genre) => (
+                        <SelectItem key={genre} value={genre}>
+                          {genre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
+                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
+                      <SelectValue placeholder="Sort" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="latest">Latest</SelectItem>
+                      <SelectItem value="rating">Rating</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -350,20 +392,22 @@ const Home = () => {
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
               <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
-              <div className="flex items-center w-full md:w-auto">
-                <label className="text-sm text-muted-foreground mr-2 whitespace-nowrap">Filter:</label>
-                <Select value={ratingFilter} onValueChange={setRatingFilter} className="w-full md:w-[140px]">
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Ratings" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Ratings</SelectItem>
-                    <SelectItem value="4">4+ Stars</SelectItem>
-                    <SelectItem value="3">3+ Stars</SelectItem>
-                    <SelectItem value="2">2+ Stars</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!isMobile && (
+                <div className="flex items-center w-full md:w-auto">
+                  <label className="text-sm text-muted-foreground mr-2 whitespace-nowrap">Filter:</label>
+                  <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="All Ratings" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Ratings</SelectItem>
+                      <SelectItem value="4">4+ Stars</SelectItem>
+                      <SelectItem value="3">3+ Stars</SelectItem>
+                      <SelectItem value="2">2+ Stars</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {filteredMovies.length === 0 ? (
