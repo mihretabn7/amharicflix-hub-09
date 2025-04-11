@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Info, Star, MessageSquare } from "lucide-react";
+import { Play, Info, Star, MessageSquare, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -23,6 +24,7 @@ const Home = () => {
   const navigate = useNavigate();
   const [ratingFilter, setRatingFilter] = useState<string>("all");
   const [session, setSession] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -126,6 +128,12 @@ const Home = () => {
     ]
   };
 
+  const filteredMovies = movies?.filter(movie =>
+    movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (movie.description?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+    (movie.genre?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+  ) || [];
+
   if (isLoading) {
     return (
       <div className="min-h-screen">
@@ -156,93 +164,131 @@ const Home = () => {
     );
   }
 
-  const featuredMovies = movies ? movies.slice(0, 5) : [];
+  const featuredMovies = filteredMovies.slice(0, 5);
 
   return (
     <div className="min-h-screen">
       <section className="pt-12">
         <div className="container mx-auto px-4">
-          <Slider {...settings}>
-            {featuredMovies.map((movie) => (
-              <div key={movie.id} className="relative h-[80vh] w-full lg:w-1/2 mx-auto rounded-xl overflow-hidden">
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
-                  style={{
-                    backgroundImage: `url(${movie.thumbnail_url})`,
-                    objectFit: 'cover',
-                  }}
-                >
-                  <div className="hero-gradient" />
-                </div>
+          <div className="mb-6">
+            <div className="relative max-w-md mx-auto">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search movies..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+          
+          {filteredMovies.length > 0 ? (
+            <Slider {...settings}>
+              {featuredMovies.map((movie) => (
+                <div key={movie.id} className="relative h-[80vh] w-full lg:w-1/2 mx-auto rounded-xl overflow-hidden">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
+                    style={{
+                      backgroundImage: `url(${movie.thumbnail_url})`,
+                      objectFit: 'cover',
+                    }}
+                  >
+                    <div className="hero-gradient" />
+                  </div>
 
-                <div className="relative h-full flex items-center">
-                  <div className="container mx-auto px-4 animate-fade-in">
-                    <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-                      {movie.title}
-                    </h1>
-                    <div className="flex space-x-4">
-                      <Button
-                        size="lg"
-                        className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
-                        onClick={() => navigate(`/movie/${movie.id}`)}
-                      >
-                        <Play className="mr-2 h-5 w-5" /> Play Now
-                      </Button>
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
-                        onClick={() => navigate(`/movie/${movie.id}`)}
-                      >
-                        <Info className="mr-2 h-5 w-5" /> More Info
-                      </Button>
+                  <div className="relative h-full flex items-center">
+                    <div className="container mx-auto px-4 animate-fade-in">
+                      <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+                        {movie.title}
+                      </h1>
+                      <div className="flex space-x-4">
+                        <Button
+                          size="lg"
+                          className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
+                          onClick={() => navigate(`/movie/${movie.id}`)}
+                        >
+                          <Play className="mr-2 h-5 w-5" /> Play Now
+                        </Button>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
+                          onClick={() => navigate(`/movie/${movie.id}`)}
+                        >
+                          <Info className="mr-2 h-5 w-5" /> More Info
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </Slider>
+              ))}
+            </Slider>
+          ) : (
+            <div className="flex justify-center items-center h-[40vh]">
+              <p className="text-xl text-muted-foreground">No movies found matching your search.</p>
+            </div>
+          )}
         </div>
       </section>
 
       <section className="py-12 bg-gradient-to-b from-background/80 to-background mt-[-120px] relative z-10">
         <Card className="container mx-auto px-4">
           <CardContent className="pt-6">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
               <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-muted-foreground mr-2">Filter by rating:</label>
+                <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="All Ratings" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Ratings</SelectItem>
+                    <SelectItem value="4">4+ Stars</SelectItem>
+                    <SelectItem value="3">3+ Stars</SelectItem>
+                    <SelectItem value="2">2+ Stars</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {movies?.map((movie) => (
-                <Link
-                  to={`/movie/${movie.id}`}
-                  key={movie.id}
-                  className="movie-card group animate-fade-in"
-                >
-                  <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
-                    <img
-                      src={movie.thumbnail_url}
-                      alt={movie.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                    />
-                    <div className="movie-card-overlay">
-                      <div className="absolute bottom-0 p-4 w-full">
-                        <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Star className="h-4 w-4 text-netflix-gold" />
-                            <span className="text-sm">
-                              {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                            </span>
+            {filteredMovies.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-xl text-muted-foreground">No movies found matching your search criteria.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {filteredMovies.map((movie) => (
+                  <Link
+                    to={`/movie/${movie.id}`}
+                    key={movie.id}
+                    className="movie-card group animate-fade-in"
+                  >
+                    <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
+                      <img
+                        src={movie.thumbnail_url}
+                        alt={movie.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
+                      <div className="movie-card-overlay">
+                        <div className="absolute bottom-0 p-4 w-full">
+                          <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Star className="h-4 w-4 text-netflix-gold" />
+                              <span className="text-sm">
+                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                              </span>
+                            </div>
+                            <MessageSquare className="h-4 w-4 text-netflix-gray" />
                           </div>
-                          <MessageSquare className="h-4 w-4 text-netflix-gray" />
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </section>
