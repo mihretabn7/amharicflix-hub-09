@@ -1,7 +1,7 @@
 
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { User, Menu, Bell } from "lucide-react";
+import { User, Menu, Bell, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { checkIsAdmin } from "@/utils/auth";
@@ -66,7 +66,9 @@ const Navbar = () => {
       }
     });
 
-    return () => data.subscription.unsubscribe();
+    return () => {
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   // Real-time notifications
@@ -86,7 +88,9 @@ const Navbar = () => {
         )
         .subscribe();
 
-      return () => supabase.removeChannel(channel);
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [session?.user?.id]);
 
