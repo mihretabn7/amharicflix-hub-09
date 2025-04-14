@@ -1,7 +1,11 @@
 
 import { useState, useEffect } from "react";
 
-export const useIsMobile = (): boolean => {
+/**
+ * Hook to detect if the current viewport is mobile size
+ * @returns boolean indicating if the current viewport is mobile size
+ */
+export function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
   useEffect(() => {
@@ -24,6 +28,7 @@ export const useIsMobile = (): boolean => {
   }, []);
 
   return isMobile;
-};
+}
 
+// Ensure we only export the hook as a named export
 export default useIsMobile;

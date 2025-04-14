@@ -11,7 +11,7 @@ import { MovieRatings } from "@/components/profile/MovieRatings";
 import { MovieReports } from "@/components/profile/MovieReports";
 import { FeedbackDialog } from "@/components/profile/FeedbackDialog";
 import { SupportDialog } from "@/components/profile/SupportDialog";
-import useIsMobile from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Profile = () => {
   const navigate = useNavigate();

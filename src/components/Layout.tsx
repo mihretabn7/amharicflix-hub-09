@@ -15,7 +15,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
-import useIsMobile from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Layout = () => {
     const [showMobileMenu, setShowMobileMenu] = useState(false);

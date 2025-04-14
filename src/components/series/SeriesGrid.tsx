@@ -1,7 +1,7 @@
 
 import { SeriesWithEpisodes } from "@/types/movie";
 import SeriesCard from "./SeriesCard";
-import useIsMobile from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SeriesGridProps {
     series: SeriesWithEpisodes[];
