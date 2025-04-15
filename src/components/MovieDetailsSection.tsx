@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import MovieReviews from "./MovieReviews";
 import { useIsMobile } from "@/hooks/use-mobile";
+import GenreSuggestion from "./GenreSuggestion";
+import GenreSuggestionsDisplay from "./GenreSuggestionsDisplay";
 
 interface MovieDetailsSectionProps {
   movie: Movie;
@@ -47,6 +49,13 @@ const MovieDetailsSection = ({ movie, userId }: MovieDetailsSectionProps) => {
             <p className="text-gray-300">{new Date(movie.created_at).toLocaleDateString()}</p>
           </div>
         </div>
+        
+        <div>
+          <h3 className="font-medium mb-2">Genre Suggestions</h3>
+          <GenreSuggestionsDisplay movieId={movie.id} />
+          {userId && <GenreSuggestion movieId={movie.id} userId={userId} />}
+        </div>
+        
         <MovieReviews movieId={movie.id} currentUserId={userId} />
       </div>
     </div>
