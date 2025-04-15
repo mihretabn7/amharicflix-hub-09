@@ -27,6 +27,7 @@ const Movies = () => {
   const [filterRating, setFilterRating] = useState<string>("all");
   const [filterLanguage, setFilterLanguage] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"latest" | "rating">("latest");
+  const [isMobile, setIsMobile] = useState(false);
 
   const { data: movies, isLoading } = useQuery({
     queryKey: ['movies', filterGenre, filterRating, filterLanguage, sortBy],
@@ -208,20 +209,35 @@ const Movies = () => {
                         alt={movie.title}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
-                      <div className="movie-card-overlay">
-                        <div className="absolute bottom-0 p-4 w-full">
-                          <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <Star className="h-4 w-4 text-netflix-gold" />
-                              <span className="text-sm">
+                      {isMobile ? (
+                        <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2">
+                          <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-netflix-gold" />
+                              <span className="text-xs text-white">
                                 {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
                               </span>
                             </div>
-                            <MessageSquare className="h-4 w-4 text-netflix-gray" />
+                            <MessageSquare className="h-3 w-3 text-white/80" />
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="movie-card-overlay">
+                          <div className="absolute bottom-0 p-4 w-full">
+                            <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <Star className="h-4 w-4 text-netflix-gold" />
+                                <span className="text-sm">
+                                  {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                                </span>
+                              </div>
+                              <MessageSquare className="h-4 w-4 text-netflix-gray" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </Link>
                 ))}
