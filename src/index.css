@@ -524,3 +524,114 @@
   font-size: 0.75rem;
   z-index: 10;
 }
+
+/* Mobile video player optimizations */
+@media (max-width: 640px) {
+  .slick-dots {
+    bottom: 5px !important;
+  }
+  
+  .slick-dots li button:before {
+    font-size: 8px !important;
+  }
+  
+  /* Make dropdowns full width on mobile */
+  .mobile-full-width {
+    width: 100% !important;
+  }
+
+  /* Mobile video player optimizations */
+  .netflix-player-container {
+    height: 60vh !important;
+    padding-top: 0 !important;
+  }
+
+  /* Mobile movie details page improvements */
+  .netflix-movie-detail {
+    padding-top: 0 !important;
+  }
+
+  .netflix-movie-detail .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Mobile movie hero section */
+  .mobile-hero {
+    height: 60vh !important;
+  }
+
+  .mobile-hero-content {
+    padding-bottom: 1.5rem !important;
+  }
+
+  /* Mobile movie stats cards */
+  .netflix-card {
+    background-color: rgba(45, 45, 45, 0.7);
+    border-radius: 8px;
+    padding: 0.75rem;
+  }
+
+  /* Mobile movie player controls */
+  .netflix-controls {
+    padding: 0.75rem !important;
+    border-top: 2px solid #e50914 !important;
+  }
+
+  /* Fix dialog position on mobile */
+  .netflix-modal {
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+  }
+  
+  /* Mobile profile page improvements */
+  .netflix-profile-header {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+  
+  .netflix-profile-tabs {
+    width: 100% !important;
+  }
+  
+  /* Hide scrollbars but allow scrolling */
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Profile page stats more compact on mobile */
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Compact tabs in mobile view */
+  .profile-tabs {
+    padding: 0.25rem !important;
+  }
+
+  /* Improved video player container */
+  .netflix-player-container {
+    height: calc(100vh - 3.5rem) !important;
+    margin-top: 3.5rem !important;
+    padding-top: 0 !important;
+  }
+
+  /* Player controls for better touch interaction */
+  .netflix-controls {
+    padding: 0.75rem !important;
+    border-top: 2px solid #e50914 !important;
+  }
+
+  /* Video player aspect ratio container */
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+    max-height: 40vh;
+  }
+}

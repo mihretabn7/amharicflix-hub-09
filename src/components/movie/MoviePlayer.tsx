@@ -76,8 +76,8 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className={`flex-grow bg-black ${isMobile ? 'netflix-player-container' : ''}`}>
+    <div className={`flex flex-col ${isMobile ? 'h-[calc(100vh-3.5rem)] mt-14' : 'h-full'}`}>
+      <div className={`flex-grow bg-black ${isMobile ? 'aspect-video' : ''}`}>
         <iframe
           width="100%"
           height="100%"
@@ -85,11 +85,12 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
           title="YouTube video player"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
+          className="w-full h-full"
         ></iframe>
       </div>
       
       {userId ? (
-        <div className={`bg-card p-4 border-t border-border space-y-4 ${isMobile ? 'netflix-controls' : ''}`}>
+        <div className={`bg-card border-t border-border space-y-4 ${isMobile ? 'p-3' : 'p-4'}`}>
           <MovieRating
             movieId={movie.id}
             userId={userId}
@@ -103,20 +104,20 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
           </div>
         </div>
       ) : (
-        <div className={`bg-card p-4 border-t border-border ${isMobile ? 'netflix-controls' : ''}`}>
+        <div className={`bg-card border-t border-border ${isMobile ? 'p-3' : 'p-4'}`}>
           <div className="flex flex-wrap gap-3 justify-between items-center">
             <p className="text-muted-foreground text-sm">Sign in to rate and review this movie</p>
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                size="sm"
+                size={isMobile ? "sm" : "default"}
                 onClick={() => handleAuthRequired("rate")}
               >
                 Rate & Review
               </Button>
               <Button 
                 variant="outline" 
-                size="sm"
+                size={isMobile ? "sm" : "default"}
                 onClick={() => handleAuthRequired("report")}
               >
                 Report
