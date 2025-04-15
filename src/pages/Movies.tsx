@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Movie } from "@/types/movie";
@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Movies = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,7 +28,7 @@ const Movies = () => {
   const [filterRating, setFilterRating] = useState<string>("all");
   const [filterLanguage, setFilterLanguage] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"latest" | "rating">("latest");
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
 
   const { data: movies, isLoading } = useQuery({
     queryKey: ['movies', filterGenre, filterRating, filterLanguage, sortBy],
@@ -58,14 +59,12 @@ const Movies = () => {
           : 0
       })) || [];
 
-      // Apply rating filter
       let filteredMovies = processedMovies;
       if (filterRating !== "all") {
         const minRating = parseInt(filterRating);
         filteredMovies = filteredMovies.filter(m => m.averageRating >= minRating);
       }
 
-      // Apply sorting
       if (sortBy === "rating") {
         filteredMovies.sort((a, b) => b.averageRating - a.averageRating);
       } else {
@@ -209,21 +208,21 @@ const Movies = () => {
                         alt={movie.title}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
-                      {isMobile ? (
-                        <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2">
-                          <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
-                          <div className="flex items-center justify-between mt-1">
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 text-netflix-gold" />
-                              <span className="text-xs text-white">
-                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                              </span>
+                      <div className={isMobile ? "absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2" : "movie-card-overlay"}>
+                        {isMobile ? (
+                          <>
+                            <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
+                            <div className="flex items-center justify-between mt-1">
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 text-netflix-gold" />
+                                <span className="text-xs text-white">
+                                  {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                                </span>
+                              </div>
+                              <MessageSquare className="h-3 w-3 text-white/80" />
                             </div>
-                            <MessageSquare className="h-3 w-3 text-white/80" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="movie-card-overlay">
+                          </>
+                        ) : (
                           <div className="absolute bottom-0 p-4 w-full">
                             <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
                             <div className="flex items-center justify-between">
@@ -236,8 +235,8 @@ const Movies = () => {
                               <MessageSquare className="h-4 w-4 text-netflix-gray" />
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </Link>
                 ))}
