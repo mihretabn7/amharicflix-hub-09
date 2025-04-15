@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AdminStats from "@/components/AdminStats";
 import CountryAnalytics from "@/components/admin/CountryAnalytics";
+import UserActivityStats from "@/components/admin/UserActivityStats";
+import ContentPerformance from "@/components/admin/ContentPerformance";
 import { Printer, Download } from "lucide-react";
 import { 
   Select,
@@ -12,6 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState<"daily" | "weekly" | "monthly" | "yearly">("monthly");
@@ -22,8 +27,63 @@ export default function Analytics() {
   };
 
   const handleExport = () => {
-    // This is a placeholder for export functionality
-    toast.success(`Exported analytics data as ${exportFormat.toUpperCase()}`);
+    if (exportFormat === "csv") {
+      exportToCSV();
+    } else if (exportFormat === "excel") {
+      exportToExcel();
+    } else if (exportFormat === "pdf") {
+      exportToPDF();
+    }
+  };
+
+  const exportToCSV = () => {
+    const data = getFilteredData();
+    const csvContent = [
+      Object.keys(data[0]).join(","), // Header row
+      ...data.map((row) => Object.values(row).join(",")), // Data rows
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `analytics-${timeRange}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToExcel = () => {
+    const data = getFilteredData();
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Analytics");
+    XLSX.writeFile(workbook, `analytics-${timeRange}.xlsx`);
+  };
+
+  const exportToPDF = () => {
+    const data = getFilteredData();
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text("Analytics Report", 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Time range: ${timeRange}`, 14, 30);
+    autoTable(doc, {
+      head: [Object.keys(data[0])],
+      body: data.map((row) => Object.values(row)),
+      startY: 40,
+    });
+    doc.save(`analytics-${timeRange}.pdf`);
+  };
+
+  const getFilteredData = () => {
+    // Replace this with the actual data based on the selected filters
+    // Example: Combine data from AdminStats, UserActivityStats, etc.
+    return [
+      { Metric: "Total Users", Value: 1234 },
+      { Metric: "Total Movies", Value: 567 },
+      { Metric: "Total Views", Value: 890 },
+    ];
   };
 
   return (
@@ -81,39 +141,15 @@ export default function Analytics() {
         </TabsContent>
         
         <TabsContent value="user-activity" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Activity</CardTitle>
-              <CardDescription>
-                Detailed analysis of user interactions on the platform
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                User activity analytics coming soon
-              </p>
-            </CardContent>
-          </Card>
+          <UserActivityStats timeRange={timeRange} />
         </TabsContent>
         
         <TabsContent value="content" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Performance</CardTitle>
-              <CardDescription>
-                Analyze how different movies and series are performing
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Content performance analytics coming soon
-              </p>
-            </CardContent>
-          </Card>
+          <ContentPerformance timeRange={timeRange} />
         </TabsContent>
         
         <TabsContent value="location" className="space-y-4">
-          <CountryAnalytics />
+          <CountryAnalytics timeRange={timeRange} />
         </TabsContent>
       </Tabs>
     </div>

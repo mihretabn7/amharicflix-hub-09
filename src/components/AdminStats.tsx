@@ -23,10 +23,30 @@ interface AdminStatsProps {
     timeRange: "daily" | "weekly" | "monthly" | "yearly";
 }
 
+const getStartDate = (timeRange: "daily" | "weekly" | "monthly" | "yearly"): Date => {
+    const now = new Date();
+    switch (timeRange) {
+        case "daily":
+            now.setDate(now.getDate() - 1);
+            break;
+        case "weekly":
+            now.setDate(now.getDate() - 7);
+            break;
+        case "monthly":
+            now.setMonth(now.getMonth() - 1);
+            break;
+        case "yearly":
+            now.setFullYear(now.getFullYear() - 1);
+            break;
+    }
+    return now;
+};
+
 const AdminStats = ({ timeRange }: AdminStatsProps) => {
     const { data: stats } = useQuery({
         queryKey: ['admin-stats', timeRange],
         queryFn: async () => {
+            const startDate = getStartDate(timeRange);
             const [
                 usersResponse,
                 moviesResponse,
@@ -35,16 +55,12 @@ const AdminStats = ({ timeRange }: AdminStatsProps) => {
                 viewsResponse,
                 activeUsersResponse
             ] = await Promise.all([
-                supabase.from('profiles').select('count').single(),
-                supabase.from('movies').select('count').is('series_id', null).single(),
-                supabase.from('movie_reports').select('count').eq('status', 'pending').single(),
+                supabase.from('profiles').select('count', { count: 'exact' }).single(),
+                supabase.from('movies').select('count', { count: 'exact' }).is('series_id', null).single(),
+                supabase.from('movie_reports').select('count', { count: 'exact' }).eq('status', 'pending').single(),
                 supabase.from('movie_ratings').select('rating'),
-                supabase.from('user_movie_history').select('count').gte('watch_duration', 120).single(),
-                supabase
-                    .from('user_movie_history')
-                    .select('count')
-                    .gte('watched_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-                    .single()
+                supabase.from('user_movie_history').select('count', { count: 'exact' }).gte('watched_at', startDate.toISOString()).single(),
+                supabase.from('user_movie_history').select('count', { count: 'exact' }).gte('watched_at', startDate.toISOString()).single()
             ]);
 
             // Get unique series count
@@ -73,6 +89,7 @@ const AdminStats = ({ timeRange }: AdminStatsProps) => {
     const { data: recentActivity } = useQuery({
         queryKey: ['admin-recent-activity', timeRange],
         queryFn: async () => {
+            const startDate = getStartDate(timeRange);
             const [recentReports, recentRatings, recentViews] = await Promise.all([
                 supabase
                     .from('movie_reports')
@@ -84,6 +101,7 @@ const AdminStats = ({ timeRange }: AdminStatsProps) => {
                         reporter:profiles!movie_reports_reporter_id_fkey(email, phone_number),
                         movie:movies(title)
                     `)
+                    .gte('created_at', startDate.toISOString())
                     .order('created_at', { ascending: false })
                     .limit(5),
                 supabase
@@ -95,6 +113,7 @@ const AdminStats = ({ timeRange }: AdminStatsProps) => {
                         user:profiles!movie_ratings_user_id_fkey(email, phone_number),
                         movie:movies(title)
                     `)
+                    .gte('created_at', startDate.toISOString())
                     .order('created_at', { ascending: false })
                     .limit(5),
                 supabase
@@ -106,6 +125,7 @@ const AdminStats = ({ timeRange }: AdminStatsProps) => {
                         user:profiles!user_movie_history_user_id_fkey(email, phone_number),
                         movie:movies(title)
                     `)
+                    .gte('watched_at', startDate.toISOString())
                     .order('watched_at', { ascending: false })
                     .limit(5)
             ]);
