@@ -146,7 +146,7 @@ const Home = () => {
     className: "center",
     centerMode: true,
     centerPadding: "0px",
-    arrows: !isMobile,
+    arrows: false, // changed: always hide arrows
     variableWidth: false,
     fade: true,
     responsive: [
@@ -179,7 +179,7 @@ const Home = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-14">
+      <div className="min-h-screen pt-0">
         <div className="container mx-auto px-4 py-4">
           <div className="h-[50vh] md:h-[70vh] w-full relative overflow-hidden rounded-xl bg-card animate-pulse">
             <div className="absolute inset-0 flex items-center justify-center">
@@ -210,58 +210,60 @@ const Home = () => {
   const featuredMovies = filteredMovies.slice(0, 5);
 
   return (
-    <div className="min-h-screen pt-14">
+    <div className="min-h-screen pt-0">
       <section className="py-4 md:py-12">
         <div className="container mx-auto px-4">
           {filteredMovies.length > 0 ? (
-            <Slider {...settings}>
-              {featuredMovies.map((movie) => (
-                <div key={movie.id} className="relative h-[50vh] md:h-[80vh] w-full lg:w-1/2 mx-auto rounded-xl overflow-hidden">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
-                    style={{
-                      backgroundImage: `url(${movie.thumbnail_url})`,
-                      objectFit: 'cover',
-                    }}
-                  >
-                    <div className="hero-gradient" />
-                  </div>
+            <div className={`${!isMobile ? "mb-12" : ""}`}> {/* added margin on desktop */}
+              <Slider {...settings}>
+                {featuredMovies.map((movie) => (
+                  <div key={movie.id} className="relative h-[50vh] md:h-[80vh] w-full lg:w-1/2 mx-auto rounded-xl overflow-hidden">
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
+                      style={{
+                        backgroundImage: `url(${movie.thumbnail_url})`,
+                        objectFit: 'cover',
+                      }}
+                    >
+                      <div className="hero-gradient" />
+                    </div>
 
-                  <div className="relative h-full flex items-center">
-                    <div className="container mx-auto px-4 animate-fade-in">
-                      <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-4">
-                        {movie.title}
-                      </h1>
-                      <div className="flex flex-wrap space-x-2 space-y-2 md:space-y-0 md:space-x-4">
-                        <Button
-                          size={isMobile ? "default" : "lg"}
-                          className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
-                          onClick={() => navigate(`/movie/${movie.id}`)}
-                        >
-                          <Play className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Play
-                        </Button>
-                        <Button
-                          size={isMobile ? "default" : "lg"}
-                          variant="outline"
-                          className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
-                          onClick={() => navigate(`/movie/${movie.id}`)}
-                        >
-                          <Info className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Info
-                        </Button>
+                    <div className="relative h-full flex items-center">
+                      <div className="container mx-auto px-4 animate-fade-in">
+                        <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-4">
+                          {movie.title}
+                        </h1>
+                        <div className="flex flex-wrap space-x-2 space-y-2 md:space-y-0 md:space-x-4">
+                          <Button
+                            size={isMobile ? "default" : "lg"}
+                            className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
+                            onClick={() => navigate(`/movie/${movie.id}`)}
+                          >
+                            <Play className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Play
+                          </Button>
+                          <Button
+                            size={isMobile ? "default" : "lg"}
+                            variant="outline"
+                            className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
+                            onClick={() => navigate(`/movie/${movie.id}`)}
+                          >
+                            <Info className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Info
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </Slider>
+                ))}
+              </Slider>
+            </div>
           ) : (
             <div className="flex justify-center items-center h-[40vh]">
               <p className="text-xl text-muted-foreground">No movies found matching your search.</p>
             </div>
           )}
           
-          {/* Search and filter moved below the carousel */}
-          <div className={`mt-6 mb-4 ${isMobile ? 'sticky top-[3.5rem] z-10 bg-background/95 backdrop-blur-sm py-3 -mx-4 px-4' : ''}`}>
+          {/* Search and filter always visible */}
+          <div className={`mt-6 mb-4 relative z-30`}> {/* changed: added "relative z-30" */}
             <div className="flex flex-col gap-4">
               <div className="flex gap-3 items-center w-full">
                 <div className="relative flex-1">
@@ -343,44 +345,6 @@ const Home = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              {/* Mobile quick filters */}
-              {isMobile && (
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
-                  <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
-                      <SelectValue placeholder="Rating" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Ratings</SelectItem>
-                      <SelectItem value="4">4+ Stars</SelectItem>
-                      <SelectItem value="3">3+ Stars</SelectItem>
-                      <SelectItem value="2">2+ Stars</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select value={filterGenre} onValueChange={setFilterGenre}>
-                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
-                      <SelectValue placeholder="Genre" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Genres</SelectItem>
-                      {filters?.genres.map((genre) => (
-                        <SelectItem key={genre} value={genre}>
-                          {genre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
-                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
-                      <SelectValue placeholder="Sort" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="latest">Latest</SelectItem>
-                      <SelectItem value="rating">Rating</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -427,35 +391,20 @@ const Home = () => {
                         alt={movie.title}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
-                      {isMobile ? (
-                        <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2">
-                          <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
-                          <div className="flex items-center justify-between mt-1">
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 text-netflix-gold" />
-                              <span className="text-xs text-white">
+                      <div className="movie-card-overlay">
+                        <div className="absolute bottom-0 p-2 md:p-4 w-full">
+                          <h3 className="text-xs md:text-sm font-medium mb-1 md:mb-2 line-clamp-1 md:line-clamp-2">{movie.title}</h3>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-1 md:space-x-2">
+                              <Star className="h-3 w-3 md:h-4 md:w-4 text-netflix-gold" />
+                              <span className="text-xs md:text-sm">
                                 {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
                               </span>
                             </div>
-                            <MessageSquare className="h-3 w-3 text-white/80" />
+                            <MessageSquare className="h-3 w-3 md:h-4 md:w-4 text-netflix-gray" />
                           </div>
                         </div>
-                      ) : (
-                        <div className="movie-card-overlay">
-                          <div className="absolute bottom-0 p-4 w-full">
-                            <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <Star className="h-4 w-4 text-netflix-gold" />
-                                <span className="text-sm">
-                                  {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                                </span>
-                              </div>
-                              <MessageSquare className="h-4 w-4 text-netflix-gray" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   </Link>
                 ))}
