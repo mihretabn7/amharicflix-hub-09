@@ -38,35 +38,21 @@ const Home = () => {
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initializeUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      
-      if (session?.user) {
-        fetchUserLocation().then(locationData => {
-          if (locationData && locationData.ip) {
-            updateUserStatus(locationData.ip);
-          }
-        });
-      } else {
-        fetchUserLocation();
+      const locationData = await fetchUserLocation();
+      if (session?.user && locationData?.ip) {
+        updateUserStatus(locationData.ip);
       }
-    });
+    };
+    initializeUser();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      
-      if (session?.user) {
-        fetchUserLocation().then(locationData => {
-          if (locationData && locationData.ip) {
-            updateUserStatus(locationData.ip);
-          }
-        });
-      }
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      // No need to re-call fetchUserLocation here because it's already cached.
     });
-
-    return () => subscription.unsubscribe();
+    // return () => subscription.unsubscribe();
   }, []);
 
   const { data: movies, isLoading } = useQuery({

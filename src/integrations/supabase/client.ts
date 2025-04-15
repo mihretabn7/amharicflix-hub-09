@@ -162,46 +162,72 @@ export const getUserDeviceInfo = () => {
   };
 };
 
+// Add a module-level variable to cache the in-flight and fetched location data
+let cachedUserLocationPromise: Promise<any> | null = null;
+
+// Modify fetchUserLocation to return the cached promise if it exists
 export const fetchUserLocation = async () => {
-  try {
-    // ✅ First, Get the User's Public IP
-    const ipResponse = await fetch("https://api64.ipify.org?format=json");
-    const { ip } = await ipResponse.json();
-
-    console.log("🛰️ User's IP:", ip);
-
-    // ✅ Then, Use an IP Geolocation API
-    const geoResponse = await fetch(`https://ipinfo.io/${ip}/json?token=88049e7d9b2938`);
-    const locationData = await geoResponse.json();
-    const browserData = getUserDeviceInfo();
-    console.log("🌍 User's Location Data:", locationData);
-
-    // Create a properly formatted record that matches the user_interactions table schema
-    const interactionData = {
-      interaction_type: 'page_visit',
-      input_method: browserData.device,
-      user_id: null
-    };
-
-    // Write the data to the user_interactions table
-    const { error } = await supabase.from('user_interactions').insert(interactionData);
-
-    if (error) {
-      console.error("⚠️ Error writing user analytics data:", error);
-    }
-
-    return {
-      ip,
-      country: locationData.country,
-      city: locationData.city,
-      region: locationData.region,
-      coordinates: locationData.loc,
-      device: browserData.device,
-      browser: browserData.browser,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error) {
-    console.error("⚠️ Error fetching user location:", error);
-    return null;
+  if (cachedUserLocationPromise) {
+    return cachedUserLocationPromise;
   }
+  cachedUserLocationPromise = (async () => {
+    try {
+      // Check cached data in localStorage, valid for 24 hours (86400000 ms)
+      const cached = localStorage.getItem('user_location');
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < 86400000) {
+          return data;
+        }
+      }
+      
+      // ✅ First, Get the User's Public IP
+      const ipResponse = await fetch("https://api64.ipify.org?format=json");
+      const { ip } = await ipResponse.json();
+      if (import.meta.env.DEV) {
+        console.log("🛰️ User's IP:", ip);
+      }
+      
+      // ✅ Then, Use an IP Geolocation API
+      const geoResponse = await fetch(`https://ipinfo.io/${ip}/json?token=88049e7d9b2938`);
+      const locationData = await geoResponse.json();
+      const browserData = getUserDeviceInfo();
+      if (import.meta.env.DEV) {
+        console.log("🌍 User's Location Data:", locationData);
+      }
+      
+      // Write analytics record
+      const interactionData = {
+        interaction_type: 'page_visit',
+        input_method: browserData.device,
+        user_id: null
+      };
+      const { error } = await supabase.from('user_interactions').insert(interactionData);
+      if (error) {
+        console.error("⚠️ Error writing user analytics data:", error);
+      }
+      
+      const resultData = {
+        ip,
+        country: locationData.country,
+        city: locationData.city,
+        region: locationData.region,
+        coordinates: locationData.loc,
+        device: browserData.device,
+        browser: browserData.browser,
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Cache the location data with current timestamp in localStorage
+      localStorage.setItem('user_location', JSON.stringify({ data: resultData, timestamp: Date.now() }));
+      
+      return resultData;
+    } catch (error) {
+      console.error("⚠️ Error fetching user location:", error);
+      // Clear cached promise on error so future calls can reattempt
+      cachedUserLocationPromise = null;
+      return null;
+    }
+  })();
+  return cachedUserLocationPromise;
 };

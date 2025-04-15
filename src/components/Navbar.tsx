@@ -1,4 +1,3 @@
-
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { User, Menu, Bell, X } from "lucide-react";
@@ -235,12 +234,15 @@ const Navbar = () => {
           </DropdownMenu>
 
           {/* Profile and Sign Out Buttons */}
-          <button onClick={() => handleLinkClick("/profile")}>
+          <div 
+            onClick={() => handleLinkClick("/profile")}
+            style={{ cursor: 'pointer' }}
+          >
             <Button variant="ghost" className="text-gray-300 hover:text-white">
               <User className="h-5 w-5 mr-2" />
               {!isMobile && "Profile"}
             </Button>
-          </button>
+          </div>
           <Button
             variant="ghost"
             className="text-gray-300 hover:text-white"
@@ -251,16 +253,22 @@ const Navbar = () => {
         </>
       ) : (
         <>
-          <button onClick={() => handleLinkClick("/login")}>
+          <div 
+            onClick={() => handleLinkClick("/login")}
+            style={{ cursor: 'pointer' }}
+          >
             <Button variant="ghost" className="text-gray-300 hover:text-white">
               Sign In
             </Button>
-          </button>
-          <button onClick={() => handleLinkClick("/register")}>
+          </div>
+          <div 
+            onClick={() => handleLinkClick("/register")}
+            style={{ cursor: 'pointer' }}
+          >
             <Button className="bg-netflix-red hover:bg-netflix-red/90">
               Sign Up
             </Button>
-          </button>
+          </div>
         </>
       )}
     </>
