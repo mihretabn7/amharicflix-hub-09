@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 /**
  * Hook to detect if the current viewport is mobile size
@@ -30,5 +30,4 @@ export function useIsMobile(): boolean {
   return isMobile;
 }
 
-// Ensure we only export the hook as a named export
 export default useIsMobile;
