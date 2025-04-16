@@ -36,14 +36,19 @@ const GenreSuggestionsDisplay = ({ movieId }: GenreSuggestionsDisplayProps) => {
   if (!genreSuggestions?.length) return null;
 
   return (
-    <div className={`space-y-2 mt-2 ${isMobile ? 'netflix-card p-3' : ''}`}>
-      <h3 className="font-medium mb-2">Genre Suggestions</h3>
-      {genreSuggestions.map((suggestion) => (
-        <div key={suggestion.suggested_genre} className="flex justify-between">
-          <span>{suggestion.suggested_genre}</span>
-          <span className="text-gray-400">{suggestion.count} votes</span>
-        </div>
-      ))}
+    <div className={`mt-4 ${isMobile ? 'netflix-card p-3' : ''}`}>
+      <h3 className="font-medium mb-3">Community Genre Suggestions</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        {genreSuggestions.map((suggestion) => (
+          <div
+            key={suggestion.suggested_genre}
+            className="flex items-center justify-between bg-secondary/50 rounded-md p-2"
+          >
+            <span className="text-sm">{suggestion.suggested_genre}</span>
+            <span className="text-xs text-muted-foreground">{suggestion.count}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
