@@ -1,3 +1,4 @@
+
 import { Movie } from "@/types/movie";
 import { useState } from "react";
 import { Button } from "./ui/button";

@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,9 +17,6 @@ import { fetchUserLocation } from "@/utils/location";
 
 const Login = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = location.state?.from || "/";
-  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -132,9 +128,7 @@ const Login = () => {
         description: "Successfully logged in!",
         duration: 2000,
       });
-      
-      // Navigate to the page they were trying to access or home
-      navigate(from);
+      navigate("/");
     } catch (error: any) {
       console.error('Login error:', error);
       setError(getErrorMessage(error));

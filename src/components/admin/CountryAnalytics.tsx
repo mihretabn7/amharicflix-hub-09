@@ -17,7 +17,6 @@ import {
 } from "recharts";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { getStartDate } from "@/utils/date-utils";
 
 interface CountryData {
   country: string;
@@ -29,10 +28,6 @@ interface CityData {
   city: string;
   count: number;
   color: string;
-}
-
-interface CountryAnalyticsProps {
-  timeRange: "daily" | "weekly" | "monthly" | "yearly";
 }
 
 // Colors for the charts
@@ -49,19 +44,34 @@ const COLORS = [
   "#279AF1",
 ];
 
-const CountryAnalytics = ({ timeRange }: CountryAnalyticsProps) => {
-  const [timeRangeState, setTimeRangeState] = useState<"daily" | "weekly" | "monthly" | "yearly">(timeRange);
-  const startDate = getStartDate(timeRangeState);
+const CountryAnalytics = () => {
+  const [timeRange, setTimeRange] = useState<"all" | "week" | "month" | "day">("all");
 
   // Fetch and aggregate country data
   const { data: countryStats, isLoading } = useQuery({
-    queryKey: ["country-analytics", timeRangeState],
+    queryKey: ["country-analytics", timeRange],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("user_analytics")
-        .select("country, timestamp")
-        .not("country", "is", null)
-        .gte("timestamp", startDate.toISOString());
+        .select("country, timestamp") // Fetch only necessary columns
+        .not("country", "is", null);
+
+      // Apply time filter if not "all"
+      if (timeRange === "day") {
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+        query = query.gte("timestamp", oneDayAgo.toISOString());
+      } else if (timeRange === "week") {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        query = query.gte("timestamp", oneWeekAgo.toISOString());
+      } else if (timeRange === "month") {
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        query = query.gte("timestamp", oneMonthAgo.toISOString());
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Error fetching country stats:", error);
@@ -87,13 +97,29 @@ const CountryAnalytics = ({ timeRange }: CountryAnalyticsProps) => {
 
   // Fetch and aggregate city data across all countries
   const { data: cityStats } = useQuery({
-    queryKey: ["city-analytics", timeRangeState],
+    queryKey: ["city-analytics", timeRange],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("user_analytics")
         .select("city, timestamp")
-        .not("city", "is", null)
-        .gte("timestamp", startDate.toISOString());
+        .not("city", "is", null);
+
+      // Apply time filter if not "all"
+      if (timeRange === "day") {
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+        query = query.gte("timestamp", oneDayAgo.toISOString());
+      } else if (timeRange === "week") {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        query = query.gte("timestamp", oneWeekAgo.toISOString());
+      } else if (timeRange === "month") {
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        query = query.gte("timestamp", oneMonthAgo.toISOString());
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("Error fetching city stats:", error);
@@ -137,12 +163,12 @@ const CountryAnalytics = ({ timeRange }: CountryAnalyticsProps) => {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="text-xl">Visitor Analytics by Country</CardTitle>
-        <Tabs defaultValue={timeRange} onValueChange={(value) => setTimeRangeState(value as any)}>
+        <Tabs defaultValue={timeRange} onValueChange={(value) => setTimeRange(value as any)}>
           <TabsList className="grid grid-cols-4 md:w-[400px]">
-            <TabsTrigger value="yearly">Yearly</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="daily">Daily</TabsTrigger>
+            <TabsTrigger value="all">All Time</TabsTrigger>
+            <TabsTrigger value="month">Last Month</TabsTrigger>
+            <TabsTrigger value="week">Last Week</TabsTrigger>
+            <TabsTrigger value="day">Last 24h</TabsTrigger>
           </TabsList>
         </Tabs>
       </CardHeader>
@@ -170,18 +196,18 @@ const CountryAnalytics = ({ timeRange }: CountryAnalyticsProps) => {
               </ResponsiveContainer>
             </div>
             {/* Country Distribution Table */}
-            <table className="min-w-full divide-y divide-gray-200 border border-gray-300 mt-4">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitors</th>
+            <table className="w-full mt-4 border-collapse border border-gray-200">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-200 px-4 py-2 text-left">Country</th>
+                  <th className="border border-gray-200 px-4 py-2 text-left">Visitors</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {countryStats?.map((country, index) => (
-                  <tr key={index} className="hover:bg-gray-100">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{country.country}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{String(country.count)}</td>
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="border border-gray-200 px-4 py-2">{country.country}</td>
+                    <td className="border border-gray-200 px-4 py-2">{String(country.count)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -220,18 +246,18 @@ const CountryAnalytics = ({ timeRange }: CountryAnalyticsProps) => {
               </ResponsiveContainer>
             </div>
             {/* Top Cities Table */}
-            <table className="min-w-full divide-y divide-gray-200 border border-gray-300 mt-4">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitors</th>
+            <table className="w-full mt-4 border-collapse border border-gray-200">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-200 px-4 py-2 text-left">City</th>
+                  <th className="border border-gray-200 px-4 py-2 text-left">Visitors</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {cityStats?.map((city, index) => (
-                  <tr key={index} className="hover:bg-gray-100">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{city.city}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{Number(city.count)}</td>
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="border border-gray-200 px-4 py-2">{city.city}</td>
+                    <td className="border border-gray-200 px-4 py-2">{Number(city.count)}</td>
                   </tr>
                 ))}
               </tbody>

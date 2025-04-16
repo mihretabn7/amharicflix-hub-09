@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -27,7 +27,6 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authAction, setAuthAction] = useState<"rate" | "report" | "share">("rate");
   const navigate = useNavigate();
-  const location = useLocation();
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -73,9 +72,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
 
   const redirectToLogin = () => {
     setShowAuthDialog(false);
-    // Store the current path to redirect back after login
-    const currentPath = location.pathname;
-    navigate("/login", { state: { from: currentPath } });
+    navigate("/login", { state: { from: `/movie/${movie.id}` } });
   };
 
   return (

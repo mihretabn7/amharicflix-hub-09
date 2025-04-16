@@ -1,8 +1,7 @@
+
 import { Movie } from "@/types/movie";
 import MovieRating from "@/components/MovieRating";
 import MovieReportModal from "@/components/MovieReportModal";
-import GenreSuggestion from "@/components/GenreSuggestion";
-import GenreSuggestionsDisplay from "@/components/GenreSuggestionsDisplay";
 import { supabase } from "@/integrations/supabase/client";
 
 interface MoviePlayerProps {
@@ -24,30 +23,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
           allowFullScreen
         ></iframe>
       </div>
-      {userId ? (
-        <div className="bg-card p-4 border-t border-border space-y-6">
-          <MovieRating
-            movieId={movie.id}
-            userId={userId}
-            onRatingSubmit={onRatingSubmit}
-          />
-          <div className="space-y-4">
-            <h3 className="font-medium">Suggest Genres</h3>
-            <GenreSuggestionsDisplay movieId={movie.id} />
-            <GenreSuggestion 
-              movieId={movie.id} 
-              userId={userId}
-              onSuggestionSubmit={onRatingSubmit}
-            />
-          </div>
-          <div className="flex justify-end">
-            <MovieReportModal
-              movieId={movie.id}
-              userId={userId}
-            />
-          </div>
-        </div>
-      ) : (
+      {userId && (
         <div className="bg-card p-4 border-t border-border space-y-6">
           <MovieRating
             movieId={movie.id}

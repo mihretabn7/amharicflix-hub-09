@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const getUserDeviceInfo = () => {
@@ -18,74 +19,46 @@ export const getUserDeviceInfo = () => {
   };
 };
 
-let userLocationPromise: Promise<any> | null = null;
-
 export const fetchUserLocation = async () => {
-  if (userLocationPromise) {
-    return userLocationPromise;
-  }
-  userLocationPromise = (async () => {
-    try {
-      // Check localStorage cache (24h)
-      const cached = localStorage.getItem('user_location');
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < 86400000) {
-          return data;
-        }
-      }
+  try {
+    // ✅ First, Get the User's Public IP
+    const ipResponse = await fetch("https://api64.ipify.org?format=json");
+    const { ip } = await ipResponse.json();
 
-      // Fetch from ipinfo
-      const response = await fetch(`https://ipinfo.io/json?token=88049e7d9b2938`);
-      const locationData = await response.json();
-      const browserData = getUserDeviceInfo();
+    console.log("🛰️ User's IP:", ip);
 
-      const analyticsData = {
-        ip: locationData.ip,
-        country: locationData.country,
-        city: locationData.city,
-        region: locationData.region,
-        coordinates: locationData.loc,
-        device: browserData.device,
-        browser: browserData.browser,
-        timestamp: new Date().toISOString(),
-        user_status: 'anonymous'
-      };
+    // ✅ Then, Use an IP Geolocation API
+    const geoResponse = await fetch(`https://ipinfo.io/${ip}/json?token=88049e7d9b2938`);
+    const locationData = await geoResponse.json();
+    const browserData = getUserDeviceInfo();
+    console.log("🌍 User's Location Data:", locationData);
 
-      // Check if already written today for this IP
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: existing, error: selectError } = await supabase
-        .from('user_analytics')
-        .select('id, timestamp')
-        .eq('ip', analyticsData.ip)
-        .gte('timestamp', today)
-        .limit(1)
-        .maybeSingle();
+    const analyticsData = {
+      ip,
+      country: locationData.country,
+      city: locationData.city,
+      region: locationData.region,
+      coordinates: locationData.loc, // "lat,long"
+      device: browserData.device,
+      browser: browserData.browser,
+      timestamp: new Date().toISOString(),
+      user_status: 'anonymous'  // Default to anonymous
+    };
 
-      if (selectError) {
-        console.error("Error checking analytics existence:", selectError);
-      }
+    // Write the data to the user_analytics table
+    const { error } = await supabase
+      .from('user_analytics')
+      .insert([analyticsData]);
 
-      if (!existing) {
-        const { error } = await supabase
-          .from('user_analytics')
-          .insert([analyticsData]);
-        if (error) {
-          console.error("⚠️ Error writing user analytics data:", error);
-        }
-      }
-
-      // Cache in localStorage
-      localStorage.setItem('user_location', JSON.stringify({ data: analyticsData, timestamp: Date.now() }));
-
-      return analyticsData;
-    } catch (error) {
-      console.error("⚠️ Error fetching user location:", error);
-      userLocationPromise = null;
-      return null;
+    if (error) {
+      console.error("⚠️ Error writing user analytics data:", error);
     }
-  })();
-  return userLocationPromise;
+
+    return analyticsData;
+  } catch (error) {
+    console.error("⚠️ Error fetching user location:", error);
+    return null;
+  }
 };
 
 // Function to update user status from anonymous to registered
