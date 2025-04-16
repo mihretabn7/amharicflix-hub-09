@@ -13,26 +13,22 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { DateRange } from 'react-day-picker';
-import { getStartDate } from '@/utils/date-utils';
 
 interface UserActivityStatsProps {
-  timeRange?: "daily" | "weekly" | "monthly" | "yearly";
-  dateRange?: DateRange;
+  timeRange: "daily" | "weekly" | "monthly" | "yearly";
 }
 
-export default function UserActivityStats({ timeRange = "monthly", dateRange }: UserActivityStatsProps) {
+export default function UserActivityStats({ timeRange }: UserActivityStatsProps) {
   const [selectedTimeRange, setSelectedTimeRange] = useState<"daily" | "weekly" | "monthly" | "yearly">(timeRange);
 
-  const startDate = dateRange?.from || getStartDate(selectedTimeRange);
-  const endDate = dateRange?.to || new Date();
+  const startDate = getStartDate(selectedTimeRange);
 
   const { data: activityStats, isLoading } = useQuery({
-    queryKey: ['user-activity-stats', selectedTimeRange, startDate, endDate],
+    queryKey: ['user-activity-stats', selectedTimeRange],
     queryFn: async () => {
       const { data, error } = await customRpcs.getUserActivityStats(
         startDate.toISOString(),
-        endDate.toISOString()
+        new Date().toISOString()
       );
 
       if (error) {
@@ -181,4 +177,20 @@ export default function UserActivityStats({ timeRange = "monthly", dateRange }: 
       </CardContent>
     </Card>
   );
+}
+
+function getStartDate(timeRange: "daily" | "weekly" | "monthly" | "yearly"): Date {
+  const now = new Date();
+  switch (timeRange) {
+    case "daily":
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    case "weekly":
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    case "monthly":
+      return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    case "yearly":
+      return new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    default:
+      return now;
+  }
 }

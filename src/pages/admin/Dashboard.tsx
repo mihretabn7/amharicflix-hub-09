@@ -41,10 +41,11 @@ export default function Dashboard() {
 
       <AdminStats timeRange={timeRange} />
       
-      <UserActivityStats dateRange={dateRange} timeRange={timeRange} />
+      <UserActivityStats dateRange={dateRange} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DonationsAndFeedbackSummary />
+        
       </div>
     </div>
   );
