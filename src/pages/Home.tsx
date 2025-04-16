@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Info, Star, MessageSquare, Search, Filter } from "lucide-react";
+import { Play, Info, Star, MessageSquare, Search, Filter, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,7 @@ const Home = () => {
   const [sortBy, setSortBy] = useState<"latest" | "rating">("latest");
   const [session, setSession] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [moviesByGenre, setMoviesByGenre] = useState<Record<string, typeof movies>>({});
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -91,28 +92,35 @@ const Home = () => {
 
       if (error) throw error;
 
-      const processedMovies = data?.map(movie => ({
-        ...movie,
-        averageRating: movie.movie_ratings.length > 0
-          ? movie.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / movie.movie_ratings.length
-          : 0
-      })) || [];
+      if (data) {
+        const processedMovies = data.map(movie => ({
+          ...movie,
+          averageRating: movie.movie_ratings.length > 0
+            ? movie.movie_ratings.reduce((acc: number, curr: any) => acc + curr.rating, 0) / movie.movie_ratings.length
+            : 0
+        }));
 
-      let filteredMovies = processedMovies;
-      if (ratingFilter !== "all") {
-        const minRating = parseInt(ratingFilter);
-        filteredMovies = filteredMovies.filter(m => m.averageRating >= minRating);
+        const byGenre: Record<string, typeof processedMovies> = {};
+        processedMovies.forEach(movie => {
+          if (movie.genre) {
+            if (!byGenre[movie.genre]) {
+              byGenre[movie.genre] = [];
+            }
+            byGenre[movie.genre].push(movie);
+          }
+        });
+
+        Object.keys(byGenre).forEach(genre => {
+          byGenre[genre].sort((a, b) => 
+            ((b.watch_count || 0) + (b.share_count || 0)) - 
+            ((a.watch_count || 0) + (a.share_count || 0))
+          );
+        });
+
+        setMoviesByGenre(byGenre);
+        return processedMovies;
       }
-
-      if (sortBy === "rating") {
-        filteredMovies.sort((a, b) => b.averageRating - a.averageRating);
-      } else {
-        filteredMovies.sort((a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-      }
-
-      return filteredMovies;
+      return [];
     },
   });
 
@@ -208,6 +216,17 @@ const Home = () => {
   }
 
   const featuredMovies = filteredMovies.slice(0, 5);
+  const newMovies = [...filteredMovies].sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ).slice(0, 12);
+
+  const trendingMovies = filteredMovies
+    .filter(movie => (movie.watch_count || 0) + (movie.share_count || 0) > 10)
+    .sort((a, b) => 
+      ((b.watch_count || 0) + (b.share_count || 0)) - 
+      ((a.watch_count || 0) + (a.share_count || 0))
+    )
+    .slice(0, 12);
 
   return (
     <div className="min-h-screen pt-14">
@@ -260,7 +279,6 @@ const Home = () => {
             </div>
           )}
           
-          {/* Search and filter moved below the carousel */}
           <div className={`mt-6 mb-4 ${isMobile ? 'sticky top-[3.5rem] z-10 bg-background/95 backdrop-blur-sm py-3 -mx-4 px-4' : ''}`}>
             <div className="flex flex-col gap-4">
               <div className="flex gap-3 items-center w-full">
@@ -343,7 +361,6 @@ const Home = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              {/* Mobile quick filters */}
               {isMobile && (
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
                   <Select value={ratingFilter} onValueChange={setRatingFilter}>
@@ -388,34 +405,11 @@ const Home = () => {
 
       <section className="py-8 md:py-12 bg-gradient-to-b from-background/80 to-background mt-[-60px] md:mt-[-120px] relative z-10">
         <Card className="container mx-auto px-4">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
-              <h2 className="text-2xl md:text-3xl font-display font-bold">Featured Movies</h2>
-              {!isMobile && (
-                <div className="flex items-center w-full md:w-auto">
-                  <label className="text-sm text-muted-foreground mr-2 whitespace-nowrap">Filter:</label>
-                  <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="All Ratings" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Ratings</SelectItem>
-                      <SelectItem value="4">4+ Stars</SelectItem>
-                      <SelectItem value="3">3+ Stars</SelectItem>
-                      <SelectItem value="2">2+ Stars</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            {filteredMovies.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-xl text-muted-foreground">No movies found matching your search criteria.</p>
-              </div>
-            ) : (
+          <CardContent className="pt-6 space-y-12">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-display font-bold mb-6">New Releases</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
-                {filteredMovies.map((movie) => (
+                {newMovies.map((movie) => (
                   <Link
                     to={`/movie/${movie.id}`}
                     key={movie.id}
@@ -460,7 +454,124 @@ const Home = () => {
                   </Link>
                 ))}
               </div>
+            </div>
+
+            {trendingMovies.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-6">
+                  <TrendingUp className="w-6 h-6 text-netflix-red" />
+                  <h2 className="text-2xl md:text-3xl font-display font-bold">Trending Now</h2>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                  {trendingMovies.map((movie) => (
+                    <Link
+                      to={`/movie/${movie.id}`}
+                      key={movie.id}
+                      className="movie-card group animate-fade-in"
+                    >
+                      <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
+                        <img
+                          src={movie.thumbnail_url}
+                          alt={movie.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        {isMobile ? (
+                          <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2">
+                            <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
+                            <div className="flex items-center justify-between mt-1">
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 text-netflix-gold" />
+                                <span className="text-xs text-white">
+                                  {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                                </span>
+                              </div>
+                              <MessageSquare className="h-3 w-3 text-white/80" />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="movie-card-overlay">
+                            <div className="absolute bottom-0 p-4 w-full">
+                              <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <Star className="h-4 w-4 text-netflix-gold" />
+                                  <span className="text-sm">
+                                    {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                                  </span>
+                                </div>
+                                <MessageSquare className="h-4 w-4 text-netflix-gray" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             )}
+
+            {Object.entries(moviesByGenre)
+              .sort(([, moviesA], [, moviesB]) => {
+                const engagementA = moviesA.reduce((sum, movie) => 
+                  sum + (movie.watch_count || 0) + (movie.share_count || 0), 0
+                );
+                const engagementB = moviesB.reduce((sum, movie) => 
+                  sum + (movie.watch_count || 0) + (movie.share_count || 0), 0
+                );
+                return engagementB - engagementA;
+              })
+              .map(([genre, genreMovies]) => (
+                <div key={genre}>
+                  <h2 className="text-2xl md:text-3xl font-display font-bold mb-6">{genre}</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                    {genreMovies.slice(0, 12).map((movie) => (
+                      <Link
+                        to={`/movie/${movie.id}`}
+                        key={movie.id}
+                        className="movie-card group animate-fade-in"
+                      >
+                        <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
+                          <img
+                            src={movie.thumbnail_url}
+                            alt={movie.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                          />
+                          {isMobile ? (
+                            <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2">
+                              <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
+                              <div className="flex items-center justify-between mt-1">
+                                <div className="flex items-center gap-1">
+                                  <Star className="h-3 w-3 text-netflix-gold" />
+                                  <span className="text-xs text-white">
+                                    {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                                  </span>
+                                </div>
+                                <MessageSquare className="h-3 w-3 text-white/80" />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="movie-card-overlay">
+                              <div className="absolute bottom-0 p-4 w-full">
+                                <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <Star className="h-4 w-4 text-netflix-gold" />
+                                    <span className="text-sm">
+                                      {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
+                                    </span>
+                                  </div>
+                                  <MessageSquare className="h-4 w-4 text-netflix-gray" />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
           </CardContent>
         </Card>
       </section>
