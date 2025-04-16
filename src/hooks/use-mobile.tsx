@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 
 /**
@@ -5,14 +6,11 @@ import React, { useState, useEffect } from "react";
  * @returns boolean indicating if the current viewport is mobile size
  */
 export function useIsMobile(): boolean {
-  // Initialize with false and update only on client-side
-  const [mounted, setMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   useEffect(() => {
-    // Mark component as mounted
-    setMounted(true);
-    
+    if (typeof window === "undefined") return; // Ensure this runs only on the client side
+
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768); // Adjust breakpoint as needed
     };
@@ -29,9 +27,7 @@ export function useIsMobile(): boolean {
     };
   }, []);
 
-  // Only return the actual state when component is mounted (client-side)
-  // Otherwise return false as default
-  return mounted ? isMobile : false;
+  return isMobile;
 }
 
 export default useIsMobile;
