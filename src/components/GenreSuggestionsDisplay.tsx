@@ -1,11 +1,15 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GenreSuggestionsDisplayProps {
   movieId: string;
 }
 
 const GenreSuggestionsDisplay = ({ movieId }: GenreSuggestionsDisplayProps) => {
+  const isMobile = useIsMobile();
+  
   const { data: genreSuggestions } = useQuery({
     queryKey: ['genreSuggestions', movieId],
     queryFn: async () => {
@@ -32,7 +36,8 @@ const GenreSuggestionsDisplay = ({ movieId }: GenreSuggestionsDisplayProps) => {
   if (!genreSuggestions?.length) return null;
 
   return (
-    <div className="space-y-2 mt-2">
+    <div className={`space-y-2 mt-2 ${isMobile ? 'netflix-card p-3' : ''}`}>
+      <h3 className="font-medium mb-2">Genre Suggestions</h3>
       {genreSuggestions.map((suggestion) => (
         <div key={suggestion.suggested_genre} className="flex justify-between">
           <span>{suggestion.suggested_genre}</span>

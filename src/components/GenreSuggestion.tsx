@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GenreSuggestionProps {
   movieId: string;
@@ -13,6 +15,7 @@ interface GenreSuggestionProps {
 
 const GenreSuggestion = ({ movieId, userId, onSuggestionSubmit }: GenreSuggestionProps) => {
   const { register, handleSubmit, reset } = useForm();
+  const isMobile = useIsMobile();
 
   const onSubmit = async (data: any) => {
     try {
@@ -35,12 +38,13 @@ const GenreSuggestion = ({ movieId, userId, onSuggestionSubmit }: GenreSuggestio
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className={`space-y-4 ${isMobile ? 'netflix-card' : ''}`}>
       <Input
         placeholder="Suggest a genre..."
         {...register("genre", { required: true })}
+        className={isMobile ? 'bg-background/50' : ''}
       />
-      <Button type="submit">
+      <Button type="submit" className={isMobile ? 'w-full' : ''}>
         Submit Suggestion
       </Button>
     </form>

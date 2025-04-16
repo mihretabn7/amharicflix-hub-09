@@ -6,17 +6,12 @@ import { useState, useEffect } from "react";
  * @returns boolean indicating if the current viewport is mobile size
  */
 export function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
 
   useEffect(() => {
-    if (typeof window === "undefined") return; // Ensure this runs only on the client side
-
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768); // Adjust breakpoint as needed
     };
-
-    // Initial check
-    checkIfMobile();
 
     // Add event listener for window resize
     window.addEventListener("resize", checkIfMobile);
@@ -30,5 +25,4 @@ export function useIsMobile(): boolean {
   return isMobile;
 }
 
-// Ensure we only export the hook as a named export
 export default useIsMobile;
