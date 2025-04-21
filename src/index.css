@@ -153,6 +153,25 @@
   .profile-tabs {
     padding: 0.25rem !important;
   }
+
+  /* Improved video player container */
+  .netflix-player-container {
+    height: calc(100vh - 3.5rem) !important;
+    margin-top: 3.5rem !important;
+    padding-top: 0 !important;
+  }
+
+  /* Player controls for better touch interaction */
+  .netflix-controls {
+    padding: 0.75rem !important;
+    border-top: 2px solid #e50914 !important;
+  }
+
+  /* Video player aspect ratio container */
+  .aspect-video {
+    aspect-ratio: 16 / 9;
+    max-height: 40vh;
+  }
 }
 
 /* Netflix-style Mobile UI */
@@ -634,4 +653,32 @@
     aspect-ratio: 16 / 9;
     max-height: 40vh;
   }
+}
+
+/* ---- Hide scrollbars everywhere by default ---- */
+.scrollbar-hidden, .scroll-area > .ScrollAreaScrollbar, .scroll-area::-webkit-scrollbar, .scrollarea-horizontal::-webkit-scrollbar {
+  display: none !important;
+  background: transparent !important;
+  width: 0 !important;
+}
+
+.scroll-area, .scrollarea-horizontal {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  overflow-x: auto !important;
+}
+
+.scrollarea-horizontal {
+  overflow-x: auto;
+}
+
+.scrollarea-horizontal > * {
+  min-width: 110px;
+}
+
+/* shadcn scrollbar always invisible on .scroll-area or .scrollbar-hidden parent */
+.scroll-area [data-orientation="horizontal"] {
+  opacity: 0 !important;
+  height: 1px !important;
+  pointer-events: none !important;
 }

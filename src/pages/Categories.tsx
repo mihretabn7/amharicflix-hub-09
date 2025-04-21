@@ -6,6 +6,7 @@ import { Star, TrendingUp, MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import useIsMobile from "@/hooks/use-mobile";
+import MovieRow from "@/components/movie/MovieRow";
 
 const Categories = () => {
   const isMobile = useIsMobile();
@@ -132,9 +133,7 @@ const Categories = () => {
           {/* New Releases Section */}
           <div>
             <h2 className="text-2xl font-semibold mb-6">New Releases</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {newMovies.map((movie) => renderMovieCard(movie))}
-            </div>
+            <MovieRow movies={newMovies} />
           </div>
 
           {/* Trending Section */}
@@ -144,9 +143,7 @@ const Categories = () => {
                 <TrendingUp className="w-6 h-6 text-netflix-red" />
                 <h2 className="text-2xl font-semibold">Trending Now</h2>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {trendingMovies.map((movie) => renderMovieCard(movie))}
-              </div>
+              <MovieRow movies={trendingMovies} />
             </div>
           )}
 
@@ -154,9 +151,7 @@ const Categories = () => {
           {sortedGenres.map(([genre, movies]) => (
             <div key={genre}>
               <h2 className="text-2xl font-semibold mb-6">{genre}</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {movies.map((movie) => renderMovieCard(movie))}
-              </div>
+              <MovieRow movies={movies} />
             </div>
           ))}
         </div>

@@ -12,6 +12,7 @@ import { MovieReports } from "@/components/profile/MovieReports";
 import { FeedbackDialog } from "@/components/profile/FeedbackDialog";
 import { SupportDialog } from "@/components/profile/SupportDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
+import MovieRow from "@/components/movie/MovieRow";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -247,7 +248,12 @@ const Profile = () => {
                   <TabsTrigger value="reports" className={isMobile ? 'text-xs py-1.5' : ''}>Movie Reports</TabsTrigger>
                 </TabsList>
                 <TabsContent value="history">
-                  <WatchHistory items={watchHistory || []} />
+                  <MovieRow movies={(watchHistory || []).map(h => ({
+                    id: h.movie.id,
+                    title: h.movie.title,
+                    thumbnail_url: h.movie.thumbnail_url,
+                    duration_minutes: h.movie.duration_minutes
+                  }))} />
                 </TabsContent>
                 <TabsContent value="ratings">
                   <MovieRatings movies={ratedMovies || []} />
