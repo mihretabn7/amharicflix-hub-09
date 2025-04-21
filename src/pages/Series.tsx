@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import SeriesFilters from "@/components/series/SeriesFilters";
-import MovieRow from "@/components/movie/MovieRow";
+import SeriesGrid from "@/components/series/SeriesGrid";
 import { useSeries } from "@/hooks/useSeries";
 
 const Series = () => {
@@ -69,7 +70,7 @@ const Series = () => {
                                 genres={genres}
                             />
                         </div>
-                        <MovieRow movies={filteredSeries} />
+                        <SeriesGrid series={filteredSeries} />
                     </div>
                 </CardContent>
             </Card>
