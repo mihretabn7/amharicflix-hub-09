@@ -932,7 +932,6 @@ export type Database = {
       }
       track_movie_view_with_country: {
         Args:
-          | { p_movie_id: string; p_user_id?: string; p_user_ip?: string }
           | {
               p_movie_id: string
               p_user_id?: string
@@ -940,6 +939,7 @@ export type Database = {
               p_browser_info?: string
               p_device_info?: string
             }
+          | { p_movie_id: string; p_user_id?: string; p_user_ip?: string }
           | {
               p_movie_id: string
               p_user_id?: string
