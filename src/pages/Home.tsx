@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Info, Star, MessageSquare, Search, Filter, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, Info, Star, MessageSquare, Search, Filter, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,12 +26,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import useIsMobile from "@/hooks/use-mobile";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent
-} from "@/components/ui/accordion";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -43,10 +37,6 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [moviesByGenre, setMoviesByGenre] = useState<Record<string, typeof movies>>({});
   const isMobile = useIsMobile();
-  const [genreAccordionOpen, setGenreAccordionOpen] = useState(false);
-
-  const movieRowContainer = "flex gap-3 md:gap-4 overflow-x-auto scrollbar-thin scrollbar-thumb-netflix-red scrollbar-track-netflix-dark pb-2 -mx-2 px-2";
-  const movieCardWidth = "min-w-[150px] sm:min-w-[200px] md:min-w-[220px] lg:min-w-[240px]";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -309,33 +299,22 @@ const Home = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[230px] md:w-[250px]">
                     <div className="p-2 space-y-3">
-                      <Accordion type="single" collapsible defaultValue={genreAccordionOpen ? "genre" : undefined}>
-                        <AccordionItem value="genre">
-                          <AccordionTrigger onClick={() => setGenreAccordionOpen((prev) => !prev)}>
-                            Genre
-                            {genreAccordionOpen ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="max-h-56 overflow-y-auto flex flex-col gap-1 px-1 py-2">
-                              <Button
-                                variant={filterGenre === "all" ? "default" : "outline"}
-                                size="sm"
-                                className="w-full justify-start"
-                                onClick={() => setFilterGenre("all")}
-                              >All Genres</Button>
-                              {filters?.genres.map((genre) => (
-                                <Button
-                                  key={genre}
-                                  variant={filterGenre === genre ? "default" : "outline"}
-                                  size="sm"
-                                  className="w-full justify-start"
-                                  onClick={() => setFilterGenre(genre)}
-                                >{genre}</Button>
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
+                      <div>
+                        <label className="text-sm font-medium">Genre</label>
+                        <Select value={filterGenre} onValueChange={setFilterGenre}>
+                          <SelectTrigger className="mt-1">
+                            <SelectValue placeholder="All Genres" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Genres</SelectItem>
+                            {filters?.genres.map((genre) => (
+                              <SelectItem key={genre} value={genre}>
+                                {genre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div>
                         <label className="text-sm font-medium">Language</label>
                         <Select value={filterLanguage} onValueChange={setFilterLanguage}>
@@ -395,33 +374,19 @@ const Home = () => {
                       <SelectItem value="2">2+ Stars</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Accordion type="single" collapsible className="min-w-[110px]" defaultValue={genreAccordionOpen ? "genre" : undefined}>
-                    <AccordionItem value="genre">
-                      <AccordionTrigger onClick={() => setGenreAccordionOpen((prev) => !prev)}>
-                        Genre
-                        {genreAccordionOpen ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="max-h-52 overflow-y-auto flex flex-col gap-1 py-1">
-                          <Button
-                            variant={filterGenre === "all" ? "default" : "outline"}
-                            size="sm"
-                            className="w-full justify-start"
-                            onClick={() => setFilterGenre("all")}
-                          >All Genres</Button>
-                          {filters?.genres.map((genre) => (
-                            <Button
-                              key={genre}
-                              variant={filterGenre === genre ? "default" : "outline"}
-                              size="sm"
-                              className="w-full justify-start"
-                              onClick={() => setFilterGenre(genre)}
-                            >{genre}</Button>
-                          ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                  <Select value={filterGenre} onValueChange={setFilterGenre}>
+                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
+                      <SelectValue placeholder="Genre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Genres</SelectItem>
+                      {filters?.genres.map((genre) => (
+                        <SelectItem key={genre} value={genre}>
+                          {genre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
                     <SelectTrigger className="h-8 text-xs min-w-[100px]">
                       <SelectValue placeholder="Sort" />
@@ -443,12 +408,12 @@ const Home = () => {
           <CardContent className="pt-6 space-y-12">
             <div>
               <h2 className="text-2xl md:text-3xl font-display font-bold mb-6">New Releases</h2>
-              <div className={movieRowContainer}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
                 {newMovies.map((movie) => (
                   <Link
                     to={`/movie/${movie.id}`}
                     key={movie.id}
-                    className={`movie-card group animate-fade-in ${movieCardWidth}`}
+                    className="movie-card group animate-fade-in"
                   >
                     <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
                       <img
@@ -497,12 +462,12 @@ const Home = () => {
                   <TrendingUp className="w-6 h-6 text-netflix-red" />
                   <h2 className="text-2xl md:text-3xl font-display font-bold">Trending Now</h2>
                 </div>
-                <div className={movieRowContainer}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
                   {trendingMovies.map((movie) => (
                     <Link
                       to={`/movie/${movie.id}`}
                       key={movie.id}
-                      className={`movie-card group animate-fade-in ${movieCardWidth}`}
+                      className="movie-card group animate-fade-in"
                     >
                       <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
                         <img
@@ -559,12 +524,12 @@ const Home = () => {
               .map(([genre, genreMovies]) => (
                 <div key={genre}>
                   <h2 className="text-2xl md:text-3xl font-display font-bold mb-6">{genre}</h2>
-                  <div className={movieRowContainer}>
-                    {genreMovies.slice(0, 24).map((movie) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+                    {genreMovies.slice(0, 12).map((movie) => (
                       <Link
                         to={`/movie/${movie.id}`}
                         key={movie.id}
-                        className={`movie-card group animate-fade-in ${movieCardWidth}`}
+                        className="movie-card group animate-fade-in"
                       >
                         <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
                           <img
