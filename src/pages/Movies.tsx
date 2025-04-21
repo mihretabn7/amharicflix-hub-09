@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import useIsMobile from "@/hooks/use-mobile";
 
 const Movies = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,7 +29,8 @@ const Movies = () => {
   const [filterRating, setFilterRating] = useState<string>("all");
   const [filterLanguage, setFilterLanguage] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"latest" | "rating">("latest");
-  const [isMobile, setIsMobile] = useState(false);
+
+  const isMobile = useIsMobile();
 
   const { data: movies, isLoading } = useQuery({
     queryKey: ['movies', filterGenre, filterRating, filterLanguage, sortBy],
@@ -251,3 +254,4 @@ const Movies = () => {
 };
 
 export default Movies;
+
