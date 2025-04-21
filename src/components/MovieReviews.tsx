@@ -90,91 +90,100 @@ const MovieReviews = ({ movieId, currentUserId }: MovieReviewsProps) => {
     setEditedRating(0);
   };
 
+  // Compute reviews count for the collapsible header
+  const reviewsCount = reviews.length;
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-xl font-semibold mb-4">Reviews</h3>
-      {reviews.map((review) => (
-        <div key={review.id} className="bg-card p-4 rounded-lg space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={review.profiles?.avatar_url || ''} />
-                <AvatarFallback>
-                  <User className="h-6 w-6" />
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-medium">
-                  {review.profiles?.username || review.profiles?.email || review.profiles?.phone_number}
-                </div>
-                {!editingReview || editingReview !== review.id ? (
-                  <div className="flex items-center">
-                    {[...Array(review.rating || 0)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                    ))}
+    <div>
+      {/* Header is handled in parent - here we just show the reviews */}
+      <div className="space-y-4">
+        {reviewsCount === 0 ? (
+          <div className="text-gray-400">No reviews yet</div>
+        ) : (
+          reviews.map((review) => (
+            <div key={review.id} className="bg-card p-4 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={review.profiles?.avatar_url || ''} />
+                    <AvatarFallback>
+                      <User className="h-6 w-6" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">
+                      {review.profiles?.username || review.profiles?.email || review.profiles?.phone_number}
+                    </div>
+                    {!editingReview || editingReview !== review.id ? (
+                      <div className="flex items-center">
+                        {[...Array(review.rating || 0)].map((_, i) => (
+                          <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 cursor-pointer ${
+                              editedRating >= star
+                                ? "text-yellow-400 fill-current"
+                                : "text-gray-400"
+                            }`}
+                            onClick={() => setEditedRating(star)}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="flex items-center space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`h-4 w-4 cursor-pointer ${
-                          editedRating >= star
-                            ? "text-yellow-400 fill-current"
-                            : "text-gray-400"
-                        }`}
-                        onClick={() => setEditedRating(star)}
-                      />
-                    ))}
+                </div>
+                {currentUserId === review.user_id && (
+                  <div className="flex items-center space-x-2">
+                    {editingReview === review.id ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSave(review.id)}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleCancel}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(review)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 )}
+              </div>
+              {editingReview === review.id ? (
+                <Textarea
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                  className="mt-2"
+                />
+              ) : (
+                <p className="text-gray-300">{review.review}</p>
+              )}
+              <div className="text-sm text-gray-400">
+                {new Date(review.created_at).toLocaleDateString()}
               </div>
             </div>
-            {currentUserId === review.user_id && (
-              <div className="flex items-center space-x-2">
-                {editingReview === review.id ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSave(review.id)}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancel}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(review)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-          {editingReview === review.id ? (
-            <Textarea
-              value={editedContent}
-              onChange={(e) => setEditedContent(e.target.value)}
-              className="mt-2"
-            />
-          ) : (
-            <p className="text-gray-300">{review.review}</p>
-          )}
-          <div className="text-sm text-gray-400">
-            {new Date(review.created_at).toLocaleDateString()}
-          </div>
-        </div>
-      ))}
+          ))
+        )}
+      </div>
     </div>
   );
 };
