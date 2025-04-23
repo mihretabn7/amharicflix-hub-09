@@ -1,4 +1,3 @@
-
 import { Movie } from "@/types/movie";
 import MovieRating from "@/components/MovieRating";
 import MovieReportModal from "@/components/MovieReportModal";
@@ -122,7 +121,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
         ></iframe>
       </div>
 
-      {/* Collapsible Genre Suggestions Section */}
+      {/* === Collapsible Genre Suggestions Section === */}
       <div className={`bg-card border-t border-border ${isMobile ? 'p-3' : 'p-4'}`}>
         <Collapsible open={genreCollapsibleOpen} onOpenChange={setGenreCollapsibleOpen}>
           <div className="flex items-center mb-2">
@@ -242,4 +241,3 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
 };
 
 export default MoviePlayer;
-
