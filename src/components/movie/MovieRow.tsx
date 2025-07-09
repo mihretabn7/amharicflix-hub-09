@@ -24,7 +24,7 @@ export default function MovieRow({ movies, className = "", itemClassName = "" }:
   }
   
   return (
-    <ScrollArea orientation="horizontal" className={cn("w-full overflow-x-auto", className)}>
+    <ScrollArea className={cn("w-full overflow-x-auto", className)}>
       <div className="flex gap-3 py-1">
         {movies.map((movie) => (
           <Link to={`/movie/${movie.id}`} key={movie.id} className={cn("min-w-[130px] max-w-[180px] transition-transform duration-300 hover:scale-105", itemClassName, "group")}>
