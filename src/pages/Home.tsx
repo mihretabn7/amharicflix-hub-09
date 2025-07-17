@@ -240,14 +240,15 @@ const Home = () => {
 
   return (
     <div className="min-h-screen pt-14">
-      <section className="py-4 md:py-12">
-        <div className="container mx-auto px-4">
+      {/* Hero Section with Featured Movies */}
+      <section className="relative mb-8">
+        <div className="w-full">
           {filteredMovies.length > 0 ? (
             <Slider {...settings}>
               {featuredMovies.map((movie) => (
-                <div key={movie.id} className="relative h-[50vh] md:h-[80vh] w-full lg:w-1/2 mx-auto rounded-xl overflow-hidden">
+                <div key={movie.id} className="relative h-[55vh] md:h-[75vh] w-full overflow-hidden">
                   <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300 hover:scale-105"
+                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300"
                     style={{
                       backgroundImage: `url(${movie.thumbnail_url})`,
                       objectFit: 'cover',
@@ -257,26 +258,31 @@ const Home = () => {
                   </div>
 
                   <div className="relative h-full flex items-center">
-                    <div className="container mx-auto px-4 animate-fade-in">
-                      <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-4">
-                        {movie.title}
-                      </h1>
-                      <div className="flex flex-wrap space-x-2 space-y-2 md:space-y-0 md:space-x-4">
-                        <Button
-                          size={isMobile ? "default" : "lg"}
-                          className="bg-netflix-red hover:bg-netflix-red/90 transition-colors duration-300"
-                          onClick={() => navigate(`/movie/${movie.id}`)}
-                        >
-                          <Play className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Play
-                        </Button>
-                        <Button
-                          size={isMobile ? "default" : "lg"}
-                          variant="outline"
-                          className="backdrop-blur-sm bg-black/20 hover:bg-black/40 transition-colors duration-300"
-                          onClick={() => navigate(`/movie/${movie.id}`)}
-                        >
-                          <Info className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Info
-                        </Button>
+                    <div className="container mx-auto px-4 md:px-6 lg:px-8 animate-fade-in">
+                      <div className="max-w-2xl">
+                        <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
+                          {movie.title}
+                        </h1>
+                        <p className="text-base md:text-lg text-gray-200 mb-6 line-clamp-3">
+                          {movie.description || "Discover amazing content in Ethiopian cinema."}
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                          <Button
+                            size={isMobile ? "default" : "lg"}
+                            className="bg-netflix-red hover:bg-netflix-red/90 transition-all duration-300 shadow-lg hover:shadow-xl"
+                            onClick={() => navigate(`/movie/${movie.id}`)}
+                          >
+                            <Play className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Play Now
+                          </Button>
+                          <Button
+                            size={isMobile ? "default" : "lg"}
+                            variant="outline"
+                            className="backdrop-blur-sm bg-white/10 border-white/30 text-white hover:bg-white/20 transition-all duration-300"
+                            onClick={() => navigate(`/movie/${movie.id}`)}
+                          >
+                            <Info className="mr-2 h-4 w-4 md:h-5 md:w-5" /> More Info
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -284,261 +290,195 @@ const Home = () => {
               ))}
             </Slider>
           ) : (
-            <div className="flex justify-center items-center h-[40vh]">
-              <p className="text-xl text-muted-foreground">No movies found matching your search.</p>
+            <div className="flex justify-center items-center h-[50vh] bg-gradient-to-b from-muted/20 to-background">
+              <div className="text-center">
+                <p className="text-xl text-muted-foreground mb-4">No movies found matching your search.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSearchQuery("")}
+                  className="hover:bg-primary hover:text-primary-foreground"
+                >
+                  Clear Search
+                </Button>
+              </div>
             </div>
           )}
-          
-          <div className={`mt-6 mb-4 ${isMobile ? 'sticky top-[3.5rem] z-10 bg-background/95 backdrop-blur-sm py-3 -mx-4 px-4' : ''}`}>
-            <div className="flex flex-col gap-4">
-              <div className="flex gap-3 items-center w-full">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search movies..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 w-full"
-                  />
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-[230px] md:w-[250px]">
-                    <div className="p-2 space-y-3">
-                      <Accordion type="single" collapsible defaultValue={genreAccordionOpen ? "genre" : undefined}>
-                        <AccordionItem value="genre">
-                          <AccordionTrigger onClick={() => setGenreAccordionOpen((prev) => !prev)}>
-                            Genre
-                            {genreAccordionOpen ? <ChevronUp className="ml-2 h-4 w-4" /> : <ChevronDown className="ml-2 h-4 w-4" />}
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="max-h-56 overflow-y-auto flex flex-col gap-1 px-1 py-2">
-                              <Button
-                                variant={filterGenre === "all" ? "default" : "outline"}
-                                size="sm"
-                                className="w-full justify-start"
-                                onClick={() => setFilterGenre("all")}
-                              >All Genres</Button>
-                              {filters?.genres.map((genre) => (
-                                <Button
-                                  key={genre}
-                                  variant={filterGenre === genre ? "default" : "outline"}
-                                  size="sm"
-                                  className="w-full justify-start"
-                                  onClick={() => setFilterGenre(genre)}
-                                >{genre}</Button>
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                      <div>
-                        <label className="text-sm font-medium">Language</label>
-                        <Select value={filterLanguage} onValueChange={setFilterLanguage}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="All Languages" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Languages</SelectItem>
-                            {filters?.languages.map((language) => (
-                              <SelectItem key={language} value={language}>
-                                {language}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Rating</label>
-                        <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="All Ratings" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Ratings</SelectItem>
-                            <SelectItem value="4">4+ Stars</SelectItem>
-                            <SelectItem value="3">3+ Stars</SelectItem>
-                            <SelectItem value="2">2+ Stars</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Sort By</label>
-                        <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Sort By" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="latest">Latest</SelectItem>
-                            <SelectItem value="rating">Rating</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+        </div>
+      </section>
+
+      {/* Search and Filter Section */}
+      <section className="py-6 bg-background/80 backdrop-blur-sm border-y border-border/10">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8">
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-3 items-center w-full">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search movies..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 w-full border-border/20 bg-background/50 backdrop-blur-sm"
+                />
               </div>
-              {isMobile && (
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
-                  <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
-                      <SelectValue placeholder="Rating" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Ratings</SelectItem>
-                      <SelectItem value="4">4+ Stars</SelectItem>
-                      <SelectItem value="3">3+ Stars</SelectItem>
-                      <SelectItem value="2">2+ Stars</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Accordion type="single" collapsible className="min-w-[110px]" defaultValue={genreAccordionOpen ? "genre" : undefined}>
-                    <AccordionItem value="genre">
-                      <AccordionTrigger onClick={() => setGenreAccordionOpen((prev) => !prev)}>
-                        Genre
-                        {genreAccordionOpen ? <ChevronUp className="ml-1 h-3 w-3" /> : <ChevronDown className="ml-1 h-3 w-3" />}
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="max-h-52 overflow-y-auto flex flex-col gap-1 py-1">
-                          <Button
-                            variant={filterGenre === "all" ? "default" : "outline"}
-                            size="sm"
-                            className="w-full justify-start"
-                            onClick={() => setFilterGenre("all")}
-                          >All Genres</Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="shrink-0 border-border/20 bg-background/50 backdrop-blur-sm">
+                    <Filter className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[260px] bg-background/95 backdrop-blur-sm border-border/20">
+                  <div className="p-3 space-y-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Genre</label>
+                      <Select value={filterGenre} onValueChange={setFilterGenre}>
+                        <SelectTrigger className="border-border/20">
+                          <SelectValue placeholder="All Genres" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Genres</SelectItem>
                           {filters?.genres.map((genre) => (
-                            <Button
-                              key={genre}
-                              variant={filterGenre === genre ? "default" : "outline"}
-                              size="sm"
-                              className="w-full justify-start"
-                              onClick={() => setFilterGenre(genre)}
-                            >{genre}</Button>
+                            <SelectItem key={genre} value={genre}>
+                              {genre}
+                            </SelectItem>
                           ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                  <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
-                    <SelectTrigger className="h-8 text-xs min-w-[100px]">
-                      <SelectValue placeholder="Sort" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="latest">Latest</SelectItem>
-                      <SelectItem value="rating">Rating</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Language</label>
+                      <Select value={filterLanguage} onValueChange={setFilterLanguage}>
+                        <SelectTrigger className="border-border/20">
+                          <SelectValue placeholder="All Languages" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Languages</SelectItem>
+                          {filters?.languages.map((language) => (
+                            <SelectItem key={language} value={language}>
+                              {language}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Rating</label>
+                      <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                        <SelectTrigger className="border-border/20">
+                          <SelectValue placeholder="All Ratings" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Ratings</SelectItem>
+                          <SelectItem value="4">4+ Stars</SelectItem>
+                          <SelectItem value="3">3+ Stars</SelectItem>
+                          <SelectItem value="2">2+ Stars</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Sort By</label>
+                      <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
+                        <SelectTrigger className="border-border/20">
+                          <SelectValue placeholder="Sort By" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="latest">Latest</SelectItem>
+                          <SelectItem value="rating">Rating</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+            
+            {/* Mobile Quick Filters */}
+            {isMobile && (
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
+                <Select value={filterGenre} onValueChange={setFilterGenre}>
+                  <SelectTrigger className="h-8 text-xs min-w-[90px] border-border/20 bg-background/50">
+                    <SelectValue placeholder="Genre" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {filters?.genres.slice(0, 5).map((genre) => (
+                      <SelectItem key={genre} value={genre}>
+                        {genre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                  <SelectTrigger className="h-8 text-xs min-w-[90px] border-border/20 bg-background/50">
+                    <SelectValue placeholder="Rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="4">4+ ★</SelectItem>
+                    <SelectItem value="3">3+ ★</SelectItem>
+                    <SelectItem value="2">2+ ★</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
+                  <SelectTrigger className="h-8 text-xs min-w-[90px] border-border/20 bg-background/50">
+                    <SelectValue placeholder="Sort" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="latest">Latest</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      <section className="py-8 md:py-12 bg-gradient-to-b from-background/80 to-background mt-[-60px] md:mt-[-120px] relative z-10">
-        <Card className="container mx-auto px-4">
-          <CardContent className="pt-6 space-y-12">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-display font-bold mb-6">New Releases</h2>
-              <div className={movieRowContainer}>
-                {newMovies.map((movie) => (
-                  <Link
-                    to={`/movie/${movie.id}`}
-                    key={movie.id}
-                    className={`movie-card group animate-fade-in ${movieCardWidth}`}
+      {/* Content Sections */}
+      <section className="py-12 md:py-16 bg-gradient-to-b from-background to-background/95">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8">
+          <div className="space-y-16">
+            {/* New Releases */}
+            {newMovies.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">New Releases</h2>
+                  <Link 
+                    to="/movies?sort=latest" 
+                    className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
                   >
-                    <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
-                      <img
-                        src={movie.thumbnail_url}
-                        alt={movie.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      {isMobile ? (
-                        <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2">
-                          <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
-                          <div className="flex items-center justify-between mt-1">
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 text-netflix-gold" />
-                              <span className="text-xs text-white">
-                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                              </span>
-                            </div>
-                            <MessageSquare className="h-3 w-3 text-white/80" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="movie-card-overlay">
-                          <div className="absolute bottom-0 p-4 w-full">
-                            <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <Star className="h-4 w-4 text-netflix-gold" />
-                                <span className="text-sm">
-                                  {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                                </span>
-                              </div>
-                              <MessageSquare className="h-4 w-4 text-netflix-gray" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    View All →
                   </Link>
-                ))}
-              </div>
-            </div>
-
-            {trendingMovies.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-6">
-                  <TrendingUp className="w-6 h-6 text-netflix-red" />
-                  <h2 className="text-2xl md:text-3xl font-display font-bold">Trending Now</h2>
                 </div>
-                <div className={movieRowContainer}>
-                  {trendingMovies.map((movie) => (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                  {newMovies.map((movie) => (
                     <Link
                       to={`/movie/${movie.id}`}
                       key={movie.id}
-                      className={`movie-card group animate-fade-in ${movieCardWidth}`}
+                      className="group animate-fade-in hover:scale-105 transition-transform duration-300"
                     >
-                      <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
+                      <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <img
                           src={movie.thumbnail_url}
                           alt={movie.title}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                         />
-                        {isMobile ? (
-                          <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2">
-                            <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
-                            <div className="flex items-center justify-between mt-1">
-                              <div className="flex items-center gap-1">
-                                <Star className="h-3 w-3 text-netflix-gold" />
-                                <span className="text-xs text-white">
-                                  {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                                </span>
-                              </div>
-                              <MessageSquare className="h-3 w-3 text-white/80" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                          <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                              <span className="text-xs text-white/90">
+                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'New'}
+                              </span>
                             </div>
+                            {movie.genre && (
+                              <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
+                                {movie.genre}
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <div className="movie-card-overlay">
-                            <div className="absolute bottom-0 p-4 w-full">
-                              <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <Star className="h-4 w-4 text-netflix-gold" />
-                                  <span className="text-sm">
-                                    {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                                  </span>
-                                </div>
-                                <MessageSquare className="h-4 w-4 text-netflix-gray" />
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        </div>
                       </div>
                     </Link>
                   ))}
@@ -546,6 +486,60 @@ const Home = () => {
               </div>
             )}
 
+            {/* Trending Now */}
+            {trendingMovies.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-netflix-red" />
+                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">Trending Now</h2>
+                  </div>
+                  <Link 
+                    to="/movies?sort=trending" 
+                    className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
+                  >
+                    View All →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                  {trendingMovies.map((movie) => (
+                    <Link
+                      to={`/movie/${movie.id}`}
+                      key={movie.id}
+                      className="group animate-fade-in hover:scale-105 transition-transform duration-300"
+                    >
+                      <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <img
+                          src={movie.thumbnail_url}
+                          alt={movie.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                          <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                              <span className="text-xs text-white/90">
+                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'Hot'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="h-3 w-3 text-netflix-red" />
+                              <span className="text-xs text-white/70">
+                                {(movie.watch_count || 0) + (movie.share_count || 0)} views
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Browse by Genre */}
             {Object.entries(moviesByGenre)
               .sort(([, moviesA], [, moviesB]) => {
                 const engagementA = moviesA.reduce((sum, movie) => 
@@ -557,58 +551,52 @@ const Home = () => {
                 return engagementB - engagementA;
               })
               .map(([genre, genreMovies]) => (
-                <div key={genre}>
-                  <h2 className="text-2xl md:text-3xl font-display font-bold mb-6">{genre}</h2>
-                  <div className={movieRowContainer}>
-                    {genreMovies.slice(0, 24).map((movie) => (
+                <div key={genre} className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">{genre}</h2>
+                    <Link 
+                      to={`/movies?genre=${encodeURIComponent(genre)}`} 
+                      className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
+                    >
+                      View All →
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                    {genreMovies.slice(0, 12).map((movie) => (
                       <Link
                         to={`/movie/${movie.id}`}
                         key={movie.id}
-                        className={`movie-card group animate-fade-in ${movieCardWidth}`}
+                        className="group animate-fade-in hover:scale-105 transition-transform duration-300"
                       >
-                        <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative">
+                        <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
                           <img
                             src={movie.thumbnail_url}
                             alt={movie.title}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                           />
-                          {isMobile ? (
-                            <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/90 to-transparent p-2">
-                              <h3 className="text-sm font-medium line-clamp-2 text-white">{movie.title}</h3>
-                              <div className="flex items-center justify-between mt-1">
-                                <div className="flex items-center gap-1">
-                                  <Star className="h-3 w-3 text-netflix-gold" />
-                                  <span className="text-xs text-white">
-                                    {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                                  </span>
-                                </div>
-                                <MessageSquare className="h-3 w-3 text-white/80" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                            <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                                <span className="text-xs text-white/90">
+                                  {movie.averageRating ? movie.averageRating.toFixed(1) : 'New'}
+                                </span>
                               </div>
+                              <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
+                                {movie.language || 'Amharic'}
+                              </span>
                             </div>
-                          ) : (
-                            <div className="movie-card-overlay">
-                              <div className="absolute bottom-0 p-4 w-full">
-                                <h3 className="text-sm font-medium mb-2 line-clamp-2">{movie.title}</h3>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-2">
-                                    <Star className="h-4 w-4 text-netflix-gold" />
-                                    <span className="text-sm">
-                                      {movie.averageRating ? movie.averageRating.toFixed(1) : 'No ratings'}
-                                    </span>
-                                  </div>
-                                  <MessageSquare className="h-4 w-4 text-netflix-gray" />
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                          </div>
                         </div>
                       </Link>
                     ))}
                   </div>
                 </div>
               ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </section>
     </div>
   );
