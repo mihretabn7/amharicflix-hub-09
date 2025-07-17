@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import React from "react";
 
 /**
  * Hook to detect if the current viewport is mobile size
@@ -7,9 +7,9 @@ import { useState, useEffect } from "react";
  */
 export function useIsMobile(): boolean {
   // Initialize with false to avoid hydration issues
-  const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = React.useState<boolean>(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Check if window is available (client-side)
     if (typeof window === 'undefined') return;
 
