@@ -126,36 +126,176 @@ const Categories = () => {
   );
 
   return (
-    <div className="min-h-screen bg-netflix-dark pt-24">
-      <div className="container mx-auto px-6">
-        <h1 className="text-3xl font-bold mb-8">Categories</h1>
-        <div className="space-y-12">
-          {/* New Releases Section */}
-          <div>
-            <h2 className="text-2xl font-semibold mb-6">New Releases</h2>
-            <MovieRow movies={newMovies} />
+    <div className="min-h-screen pt-14">
+      {/* Header Section */}
+      <section className="py-8 md:py-12 bg-gradient-to-b from-background/95 to-background border-b border-border/10">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8">
+          <div className="text-center md:text-left space-y-4">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold">
+              Browse Categories
+            </h1>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto md:mx-0">
+              Explore movies and series organized by genre, popularity, and release date
+            </p>
           </div>
-
-          {/* Trending Section */}
-          {trendingMovies.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-6">
-                <TrendingUp className="w-6 h-6 text-netflix-red" />
-                <h2 className="text-2xl font-semibold">Trending Now</h2>
-              </div>
-              <MovieRow movies={trendingMovies} />
-            </div>
-          )}
-
-          {/* Genre Sections */}
-          {sortedGenres.map(([genre, movies]) => (
-            <div key={genre}>
-              <h2 className="text-2xl font-semibold mb-6">{genre}</h2>
-              <MovieRow movies={movies} />
-            </div>
-          ))}
         </div>
-      </div>
+      </section>
+
+      {/* Categories Content */}
+      <section className="py-12 md:py-16">
+        <div className="container mx-auto px-4 md:px-6 lg:px-8">
+          <div className="space-y-16">
+            {/* New Releases Section */}
+            {newMovies.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">New Releases</h2>
+                  <Link 
+                    to="/movies?sort=latest" 
+                    className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
+                  >
+                    View All →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                  {newMovies.slice(0, 12).map((movie) => (
+                    <Link
+                      to={`/movie/${movie.id}`}
+                      key={movie.id}
+                      className="group animate-fade-in hover:scale-105 transition-transform duration-300"
+                    >
+                      <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <img
+                          src={movie.thumbnail_url}
+                          alt={movie.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                          <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                              <span className="text-xs text-white/90">
+                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'New'}
+                              </span>
+                            </div>
+                            {movie.genre && (
+                              <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
+                                {movie.genre}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Trending Section */}
+            {trendingMovies.length > 0 && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-netflix-red" />
+                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">Trending Now</h2>
+                  </div>
+                  <Link 
+                    to="/movies?sort=trending" 
+                    className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
+                  >
+                    View All →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                  {trendingMovies.slice(0, 12).map((movie) => (
+                    <Link
+                      to={`/movie/${movie.id}`}
+                      key={movie.id}
+                      className="group animate-fade-in hover:scale-105 transition-transform duration-300"
+                    >
+                      <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <img
+                          src={movie.thumbnail_url}
+                          alt={movie.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                          <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                              <span className="text-xs text-white/90">
+                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'Hot'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="h-3 w-3 text-netflix-red" />
+                              <span className="text-xs text-white/70">
+                                {(movie.watch_count || 0) + (movie.share_count || 0)} views
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Genre Sections */}
+            {sortedGenres.map(([genre, movies]) => (
+              <div key={genre} className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">{genre}</h2>
+                  <Link 
+                    to={`/movies?genre=${encodeURIComponent(genre)}`} 
+                    className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
+                  >
+                    View All →
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                  {movies.slice(0, 12).map((movie) => (
+                    <Link
+                      to={`/movie/${movie.id}`}
+                      key={movie.id}
+                      className="group animate-fade-in hover:scale-105 transition-transform duration-300"
+                    >
+                      <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <img
+                          src={movie.thumbnail_url}
+                          alt={movie.title}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                          <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                              <span className="text-xs text-white/90">
+                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'New'}
+                              </span>
+                            </div>
+                            <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
+                              {movie.language || 'Amharic'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   );
 };
