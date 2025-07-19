@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import useIsMobile from "@/hooks/use-mobile";
 import MovieRow from "@/components/movie/MovieRow";
+import { getFirstGenre } from "@/utils/genre";
 
 const Movies = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -305,7 +306,7 @@ const Movies = () => {
                           </div>
                           {movie.genre && (
                             <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
-                              {movie.genre}
+                              {getFirstGenre(movie.genre)}
                             </span>
                           )}
                         </div>

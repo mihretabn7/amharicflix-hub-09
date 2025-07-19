@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import useIsMobile from "@/hooks/use-mobile";
+import { getFirstGenre } from "@/utils/genre";
 import {
   Accordion,
   AccordionItem,
@@ -474,7 +475,7 @@ const Home = () => {
                             </div>
                             {movie.genre && (
                               <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
-                                {movie.genre}
+                                {getFirstGenre(movie.genre)}
                               </span>
                             )}
                           </div>

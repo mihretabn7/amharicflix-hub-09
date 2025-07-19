@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
 import Navbar from "./components/Navbar";
+import BottomNavigation from "./components/BottomNavigation";
 import Home from "./pages/Home";
 import Movies from "./pages/Movies";
 import Categories from "./pages/Categories";
@@ -174,7 +175,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pb-20 md:pb-0">
         <Routes>
           <Route path="/admin/*" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
@@ -202,6 +203,7 @@ function App() {
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
               </Routes>
+              <BottomNavigation />
             </>
           } />
         </Routes>
