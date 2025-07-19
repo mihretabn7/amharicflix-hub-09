@@ -333,13 +333,15 @@ const MovieDetail = () => {
 
   return (
     <div className={`min-h-screen ${isMobile ? 'pt-0 netflix-movie-detail' : 'pt-16'}`}>
-      <div className={`relative ${isMobile ? 'h-[60vh]' : 'h-[70vh]'}`}>
+      <div className={`relative ${isMobile ? 'h-[60vh]' : isPlaying ? 'h-screen' : 'h-[70vh]'}`}>
         {isPlaying ? (
-          <MoviePlayer
-            movie={movie}
-            userId={session?.user?.id}
-            onRatingSubmit={refetch}
-          />
+          <div className="h-full">
+            <MoviePlayer
+              movie={movie}
+              userId={session?.user?.id}
+              onRatingSubmit={refetch}
+            />
+          </div>
         ) : (
           <MovieHero
             movie={movie}

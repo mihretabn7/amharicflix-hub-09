@@ -109,7 +109,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
 
   return (
     <div className={`flex flex-col ${isMobile ? 'h-[calc(100vh-3.5rem)] mt-14' : 'h-full'}`}>
-      <div className={`flex-grow bg-black ${isMobile ? 'aspect-video' : ''}`}>
+      <div className={`${isMobile ? 'flex-grow bg-black aspect-video' : 'bg-black'} ${!isMobile ? 'h-[85vh]' : ''}`}>
         <iframe
           width="100%"
           height="100%"
@@ -117,7 +117,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
           title="YouTube video player"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          className="w-full h-full"
+          className="w-full h-full rounded-lg"
         ></iframe>
       </div>
 
