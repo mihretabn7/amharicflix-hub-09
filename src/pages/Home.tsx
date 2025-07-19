@@ -585,6 +585,11 @@ const Home = () => {
                                   {movie.averageRating ? movie.averageRating.toFixed(1) : 'New'}
                                 </span>
                               </div>
+                              {movie.genre && (
+                                <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
+                                  {getFirstGenre(movie.genre)}
+                                </span>
+                              )}
                               <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
                                 {movie.language || 'Amharic'}
                               </span>
