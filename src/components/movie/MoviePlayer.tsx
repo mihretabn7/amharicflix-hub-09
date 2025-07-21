@@ -108,8 +108,8 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
   };
 
   return (
-    <div className={`flex flex-col ${isMobile ? 'h-[calc(100vh-3.5rem)] mt-14' : 'h-full'}`}>
-      <div className={`${isMobile ? 'flex-grow bg-black aspect-video' : 'bg-black'} ${!isMobile ? 'h-[85vh]' : ''}`}>
+    <div className={`flex flex-col ${isMobile ? 'h-[calc(100vh-3.5rem)] mt-14' : 'h-screen'}`}>
+      <div className={`${isMobile ? 'flex-grow bg-black aspect-video' : 'bg-black flex-grow'}`}>
         <iframe
           width="100%"
           height="100%"
