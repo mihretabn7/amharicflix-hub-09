@@ -214,16 +214,16 @@ const Profile = () => {
   if (!session) return null;
 
   return (
-    <div className={`min-h-screen ${isMobile ? 'pt-16 pb-8' : 'pt-24'}`}>
-      <div className="container mx-auto px-4">
-        <div className="grid gap-6">
+    <div className={`min-h-screen ${isMobile ? 'pt-16 pb-20' : 'pt-24'} bg-background`}>
+      <div className={`container mx-auto ${isMobile ? 'px-3' : 'px-4'}`}>
+        <div className="grid gap-4">
           <ProfileHeader
             profile={profile}
             session={session}
             onProfileUpdate={refetchProfile}
           />
 
-          <div className={`flex items-center ${isMobile ? 'justify-center' : 'justify-end'} gap-3 mb-2`}>
+          <div className={`flex items-center ${isMobile ? 'justify-center flex-wrap' : 'justify-end'} gap-2 mb-2`}>
             <FeedbackDialog />
             <SupportDialog />
           </div>
@@ -239,26 +239,34 @@ const Profile = () => {
             }}
           />
 
-          <Card>
-            <CardContent className={`pt-6 ${isMobile ? 'px-2' : 'px-6'}`}>
+          <Card className={isMobile ? 'shadow-sm' : ''}>
+            <CardContent className={`${isMobile ? 'pt-4 px-3' : 'pt-6 px-6'}`}>
               <Tabs defaultValue="history" className="w-full">
-                <TabsList className={`${isMobile ? 'w-full grid grid-cols-3' : ''}`}>
-                  <TabsTrigger value="history" className={isMobile ? 'text-xs py-1.5' : ''}>Watch History</TabsTrigger>
-                  <TabsTrigger value="ratings" className={isMobile ? 'text-xs py-1.5' : ''}>Movie Ratings</TabsTrigger>
-                  <TabsTrigger value="reports" className={isMobile ? 'text-xs py-1.5' : ''}>Movie Reports</TabsTrigger>
+                <TabsList className={`${isMobile ? 'w-full grid grid-cols-3 h-10' : 'grid w-full grid-cols-3'}`}>
+                  <TabsTrigger value="history" className={isMobile ? 'text-xs px-2 py-2' : ''}>
+                    {isMobile ? 'History' : 'Watch History'}
+                  </TabsTrigger>
+                  <TabsTrigger value="ratings" className={isMobile ? 'text-xs px-2 py-2' : ''}>
+                    {isMobile ? 'Ratings' : 'Movie Ratings'}
+                  </TabsTrigger>
+                  <TabsTrigger value="reports" className={isMobile ? 'text-xs px-2 py-2' : ''}>
+                    {isMobile ? 'Reports' : 'Movie Reports'}
+                  </TabsTrigger>
                 </TabsList>
-                <TabsContent value="history">
-                  <MovieRow movies={(watchHistory || []).map(h => ({
-                    id: h.movie.id,
-                    title: h.movie.title,
-                    thumbnail_url: h.movie.thumbnail_url,
-                    duration_minutes: h.movie.duration_minutes
-                  }))} />
+                <TabsContent value="history" className={isMobile ? 'mt-3' : 'mt-6'}>
+                  <div className={isMobile ? 'space-y-2' : ''}>
+                    <MovieRow movies={(watchHistory || []).map(h => ({
+                      id: h.movie.id,
+                      title: h.movie.title,
+                      thumbnail_url: h.movie.thumbnail_url,
+                      duration_minutes: h.movie.duration_minutes
+                    }))} />
+                  </div>
                 </TabsContent>
-                <TabsContent value="ratings">
+                <TabsContent value="ratings" className={isMobile ? 'mt-3' : 'mt-6'}>
                   <MovieRatings movies={ratedMovies || []} />
                 </TabsContent>
-                <TabsContent value="reports">
+                <TabsContent value="reports" className={isMobile ? 'mt-3' : 'mt-6'}>
                   <MovieReports reports={reportedMovies || []} />
                 </TabsContent>
               </Tabs>

@@ -76,37 +76,55 @@ export function SupportDialog() {
         });
         return;
       }
-      
-      // Call the payment processing API
-      // In a real implementation, we would:
-      // 1. Call a Supabase edge function to create a payment intent
-      // 2. Redirect to the payment provider checkout or show a payment form
-      // 3. Handle the payment confirmation callback
-      
-      // For now, we'll simulate a successful payment
-      const { error } = await supabase
-        .from('user_donations')
-        .insert({
-          user_id: session.session.user.id,
+
+      // Get user profile for name and email
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, email')
+        .eq('id', session.session.user.id)
+        .single();
+
+      // Create Chapa payment
+      const { data, error } = await supabase.functions.invoke('create-chapa-payment', {
+        body: {
           amount: parseFloat(amount),
-          donation_type: donationType,
-          payment_status: 'completed', // In a real implementation, this would initially be 'pending'
-          payment_processor: 'simulated',
-          transaction_id: `sim_${Math.random().toString(36).substring(2, 15)}`,
-          completed_at: new Date().toISOString() // In a real implementation, this would be updated after payment confirmation
-        });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Thank you for your support!",
-        description: "Your donation has been processed. We greatly appreciate your generosity.",
+          donationType,
+          email: profile?.email || session.session.user.email,
+          first_name: profile?.username?.split(' ')[0] || 'User',
+          last_name: profile?.username?.split(' ')[1] || 'Support'
+        }
       });
-      
-      setAmount("");
-      setDonationType("one-time");
-      setPaymentStep("amount");
-      setOpen(false);
+
+      if (error) throw error;
+
+      if (data.success) {
+        // Record the donation attempt in database
+        await supabase
+          .from('user_donations')
+          .insert({
+            user_id: session.session.user.id,
+            amount: parseFloat(amount),
+            donation_type: donationType,
+            payment_status: 'pending',
+            payment_processor: 'chapa',
+            transaction_id: data.tx_ref
+          });
+
+        // Redirect to Chapa checkout
+        window.open(data.checkout_url, '_blank');
+        
+        toast({
+          title: "Redirecting to payment",
+          description: "You will be redirected to Chapa to complete your donation.",
+        });
+        
+        setAmount("");
+        setDonationType("one-time");
+        setPaymentStep("amount");
+        setOpen(false);
+      } else {
+        throw new Error(data.error || "Failed to create payment");
+      }
       
     } catch (error: any) {
       toast({
@@ -203,21 +221,15 @@ export function SupportDialog() {
                   <h3 className="font-medium">Payment Method</h3>
                 </div>
                 
-                {/* Simple payment form with no specific payment provider */}
+                {/* Chapa payment information */}
                 <div className="grid gap-4">
-                  <div>
-                    <Label htmlFor="cardNumber">Card Number</Label>
-                    <Input id="cardNumber" placeholder="4242 4242 4242 4242" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="expiry">Expiry Date</Label>
-                      <Input id="expiry" placeholder="MM/YY" />
-                    </div>
-                    <div>
-                      <Label htmlFor="cvc">CVC</Label>
-                      <Input id="cvc" placeholder="123" />
-                    </div>
+                  <div className="text-center p-4 bg-secondary/20 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      You will be redirected to Chapa's secure payment gateway to complete your donation.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Supported payment methods: Bank transfer, Mobile money, and Cards
+                    </p>
                   </div>
                 </div>
               </div>
