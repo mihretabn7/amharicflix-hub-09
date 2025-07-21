@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Info, Star, MessageSquare, Search, Filter, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, Info, Star, MessageSquare, Search, Filter, TrendingUp, ChevronDown, ChevronUp, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -239,308 +239,229 @@ const Home = () => {
     )
     .slice(0, 12);
 
-  return (
-    <div className="min-h-screen pt-14">
-      {/* Hero Section with Featured Movies */}
-      <section className="relative mb-8">
-        <div className="w-full">
-          {filteredMovies.length > 0 ? (
-            <Slider {...settings}>
-              {featuredMovies.map((movie) => (
-                <div key={movie.id} className="relative h-[55vh] md:h-[75vh] w-full overflow-hidden">
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-300"
-                    style={{
-                      backgroundImage: `url(${movie.thumbnail_url})`,
-                      objectFit: 'cover',
-                    }}
-                  >
-                    <div className="hero-gradient" />
-                  </div>
+  const featuredMovie = featuredMovies[0];
 
-                  <div className="relative h-full flex items-center">
-                    <div className="container mx-auto px-4 md:px-6 lg:px-8 animate-fade-in">
-                      <div className="max-w-2xl">
-                        <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
-                          {movie.title}
-                        </h1>
-                        <p className="text-base md:text-lg text-gray-200 mb-6 line-clamp-3">
-                          {movie.description || "Discover amazing content in Ethiopian cinema."}
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                          <Button
-                            size={isMobile ? "default" : "lg"}
-                            className="bg-netflix-red hover:bg-netflix-red/90 transition-all duration-300 shadow-lg hover:shadow-xl"
-                            onClick={() => navigate(`/movie/${movie.id}`)}
-                          >
-                            <Play className="mr-2 h-4 w-4 md:h-5 md:w-5" /> Play Now
-                          </Button>
-                          <Button
-                            size={isMobile ? "default" : "lg"}
-                            variant="outline"
-                            className="backdrop-blur-sm bg-white/10 border-white/30 text-white hover:bg-white/20 transition-all duration-300"
-                            onClick={() => navigate(`/movie/${movie.id}`)}
-                          >
-                            <Info className="mr-2 h-4 w-4 md:h-5 md:w-5" /> More Info
-                          </Button>
+  const handleShare = async (movie: any) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: movie.title,
+          text: `Watch ${movie.title} on AmharicFlix`,
+          url: `${window.location.origin}/movie/${movie.id}`,
+        });
+      } catch (error) {
+        // User cancelled sharing
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(`${window.location.origin}/movie/${movie.id}`);
+        toast.success("Link copied to clipboard!");
+      } catch (error) {
+        toast.error("Failed to copy link");
+      }
+    }
+  };
+
+  return (
+    <div className={`min-h-screen ${isMobile ? 'pt-14 pb-20' : 'pt-16'} bg-background`}>
+      {/* Mobile Hero Section */}
+      {isMobile && featuredMovie && (
+        <section className="relative">
+          <div className="relative h-[75vh] w-full overflow-hidden">
+            <img
+              src={featuredMovie.thumbnail_url}
+              alt={featuredMovie.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+            
+            <div className="absolute bottom-0 left-0 right-0 p-4 pb-8">
+              <h1 className="text-white text-2xl font-bold mb-2 line-clamp-2">
+                {featuredMovie.title}
+              </h1>
+              <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                {featuredMovie.description || "New Ethiopian full movie 2025"}
+              </p>
+              
+              <div className="flex gap-3 mb-6">
+                <Button
+                  size="lg"
+                  className="flex-1 bg-white text-black hover:bg-gray-200 font-semibold"
+                  onClick={() => navigate(`/movie/${featuredMovie.id}`)}
+                >
+                  <Play className="mr-2 h-5 w-5 fill-current" />
+                  Play
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="flex-1 border-gray-400 text-white hover:bg-white/10"
+                  onClick={() => handleShare(featuredMovie)}
+                >
+                  <Share className="mr-2 h-5 w-5" />
+                  Share
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Desktop Hero Section */}
+      {!isMobile && (
+        <section className="relative mb-8">
+          <div className="w-full">
+            {filteredMovies.length > 0 ? (
+              <Slider {...settings}>
+                {featuredMovies.map((movie) => (
+                  <div key={movie.id} className="relative h-[75vh] w-full overflow-hidden">
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-300"
+                      style={{
+                        backgroundImage: `url(${movie.thumbnail_url})`,
+                        objectFit: 'cover',
+                      }}
+                    >
+                      <div className="hero-gradient" />
+                    </div>
+
+                    <div className="relative h-full flex items-center">
+                      <div className="container mx-auto px-4 md:px-6 lg:px-8 animate-fade-in">
+                        <div className="max-w-2xl">
+                          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
+                            {movie.title}
+                          </h1>
+                          <p className="text-base md:text-lg text-gray-200 mb-6 line-clamp-3">
+                            {movie.description || "Discover amazing content in Ethiopian cinema."}
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                            <Button
+                              size="lg"
+                              className="bg-netflix-red hover:bg-netflix-red/90 transition-all duration-300 shadow-lg hover:shadow-xl"
+                              onClick={() => navigate(`/movie/${movie.id}`)}
+                            >
+                              <Play className="mr-2 h-5 w-5" /> Play Now
+                            </Button>
+                            <Button
+                              size="lg"
+                              variant="outline"
+                              className="backdrop-blur-sm bg-white/10 border-white/30 text-white hover:bg-white/20 transition-all duration-300"
+                              onClick={() => handleShare(movie)}
+                            >
+                              <Share className="mr-2 h-5 w-5" /> Share
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </Slider>
-          ) : (
-            <div className="flex justify-center items-center h-[50vh] bg-gradient-to-b from-muted/20 to-background">
-              <div className="text-center">
-                <p className="text-xl text-muted-foreground mb-4">No movies found matching your search.</p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSearchQuery("")}
-                  className="hover:bg-primary hover:text-primary-foreground"
-                >
-                  Clear Search
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Search and Filter Section */}
-      <section className="py-6 bg-background/80 backdrop-blur-sm border-y border-border/10">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-3 items-center w-full">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search movies..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-full border-border/20 bg-background/50 backdrop-blur-sm"
-                />
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="shrink-0 border-border/20 bg-background/50 backdrop-blur-sm">
-                    <Filter className="h-4 w-4" />
+                ))}
+              </Slider>
+            ) : (
+              <div className="flex justify-center items-center h-[50vh] bg-gradient-to-b from-muted/20 to-background">
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground mb-4">No movies found matching your search.</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSearchQuery("")}
+                    className="hover:bg-primary hover:text-primary-foreground"
+                  >
+                    Clear Search
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[260px] bg-background/95 backdrop-blur-sm border-border/20">
-                  <div className="p-3 space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Genre</label>
-                      <Select value={filterGenre} onValueChange={setFilterGenre}>
-                        <SelectTrigger className="border-border/20">
-                          <SelectValue placeholder="All Genres" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Genres</SelectItem>
-                          {filters?.genres.map((genre) => (
-                            <SelectItem key={genre} value={genre}>
-                              {genre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Language</label>
-                      <Select value={filterLanguage} onValueChange={setFilterLanguage}>
-                        <SelectTrigger className="border-border/20">
-                          <SelectValue placeholder="All Languages" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Languages</SelectItem>
-                          {filters?.languages.map((language) => (
-                            <SelectItem key={language} value={language}>
-                              {language}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Rating</label>
-                      <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                        <SelectTrigger className="border-border/20">
-                          <SelectValue placeholder="All Ratings" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Ratings</SelectItem>
-                          <SelectItem value="4">4+ Stars</SelectItem>
-                          <SelectItem value="3">3+ Stars</SelectItem>
-                          <SelectItem value="2">2+ Stars</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Sort By</label>
-                      <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
-                        <SelectTrigger className="border-border/20">
-                          <SelectValue placeholder="Sort By" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="latest">Latest</SelectItem>
-                          <SelectItem value="rating">Rating</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            
-            {/* Mobile Quick Filters */}
-            {isMobile && (
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
-                <Select value={filterGenre} onValueChange={setFilterGenre}>
-                  <SelectTrigger className="h-8 text-xs min-w-[90px] border-border/20 bg-background/50">
-                    <SelectValue placeholder="Genre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    {filters?.genres.slice(0, 5).map((genre) => (
-                      <SelectItem key={genre} value={genre}>
-                        {genre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="h-8 text-xs min-w-[90px] border-border/20 bg-background/50">
-                    <SelectValue placeholder="Rating" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="4">4+ ★</SelectItem>
-                    <SelectItem value="3">3+ ★</SelectItem>
-                    <SelectItem value="2">2+ ★</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={sortBy} onValueChange={(value: "latest" | "rating") => setSortBy(value)}>
-                  <SelectTrigger className="h-8 text-xs min-w-[90px] border-border/20 bg-background/50">
-                    <SelectValue placeholder="Sort" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="latest">Latest</SelectItem>
-                    <SelectItem value="rating">Rating</SelectItem>
-                  </SelectContent>
-                </Select>
+                </div>
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* Search Section - Desktop Only */}
+      {!isMobile && (
+        <section className="py-6 bg-background/80 backdrop-blur-sm border-y border-border/10">
+          <div className="container mx-auto px-4 md:px-6 lg:px-8">
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-3 items-center w-full">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search movies..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 w-full border-border/20 bg-background/50 backdrop-blur-sm"
+                  />
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" className="shrink-0 border-border/20 bg-background/50 backdrop-blur-sm">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[260px] bg-background/95 backdrop-blur-sm border-border/20">
+                    <div className="p-3 space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Genre</label>
+                        <Select value={filterGenre} onValueChange={setFilterGenre}>
+                          <SelectTrigger className="border-border/20">
+                            <SelectValue placeholder="All Genres" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Genres</SelectItem>
+                            {filters?.genres.map((genre) => (
+                              <SelectItem key={genre} value={genre}>
+                                {genre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Trending Now Section */}
+      <section className="py-6">
+        <div className="container mx-auto px-4">
+          <h2 className="text-xl font-bold mb-4 text-foreground">Trending Now</h2>
+          
+          <div className={`${movieRowContainer}`}>
+            {trendingMovies.slice(0, 10).map((movie) => (
+              <Link
+                to={`/movie/${movie.id}`}
+                key={movie.id}
+                className={`${movieCardWidth} group`}
+              >
+                <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative shadow-md hover:shadow-lg transition-all duration-300">
+                  <img
+                    src={movie.thumbnail_url}
+                    alt={movie.title}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute bottom-0 left-0 right-0 p-2 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                    <h3 className="text-white text-xs font-semibold line-clamp-2">{movie.title}</h3>
+                    <p className="text-gray-300 text-xs mt-1">
+                      {movie.language || 'Amharic'}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Content Sections */}
-      <section className="py-12 md:py-16 bg-gradient-to-b from-background to-background/95">
-        <div className="container mx-auto px-4 md:px-6 lg:px-8">
-          <div className="space-y-16">
-            {/* New Releases */}
-            {newMovies.length > 0 && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">New Releases</h2>
-                  <Link 
-                    to="/movies?sort=latest" 
-                    className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
-                  >
-                    View All →
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                  {newMovies.map((movie) => (
-                    <Link
-                      to={`/movie/${movie.id}`}
-                      key={movie.id}
-                      className="group animate-fade-in hover:scale-105 transition-transform duration-300"
-                    >
-                      <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <img
-                          src={movie.thumbnail_url}
-                          alt={movie.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                          <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                              <span className="text-xs text-white/90">
-                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'New'}
-                              </span>
-                            </div>
-                            {movie.genre && (
-                              <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
-                                {getFirstGenre(movie.genre)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Trending Now */}
-            {trendingMovies.length > 0 && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-netflix-red" />
-                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">Trending Now</h2>
-                  </div>
-                  <Link 
-                    to="/movies?sort=trending" 
-                    className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
-                  >
-                    View All →
-                  </Link>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                  {trendingMovies.map((movie) => (
-                    <Link
-                      to={`/movie/${movie.id}`}
-                      key={movie.id}
-                      className="group animate-fade-in hover:scale-105 transition-transform duration-300"
-                    >
-                      <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <img
-                          src={movie.thumbnail_url}
-                          alt={movie.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                          <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 text-yellow-400 fill-current" />
-                              <span className="text-xs text-white/90">
-                                {movie.averageRating ? movie.averageRating.toFixed(1) : 'Hot'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <TrendingUp className="h-3 w-3 text-netflix-red" />
-                              <span className="text-xs text-white/70">
-                                {(movie.watch_count || 0) + (movie.share_count || 0)} views
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Browse by Genre */}
+      {/* Browse by Genre - Mobile Only */}
+      {isMobile && Object.entries(moviesByGenre).length > 0 && (
+        <section className="py-6">
+          <div className="container mx-auto px-4">
+            <h2 className="text-xl font-bold mb-4 text-foreground">Browse by Genre</h2>
+            
             {Object.entries(moviesByGenre)
               .sort(([, moviesA], [, moviesB]) => {
                 const engagementA = moviesA.reduce((sum, movie) => 
@@ -551,19 +472,68 @@ const Home = () => {
                 );
                 return engagementB - engagementA;
               })
+              .slice(0, 3)
               .map(([genre, genreMovies]) => (
-                <div key={genre} className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">{genre}</h2>
+                <div key={genre} className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-foreground">{genre}</h3>
                     <Link 
                       to={`/movies?genre=${encodeURIComponent(genre)}`} 
+                      className="text-sm text-primary hover:text-primary/80 transition-colors"
+                    >
+                      View All →
+                    </Link>
+                  </div>
+                  
+                  <div className={`${movieRowContainer}`}>
+                    {genreMovies.slice(0, 8).map((movie) => (
+                      <Link
+                        to={`/movie/${movie.id}`}
+                        key={movie.id}
+                        className={`${movieCardWidth} group`}
+                      >
+                        <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative shadow-md hover:shadow-lg transition-all duration-300">
+                          <img
+                            src={movie.thumbnail_url}
+                            alt={movie.title}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="absolute bottom-0 left-0 right-0 p-2 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                            <h3 className="text-white text-xs font-semibold line-clamp-2">{movie.title}</h3>
+                            <p className="text-gray-300 text-xs mt-1">
+                              {movie.language || 'Amharic'}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {/* Desktop Content Sections */}
+      {!isMobile && (
+        <section className="py-12 md:py-16 bg-gradient-to-b from-background to-background/95">
+          <div className="container mx-auto px-4 md:px-6 lg:px-8">
+            <div className="space-y-16">
+              {/* New Releases */}
+              {newMovies.length > 0 && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">New Releases</h2>
+                    <Link 
+                      to="/movies?sort=latest" 
                       className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
                     >
                       View All →
                     </Link>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                    {genreMovies.slice(0, 12).map((movie) => (
+                    {newMovies.map((movie) => (
                       <Link
                         to={`/movie/${movie.id}`}
                         key={movie.id}
@@ -590,9 +560,6 @@ const Home = () => {
                                   {getFirstGenre(movie.genre)}
                                 </span>
                               )}
-                              <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
-                                {movie.language || 'Amharic'}
-                              </span>
                             </div>
                           </div>
                         </div>
@@ -600,10 +567,73 @@ const Home = () => {
                     ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Browse by Genre - Desktop */}
+              {Object.entries(moviesByGenre)
+                .sort(([, moviesA], [, moviesB]) => {
+                  const engagementA = moviesA.reduce((sum, movie) => 
+                    sum + (movie.watch_count || 0) + (movie.share_count || 0), 0
+                  );
+                  const engagementB = moviesB.reduce((sum, movie) => 
+                    sum + (movie.watch_count || 0) + (movie.share_count || 0), 0
+                  );
+                  return engagementB - engagementA;
+                })
+                .map(([genre, genreMovies]) => (
+                  <div key={genre} className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold">{genre}</h2>
+                      <Link 
+                        to={`/movies?genre=${encodeURIComponent(genre)}`} 
+                        className="text-sm md:text-base text-primary hover:text-primary/80 transition-colors font-medium"
+                      >
+                        View All →
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                      {genreMovies.slice(0, 12).map((movie) => (
+                        <Link
+                          to={`/movie/${movie.id}`}
+                          key={movie.id}
+                          className="group animate-fade-in hover:scale-105 transition-transform duration-300"
+                        >
+                          <div className="aspect-[2/3] bg-card rounded-lg overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300">
+                            <img
+                              src={movie.thumbnail_url}
+                              alt={movie.title}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                              <h3 className="text-sm md:text-base font-semibold line-clamp-2 text-white mb-1">{movie.title}</h3>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
+                                  <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                                  <span className="text-xs text-white/90">
+                                    {movie.averageRating ? movie.averageRating.toFixed(1) : 'New'}
+                                  </span>
+                                </div>
+                                {movie.genre && (
+                                  <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
+                                    {getFirstGenre(movie.genre)}
+                                  </span>
+                                )}
+                                <span className="text-xs text-white/70 bg-black/30 px-2 py-0.5 rounded">
+                                  {movie.language || 'Amharic'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 };
