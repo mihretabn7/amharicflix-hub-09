@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Info, Star, MessageSquare, Search, Filter, TrendingUp, ChevronDown, ChevronUp, Share } from "lucide-react";
+import { Play, Info, Star, MessageSquare, Search, Filter, TrendingUp, ChevronDown, ChevronUp, Share, Youtube, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +45,7 @@ const Home = () => {
   const [moviesByGenre, setMoviesByGenre] = useState<Record<string, typeof movies>>({});
   const isMobile = useIsMobile();
   const [genreAccordionOpen, setGenreAccordionOpen] = useState(false);
+  const [fetching, setFetching] = useState(false);
 
   const movieRowContainer = "flex gap-3 md:gap-4 overflow-x-auto scrollbar-thin scrollbar-thumb-netflix-red scrollbar-track-netflix-dark pb-2 -mx-2 px-2";
   const movieCardWidth = "min-w-[150px] sm:min-w-[200px] md:min-w-[220px] lg:min-w-[240px]";
@@ -188,6 +189,48 @@ const Home = () => {
         }
       }
     ]
+  };
+
+  // Auto-fetch from YouTube when database is empty
+  useEffect(() => {
+    const autoFetch = async () => {
+      if (fetching) return;
+      if (isLoading || !movies) return;
+      if (movies.length > 0) return;
+
+      setFetching(true);
+      try {
+        toast.info("Fetching movies from YouTube...", { duration: 5000 });
+        const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies');
+        if (error) throw error;
+        if (data?.success && data.processed > 0) {
+          toast.success(`Fetched ${data.processed} movies!`);
+          window.location.reload();
+        }
+      } catch (err: any) {
+        console.error("Auto-fetch failed:", err);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    autoFetch();
+  }, [movies, isLoading]);
+
+  const handleManualFetch = async () => {
+    setFetching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies');
+      if (error) throw error;
+      if (data?.success) {
+        toast.success(`Fetched ${data.processed} new movies!`);
+        window.location.reload();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to fetch");
+    } finally {
+      setFetching(false);
+    }
   };
 
   const filteredMovies = movies?.filter(movie =>
@@ -391,6 +434,16 @@ const Home = () => {
                     className="pl-9 w-full border-border/20 bg-background/50 backdrop-blur-sm"
                   />
                 </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 border-red-300 text-red-600 hover:bg-red-50"
+                  onClick={handleManualFetch}
+                  disabled={fetching}
+                  title="Fetch new movies from YouTube"
+                >
+                  {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Youtube className="h-4 w-4" />}
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="shrink-0 border-border/20 bg-background/50 backdrop-blur-sm">

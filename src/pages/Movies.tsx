@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Movie } from "@/types/movie";
-import { Star, MessageSquare, Search, Filter } from "lucide-react";
+import { Star, MessageSquare, Search, Filter, Youtube, Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import useIsMobile from "@/hooks/use-mobile";
 import MovieRow from "@/components/movie/MovieRow";
 import { getFirstGenre } from "@/utils/genre";
+import { toast } from "sonner";
 
 const Movies = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,8 +31,11 @@ const Movies = () => {
   const [filterRating, setFilterRating] = useState<string>("all");
   const [filterLanguage, setFilterLanguage] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"latest" | "rating">("latest");
+  const [fetching, setFetching] = useState(false);
+  const [autoFetchAttempted, setAutoFetchAttempted] = useState(false);
 
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
 
   const { data: movies, isLoading } = useQuery({
     queryKey: ['movies', filterGenre, filterRating, filterLanguage, sortBy],
@@ -77,8 +81,68 @@ const Movies = () => {
       }
 
       return filteredMovies;
-    }
+    },
   });
+
+  // Auto-fetch from YouTube when database is empty (first visit)
+  useEffect(() => {
+    const autoFetch = async () => {
+      if (autoFetchAttempted) return;
+      if (isLoading || !movies) return;
+      if (movies.length > 0) return;
+
+      setAutoFetchAttempted(true);
+      setFetching(true);
+
+      try {
+        toast.info("Database is empty — fetching movies from YouTube...", { duration: 5000 });
+
+        const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies');
+
+        if (error) throw error;
+
+        if (data?.success && data.processed > 0) {
+          toast.success(`Fetched ${data.processed} movies from YouTube!`);
+          queryClient.invalidateQueries({ queryKey: ['movies'] });
+        } else if (data?.success) {
+          toast.info("No new movies found. Try adding some manually from the admin panel.");
+        }
+      } catch (err: any) {
+        console.error("Auto-fetch failed:", err);
+        toast.error("Could not auto-fetch movies. Please use the admin panel.");
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    autoFetch();
+  }, [movies, isLoading, autoFetchAttempted, queryClient]);
+
+  // Manual refresh handler
+  const handleManualFetch = async () => {
+    setFetching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-ethiopian-movies');
+
+      if (error) {
+        let errorMessage = error.message;
+        try {
+          const errorBody = JSON.parse(error.message);
+          errorMessage = errorBody.error || errorBody.message || error.message;
+        } catch { /* use original */ }
+        throw new Error(errorMessage);
+      }
+
+      if (data?.success) {
+        toast.success(`Fetched ${data.processed} new movies! (${data.totalUnique} total found)`);
+        queryClient.invalidateQueries({ queryKey: ['movies'] });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to fetch from YouTube");
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const { data: filters } = useQuery({
     queryKey: ['movie-filters'],
@@ -204,6 +268,22 @@ const Movies = () => {
                     </div>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* YouTube Fetch Button */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 border-red-300 text-red-600 hover:bg-red-50"
+                  onClick={handleManualFetch}
+                  disabled={fetching}
+                  title="Fetch new movies from YouTube"
+                >
+                  {fetching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Youtube className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
               
               {/* Mobile Quick Filters */}
@@ -255,19 +335,39 @@ const Movies = () => {
           {filteredMovies.length === 0 ? (
             <div className="text-center py-16">
               <div className="max-w-md mx-auto space-y-4">
-                <p className="text-xl text-muted-foreground">No movies found matching your criteria.</p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSearchQuery("");
-                    setFilterGenre("all");
-                    setFilterRating("all");
-                    setFilterLanguage("all");
-                  }}
-                  className="hover:bg-primary hover:text-primary-foreground"
-                >
-                  Clear All Filters
-                </Button>
+                {fetching ? (
+                  <>
+                    <Loader2 className="h-12 w-12 animate-spin mx-auto text-red-500" />
+                    <p className="text-xl text-muted-foreground">Fetching movies from YouTube...</p>
+                    <p className="text-sm text-muted-foreground">This may take a minute or two.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xl text-muted-foreground">No movies found matching your criteria.</p>
+                    <div className="flex gap-3 justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={handleManualFetch}
+                        className="hover:bg-primary hover:text-primary-foreground gap-2"
+                      >
+                        <Youtube className="h-4 w-4" />
+                        Fetch from YouTube
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setFilterGenre("all");
+                          setFilterRating("all");
+                          setFilterLanguage("all");
+                        }}
+                        className="hover:bg-primary hover:text-primary-foreground"
+                      >
+                        Clear All Filters
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ) : (

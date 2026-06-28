@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import MovieUploadForm from "@/components/MovieUploadForm";
 import CsvMovieUpload from "@/components/CsvMovieUpload";
+import YouTubeFetchButton from "@/components/YouTubeFetchButton";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Trash2, Eye, EyeOff, Search, Filter } from "lucide-react";
 import { toast } from "sonner";
@@ -243,9 +244,18 @@ export default function MovieManagement() {
                             <DialogTitle>Add New Movie</DialogTitle>
                         </DialogHeader>
                         <MovieUploadForm onSuccess={refetch} />
-                        <div className="mt-4 border-t pt-4">
-                            <h3 className="text-lg font-medium mb-2">Bulk Upload</h3>
-                            <CsvMovieUpload />
+                        <div className="mt-4 border-t pt-4 space-y-4">
+                            <div>
+                                <h3 className="text-lg font-medium mb-2">Auto-Fetch from YouTube</h3>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                    Automatically search &amp; import Ethiopian/Amharic movies
+                                </p>
+                                <YouTubeFetchButton onSuccess={refetch} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-medium mb-2">CSV Bulk Upload</h3>
+                                <CsvMovieUpload />
+                            </div>
                         </div>
                     </DialogContent>
                 </Dialog>
