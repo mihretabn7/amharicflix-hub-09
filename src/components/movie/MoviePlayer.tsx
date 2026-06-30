@@ -26,16 +26,16 @@ interface MoviePlayerProps {
   movie: Movie;
   userId?: string;
   onRatingSubmit: () => void;
+  onPlaybackChange?: (playing: boolean) => void;
 }
 
-const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
+const MoviePlayer = ({ movie, userId, onRatingSubmit, onPlaybackChange }: MoviePlayerProps) => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [authAction, setAuthAction] = useState<"rate" | "report" | "share" | "genre">("rate");
   const [genreCollapsibleOpen, setGenreCollapsibleOpen] = useState(false);
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-
-  // Get genre suggestions and most popular count.
+  
   const { data: genreSuggestions = [] } = useQuery({
     queryKey: ['genreSuggestions', movie.id],
     queryFn: async () => {
@@ -46,54 +46,34 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
 
       if (error) throw error;
 
-      // Count suggestions manually
       const counts = data.reduce((acc: Record<string, number>, curr) => {
         acc[curr.suggested_genre] = (acc[curr.suggested_genre] || 0) + 1;
         return acc;
       }, {});
 
-      // Convert to array and sort by count
       return Object.entries(counts)
         .map(([genre, count]) => ({ suggested_genre: genre, count }))
         .sort((a, b) => b.count - a.count);
     }
   });
 
-  // Popular genre label
   const popularGenres = genreSuggestions.length > 0 ? genreSuggestions.slice(0, 3) : [];
   const totalVotes = genreSuggestions.reduce((sum, g) => sum + Number(g.count), 0);
 
   useEffect(() => {
-    // Track the view when the component mounts
     const trackView = async () => {
       try {
-        if (userId) {
-          await supabase.rpc('track_movie_view_with_country', {
-            p_movie_id: movie.id,
-            p_user_id: userId,
-            p_user_ip: null,
-            p_browser_info: null,
-            p_device_info: null
-          });
-        } else {
-          await supabase.rpc('track_movie_view_with_country', {
-            p_movie_id: movie.id,
-            p_user_id: null,
-            p_user_ip: null,
-            p_browser_info: null,
-            p_device_info: null
-          });
-        }
-      } catch (error) {
-        console.error("Error tracking view:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to track view statistics",
+        await supabase.rpc('track_movie_view_with_country', {
+          p_movie_id: movie.id,
+          p_user_id: userId || null,
+          p_user_ip: null,
+          p_browser_info: null,
+          p_device_info: null
         });
+      } catch (e) {
+        console.error("View tracking error", e);
       }
     };
-
     trackView();
   }, [movie.id, userId]);
 
@@ -104,24 +84,28 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
 
   const redirectToLogin = () => {
     setShowAuthDialog(false);
-    navigate("/login", { state: { from: `/movie/${movie.id}` } });
+    navigate(`/login`, { state: { from: `/movie/${movie.id}` } });
   };
 
   return (
     <div className={`flex flex-col ${isMobile ? 'h-[calc(100vh-3.5rem)] mt-14' : 'h-screen'}`}>
-      <div className={`${isMobile ? 'flex-grow bg-black aspect-video' : 'bg-black flex-grow'}`}>
-        <iframe
-          width="100%"
-          height="100%"
-          src={`https://www.youtube.com/embed/${movie.youtube_id}?autoplay=1`}
-          title="YouTube video player"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full rounded-lg"
-        ></iframe>
+      <div className={`${isMobile ? 'flex-grow bg-black aspect-video' : 'bg-black flex-grow'} relative`}>
+        {movie.youtube_id ? (
+          <iframe
+            className="absolute inset-0 w-full h-full rounded-lg"
+            src={`https://www.youtube.com/embed/${movie.youtube_id}?autoplay=1&rel=0&modestbranding=1`}
+            title={movie.title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 text-white">
+            <p>Video ID not available</p>
+          </div>
+        )}
       </div>
 
-      {/* === Collapsible Genre Suggestions Section === */}
       <div className={`bg-card border-t border-border ${isMobile ? 'p-3' : 'p-4'}`}>
         <Collapsible open={genreCollapsibleOpen} onOpenChange={setGenreCollapsibleOpen}>
           <div className="flex items-center mb-2">
@@ -140,7 +124,7 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
                 )}
                 <span>
                   Genres ({totalVotes} votes)
-                </span>
+                </span >
               </Button>
             </CollapsibleTrigger>
             {popularGenres.length > 0 && (
@@ -210,7 +194,6 @@ const MoviePlayer = ({ movie, userId, onRatingSubmit }: MoviePlayerProps) => {
         </div>
       )}
 
-      {/* Authentication Required Dialog */}
       <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
         <DialogContent className={`${isMobile ? 'netflix-modal w-[90%]' : 'sm:max-w-md'} rounded-xl`}>
           <DialogHeader>

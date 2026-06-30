@@ -85,8 +85,17 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           // If both cache and network fail, serve offline page
           if (event.request.url.includes('page')) {
-            return caches.match('/');
+            return caches.match('/').then(response => response || new Response('Offline', {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'text/plain' }
+            }));
           }
+          return new Response('Network error occurred', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'text/plain' }
+          });
         });
     })
   );

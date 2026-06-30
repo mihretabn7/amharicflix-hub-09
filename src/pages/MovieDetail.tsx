@@ -134,7 +134,7 @@ const MovieDetail = () => {
       if (currentDuration >= NETFLIX_VIEW_THRESHOLD && !viewCounted.current) {
         console.log('Incrementing view count for movie:', id);
         try {
-          const { error } = await supabase.rpc('increment_movie_watch_count', { movie_id: id });
+          const { error } = await supabase.rpc('track_movie_view_with_country', { movie_id: id });
           if (error) {
             console.error('Error incrementing view count:', error);
           } else {
@@ -340,6 +340,7 @@ const MovieDetail = () => {
               movie={movie}
               userId={session?.user?.id}
               onRatingSubmit={refetch}
+              onPlaybackChange={(playing) => setIsPlaying(playing)}
             />
           </div>
         ) : (
