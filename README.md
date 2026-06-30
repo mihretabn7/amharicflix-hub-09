@@ -1,69 +1,61 @@
-# Welcome to your Lovable project
+# 🎬 AmharicFlix Hub
 
-## Project info
+A premium, high-performance movie streaming and discovery platform dedicated to Amharic cinema. AmharicFlix combines a modern React frontend with a powerful Supabase backend and YouTube Data API integration to provide a seamless cinematic experience.
 
-**URL**: https://lovable.dev/projects/dd9f1b88-616a-4a4b-ad79-2ed5ad41bd71
+## 🌟 Key Features
 
-## How can I edit this code?
+- **Dynamic Movie Discovery:** Automated fetching and categorization of Ethiopian movies via YouTube Data API v3.
+- **Advanced Watch Tracking:** Intelligent view counting and user watch-history tracking with server-side validation.
+- **Genre Intelligence:** Community-driven genre suggestions and popularity ranking.
+- **User Engagement:** Integrated movie rating system, reporting tools, and social sharing.
+- **Responsive Design:** A "Netflix-style" cinematic UI optimized for both desktop and mobile devices.
 
-There are several ways of editing your application.
+## 🚀 Tech Stack
 
-**Use Lovable**
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React, TypeScript, Vite, Tailwind CSS |
+| **UI Components** | Shadcn UI, Lucide React, Framer Motion |
+| **Backend** | Supabase (PostgreSQL, Auth, Edge Functions) |
+| **API Integration** | YouTube Data API v3 |
+| **State Management** | TanStack Query (React Query) |
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/dd9f1b88-616a-4a4b-ad79-2ed5ad41bd71) and start prompting.
+## 🛠️ Installation & Setup
 
-Changes made via Lovable will be committed automatically to this repo.
+### 1. Clone the Repository
+```bash
+git clone https://github.com/mihretabn7/amharicflix-hub-09.git
+cd amharicflix-hub-09
+```
 
-**Use your preferred IDE**
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 3. Environment Configuration
+Create a `.env` file in the root directory and add your Supabase credentials:
+```env
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 4. Run the Development Server
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## ⚙️ Backend Architecture
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Supabase Edge Functions
+The project utilizes serverless Edge Functions for critical background tasks:
+- **`fetch-ethiopian-movies`**: Automated pipeline that searches, validates, and imports movie data from YouTube.
+- **`track_movie_view_with_country`**: Optimized RPC function for real-time watch-count increments.
 
-**Use GitHub Codespaces**
+### Database Schema
+- **`movies`**: Stores metadata, YouTube IDs, and global view counts.
+- **`user_movie_history`**: Tracks individual user progress and duration.
+- **`genre_suggestions`**: Manages community-driven genre tagging.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/dd9f1b88-616a-4a4b-ad79-2ed5ad41bd71) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## 📄 License
+This project is proprietary. All rights reserved.
