@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { checkIsAdmin } from "@/utils/auth";
 import { toast } from "sonner";
 import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
@@ -53,17 +54,9 @@ const AdminLogin = () => {
       if (signInError) throw signInError;
 
       if (session) {
-        const { data: adminData, error: adminError } = await supabase
-          .from('admin_users')
-          .select('id')
-          .eq('id', session.user.id)
-          .single();
+        const isAdmin = await checkIsAdmin(session.user.id);
 
-        if (adminError) {
-          throw new Error("Error verifying admin status");
-        }
-
-        if (!adminData) {
+        if (!isAdmin) {
           await supabase.auth.signOut();
           throw new Error("You do not have admin privileges");
         }

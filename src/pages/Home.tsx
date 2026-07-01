@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Play, Info, Star, MessageSquare, Search, Filter, TrendingUp, ChevronDown, ChevronUp, Share, Youtube, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -22,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import useIsMobile from "@/hooks/use-mobile";
 import { getFirstGenre } from "@/utils/genre";
 import {
@@ -41,11 +42,14 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [moviesByGenre, setMoviesByGenre] = useState<Record<string, any[]>>({});
   const isMobile = useIsMobile();
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselPaused, setCarouselPaused] = useState(false);
   const [genreAccordionOpen, setGenreAccordionOpen] = useState(false);
   const [fetching, setFetching] = useState(false);
 
-  const movieRowContainer = "flex gap-3 md:gap-4 overflow-x-auto scrollbar-thin scrollbar-thumb-netflix-red scrollbar-track-netflix-dark pb-2 -mx-2 px-2";
-  const movieCardWidth = "min-w-[150px] sm:min-w-[200px] md:min-w-[220px] lg:min-w-[240px]";
+  const movieCardClass = "min-w-[130px] max-w-[180px] transition-transform duration-300 hover:scale-105 group";
+  const movieRowContainer = "flex gap-3 py-1 overflow-x-auto no-scrollbar";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -223,13 +227,31 @@ const Home = () => {
   }
 
   const featuredMovies = filteredMovies.slice(0, 5);
+  const featuredFilms = filteredMovies.slice(0, 7);
   const trendingMovies = filteredMovies
     .filter(movie => (movie.watch_count || 0) + (movie.share_count || 0) > 10)
     .sort((a, b) => 
       ((b.watch_count || 0) + (b.share_count || 0)) - 
       ((a.watch_count || 0) + (a.share_count || 0))
     )
-    .slice(0, 12);
+    .slice(0, 7);
+
+  const newMovies = filteredMovies
+    .slice()
+    .sort((a, b) => {
+      const aTime = new Date(a.created_at || a.updated_at || 0).getTime();
+      const bTime = new Date(b.created_at || b.updated_at || 0).getTime();
+      return bTime - aTime;
+    })
+    .slice(0, 7);
+
+  const genreSections = Object.entries(moviesByGenre)
+    .sort(([, a], [, b]) => b.length - a.length)
+    .slice(0, 4)
+    .map(([genre, movies]) => ({
+      genre,
+      movies: movies.slice(0, 7),
+    }));
 
   const featuredMovie = featuredMovies[0];
 
@@ -254,6 +276,41 @@ const Home = () => {
     }
   };
 
+  // Auto-advance carousel for desktop featured section
+  useEffect(() => {
+    if (isMobile) return;
+    if (!carouselRef.current) return;
+
+    const len = featuredMovies.length;
+    if (len <= 1) return;
+
+    let mounted = true;
+    const interval = setInterval(() => {
+      if (!mounted) return;
+      if (carouselPaused) return;
+      setCarouselIndex((prev) => (prev + 1) % len);
+    }, 5000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [featuredMovies, isMobile, carouselPaused]);
+
+  // Scroll carousel when index changes
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const idx = carouselIndex;
+    const width = el.clientWidth;
+    try {
+      el.scrollTo({ left: width * idx, behavior: 'smooth' });
+    } catch (err) {
+      // fallback
+      el.scrollLeft = width * idx;
+    }
+  }, [carouselIndex]);
+
   return (
     <div className={`min-h-screen ${isMobile ? 'pt-14 pb-20' : 'pt-16'} bg-background`}>
       {isMobile && featuredMovie && (
@@ -267,13 +324,9 @@ const Home = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
             
             <div className="absolute bottom-0 left-0 right-0 p-4 pb-8">
-              <h1 className="text-white text-2xl font-bold mb-2 line-clamp-2">
+              <h1 className="text-white text-2xl font-bold mb-4 line-clamp-2">
                 {featuredMovie.title}
               </h1>
-              <p className="text-gray-300 text-sm mb-4 line-clamp-2">
-                {featuredMovie.description || "New Ethiopian full movie 2025"}
-              </p>
-              
               <div className="flex gap-3 mb-6">
                 <Button
                   size="lg"
@@ -300,46 +353,44 @@ const Home = () => {
 
       {!isMobile && (
         <section className="relative mb-8">
-          <div className="w-full">
+          <div className="w-full overflow-hidden">
             {filteredMovies.length > 0 ? (
-              <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar">
+              <div
+                ref={carouselRef}
+                onMouseEnter={() => setCarouselPaused(true)}
+                onMouseLeave={() => setCarouselPaused(false)}
+                className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar"
+              >
                 {featuredMovies.map((movie) => (
-                  <div key={movie.id} className="relative h-[75vh] w-full shrink-0 snap-center overflow-hidden">
-                    <div
-                      className="absolute inset-0 bg-cover bg-center transition-transform duration-300"
-                      style={{
-                        backgroundImage: `url(${movie.thumbnail_url})`,
-                      }}
-                    >
-                      <div className="hero-gradient" />
-                    </div>
+                  <div key={movie.id} className="relative group h-[70vh] w-full shrink-0 snap-center overflow-hidden">
+                    <img
+                      src={movie.thumbnail_url}
+                      alt={movie.title}
+                      className="absolute inset-0 w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-                    <div className="relative h-full flex items-center">
-                      <div className="container mx-auto px-4 md:px-6 lg:px-8 animate-fade-in">
-                        <div className="max-w-2xl">
-                          <h1 className="font-display text-3xl md:text-5xl lg:text-6xl font-bold mb-4 text-white drop-shadow-lg">
-                            {movie.title}
-                          </h1>
-                          <p className="text-base md:text-lg text-gray-200 mb-6 line-clamp-3">
-                            {movie.description || "Discover amazing content in Ethiopian cinema."}
-                          </p>
-                          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                            <Button
-                              size="lg"
-                              className="bg-netflix-red hover:bg-netflix-red/90 transition-all duration-300 shadow-lg hover:shadow-xl"
-                              onClick={() => navigate(`/movie/${movie.id}`)}
-                            >
-                              <Play className="mr-2 h-5 w-5" /> Play Now
-                            </Button>
-                            <Button
-                              size="lg"
-                              variant="outline"
-                              className="backdrop-blur-sm bg-white/10 border-white/30 text-white hover:bg-white/20 transition-all duration-300"
-                              onClick={() => handleShare(movie)}
-                            >
-                              <Share className="mr-2 h-5 w-5" /> Share
-                            </Button>
-                          </div>
+                    <div className="absolute inset-x-0 bottom-0 px-8 pb-8 opacity-0 translate-y-6 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 ease-out">
+                      <div className="rounded-3xl bg-black/40 backdrop-blur-xl border border-white/10 p-6 max-w-2xl mx-auto">
+                        <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-semibold text-white/90 tracking-tight leading-tight">
+                          {movie.title}
+                        </h1>
+                        <div className="mt-5 flex flex-wrap gap-3">
+                          <Button
+                            size="lg"
+                            className="bg-netflix-red hover:bg-netflix-red/90 transition-all duration-300 shadow-lg hover:shadow-xl"
+                            onClick={() => navigate(`/movie/${movie.id}`)}
+                          >
+                            <Play className="mr-2 h-5 w-5" /> Play Now
+                          </Button>
+                          <Button
+                            size="lg"
+                            variant="outline"
+                            className="backdrop-blur-sm bg-white/10 border-white/30 text-white hover:bg-white/20 transition-all duration-300"
+                            onClick={() => handleShare(movie)}
+                          >
+                            <Share className="mr-2 h-5 w-5" /> Share
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -423,32 +474,159 @@ const Home = () => {
 
       <section className="py-6">
         <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-4 gap-4">
+            <h2 className="text-xl font-bold text-foreground">Featured Films</h2>
+            <Button variant="ghost" size="sm" className="text-primary" onClick={() => navigate('/movies')}>
+              See more
+            </Button>
+          </div>
+          <ScrollArea className="w-full">
+            <div className="flex gap-3 py-1">
+              {featuredFilms.map((movie) => (
+                <Link
+                  to={`/movie/${movie.id}`}
+                  key={movie.id}
+                  className={movieCardClass}
+                >
+                  <div className="relative rounded-lg overflow-hidden bg-card shadow-md hover:shadow-lg transition-all duration-300">
+                    <img
+                      src={movie.thumbnail_url}
+                      alt={movie.title}
+                      className="w-full aspect-[2/3] object-cover"
+                    />
+                    <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-2">
+                      <h3 className="text-xs font-medium line-clamp-2 text-white">{movie.title}</h3>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star className="h-3 w-3 text-netflix-gold" />
+                        <span className="text-xs text-white">
+                          {movie.averageRating !== undefined ? movie.averageRating.toFixed(1) : movie.duration_minutes ? `${movie.duration_minutes} min` : '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <ScrollBar className="opacity-0 h-1" orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      </section>
+
+      <section className="py-6">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-4 gap-4">
+            <h2 className="text-xl font-bold text-foreground">New Releases</h2>
+            <Button variant="ghost" size="sm" className="text-primary" onClick={() => navigate('/movies')}>
+              See more
+            </Button>
+          </div>
+          <ScrollArea className="w-full">
+            <div className="flex gap-3 py-1">
+              {newMovies.map((movie) => (
+                <Link
+                  to={`/movie/${movie.id}`}
+                  key={movie.id}
+                  className={movieCardClass}
+                >
+                  <div className="relative rounded-lg overflow-hidden bg-card shadow-md hover:shadow-lg transition-all duration-300">
+                    <img
+                      src={movie.thumbnail_url}
+                      alt={movie.title}
+                      className="w-full aspect-[2/3] object-cover"
+                    />
+                    <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-2">
+                      <h3 className="text-xs font-medium line-clamp-2 text-white">{movie.title}</h3>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star className="h-3 w-3 text-netflix-gold" />
+                        <span className="text-xs text-white">
+                          {movie.averageRating !== undefined ? movie.averageRating.toFixed(1) : movie.duration_minutes ? `${movie.duration_minutes} min` : '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <ScrollBar className="opacity-0 h-1" orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      </section>
+
+      {genreSections.map((section) => (
+        <section className="py-6" key={section.genre}>
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-4 gap-4">
+              <h2 className="text-xl font-bold text-foreground">{section.genre}</h2>
+              <Button variant="ghost" size="sm" className="text-primary" onClick={() => navigate('/movies')}>
+                See more
+              </Button>
+            </div>
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 py-1">
+                {section.movies.map((movie) => (
+                  <Link
+                    to={`/movie/${movie.id}`}
+                    key={movie.id}
+                    className={movieCardClass}
+                  >
+                    <div className="relative rounded-lg overflow-hidden bg-card shadow-md transition-transform duration-300 transform group-hover:shadow-xl group-hover:-translate-y-1">
+                      <img
+                        src={movie.thumbnail_url}
+                        alt={movie.title}
+                        className="w-full aspect-[2/3] object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-2">
+                        <h3 className="text-xs font-medium line-clamp-2 text-white">{movie.title}</h3>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Star className="h-3 w-3 text-netflix-gold" />
+                          <span className="text-xs text-white">
+                            {movie.averageRating !== undefined ? movie.averageRating.toFixed(1) : movie.duration_minutes ? `${movie.duration_minutes} min` : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              <ScrollBar className="opacity-0 h-1" orientation="horizontal" />
+            </ScrollArea>
+          </div>
+        </section>
+      ))}
+
+      <section className="py-6">
+        <div className="container mx-auto px-4">
           <h2 className="text-xl font-bold mb-4 text-foreground">Trending Now</h2>
           
-          <div className={movieRowContainer}>
-            {trendingMovies.slice(0, 10).map((movie) => (
-              <Link
-                to={`/movie/${movie.id}`}
-                key={movie.id}
-                className={movieCardWidth + " group"}
-              >
-                <div className="aspect-[2/3] bg-card rounded-md overflow-hidden relative shadow-md hover:shadow-lg transition-all duration-300">
-                  <img
-                    src={movie.thumbnail_url}
-                    alt={movie.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute bottom-0 left-0 right-0 p-2 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                    <h3 className="text-white text-xs font-semibold line-clamp-2">{movie.title}</h3>
-                    <p className="text-gray-300 text-xs mt-1">
-                      {movie.language || 'Amharic'}
-                    </p>
+          <ScrollArea className="w-full">
+            <div className="flex gap-3 py-1">
+              {trendingMovies.map((movie) => (
+                <Link
+                  to={`/movie/${movie.id}`}
+                  key={movie.id}
+                  className={movieCardClass}
+                >
+                  <div className="relative rounded-lg overflow-hidden bg-card shadow-md hover:shadow-lg transition-all duration-300">
+                    <img
+                      src={movie.thumbnail_url}
+                      alt={movie.title}
+                      className="w-full aspect-[2/3] object-cover"
+                    />
+                    <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-2">
+                      <h3 className="text-xs font-medium line-clamp-2 text-white">{movie.title}</h3>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Star className="h-3 w-3 text-netflix-gold" />
+                        <span className="text-xs text-white">
+                          {movie.averageRating !== undefined ? movie.averageRating.toFixed(1) : movie.duration_minutes ? `${movie.duration_minutes} min` : '-'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+            <ScrollBar className="opacity-0 h-1" orientation="horizontal" />
+          </ScrollArea>
         </div>
       </section>
     </div>

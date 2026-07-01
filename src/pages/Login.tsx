@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AuthError } from "@supabase/supabase-js";
+import { checkIsAdmin } from "@/utils/auth";
+import { fetchUserLocation } from "@/utils/location";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +15,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { fetchUserLocation } from "@/utils/location";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -52,7 +53,7 @@ const Login = () => {
   };
 
   const formatPhoneNumber = (phone: string) => {
-    const cleaned = phone.replace(/[^\d+]/g, '');
+    const cleaned = phone.replace(/[^\\d+]/g, '');
     if (!cleaned.startsWith('+')) {
       return `+251${cleaned.startsWith('0') ? cleaned.slice(1) : cleaned}`;
     }
@@ -60,7 +61,7 @@ const Login = () => {
   };
 
   const isValidPhoneNumber = (phone: string) => {
-    const phoneRegex = /^\+251[0-9]{9}$/;
+    const phoneRegex = /^\\+251[0-9]{9}$/;
     return phoneRegex.test(phone);
   };
 
@@ -80,17 +81,17 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const isPhone = formData.identifier.includes('+') || /^\d+$/.test(formData.identifier);
+      const isPhone = formData.identifier.includes('+') || /^\\d+$/.test(formData.identifier);
       let email = formData.identifier;
-      
+
       if (isPhone) {
         const formattedPhone = formatPhoneNumber(formData.identifier);
-        
+
         if (!isValidPhoneNumber(formattedPhone)) {
-          setError("Invalid phone number format. Please use format: +251912345678");
-          throw new Error("Invalid phone number format. Please use format: +251912345678");
+          setError("Invalid phone number format. Please use format: +251****5678");
+          throw new Error("Invalid phone number format. Please use format: +251****5678");
         }
-        
+
         email = `${formattedPhone}@placeholder.com`;
         console.log('Attempting login with phone:', formattedPhone);
       } else {
@@ -123,22 +124,30 @@ const Login = () => {
         }
       }
 
+      // Check if user is admin and redirect accordingly
+      if (data.user) {
+        const isAdmin = await checkIsAdmin(data.user.id);
+        if (isAdmin) {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/");
+        }
+      }
+
       toast({
         title: "Success",
         description: "Successfully logged in!",
         duration: 2000,
       });
-      navigate("/");
     } catch (error: any) {
       console.error('Login error:', error);
       setError(getErrorMessage(error));
-      
+
       toast({
         variant: "destructive",
         title: "Login Failed",
         description: getErrorMessage(error),
       });
-      
     } finally {
       setLoading(false);
     }
@@ -179,7 +188,7 @@ const Login = () => {
           <h2 className="text-4xl font-bold text-netflix-red">Sign In</h2>
           <p className="mt-2 text-gray-300">Welcome back to አማርኛFlix</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
             {error && (
@@ -234,8 +243,8 @@ const Login = () => {
             </div>
           </div>
 
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             className="w-full bg-netflix-red hover:bg-netflix-red/90"
             disabled={loading}
           >

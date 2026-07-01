@@ -37,7 +37,7 @@ const Navbar = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user) {
-        checkIsAdmin(session.user.id).then(setIsAdmin);
+        checkIsAdmin(session.user.id).then((val) => { setIsAdmin(val); console.log('Navbar: isAdmin=', val); });
         fetchNotifications(session.user.id);
         
         // Update user status to registered if they're logged in
@@ -52,7 +52,7 @@ const Navbar = () => {
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) {
-        checkIsAdmin(session.user.id).then(setIsAdmin);
+        checkIsAdmin(session.user.id).then((val) => { setIsAdmin(val); console.log('Navbar (auth change): isAdmin=', val); });
         fetchNotifications(session.user.id);
         
         // Update user status to registered on auth state change

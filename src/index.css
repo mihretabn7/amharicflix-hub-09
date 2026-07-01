@@ -44,6 +44,22 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden !important;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  html {
+    overflow-x: hidden !important;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
   /* Add responsive padding to account for the fixed header */
   main {
@@ -61,6 +77,36 @@
 
 .hero-gradient {
   @apply absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent;
+}
+
+/* Ensure hero images don't cause horizontal overflow */
+.netflix-hero-img,
+.netflix-hero,
+.hero-image {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Hide scrollbars for containers that use the no-scrollbar helper */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Hide scrollbars in any Radix scroll area viewport */
+[data-radix-scroll-area-viewport] {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 /* Mobile optimizations */
